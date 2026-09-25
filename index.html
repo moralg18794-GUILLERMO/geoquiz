@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeoQuiz — Guerras & Conflictos</title>
+<meta name="description" content="Trivia de geopolítica, guerras y conflictos: 411 preguntas en 13 categorías, cinco modos de juego y línea temporal.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗺️</text></svg>">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="app">
+
+  <!-- TRANSITION OVERLAY -->
+  <div class="cat-transition" id="cat-transition">
+    <div class="ct-icon" id="ct-icon">⚔️</div>
+    <div class="ct-name" id="ct-name">—</div>
+    <div class="ct-era" id="ct-era">—</div>
+  </div>
+
+  <!-- STREAK BANNER -->
+  <div class="streak-banner" id="streak-banner">🔥 ¡Racha x3!</div>
+
+  <header class="site-header" id="site-header">
+    <button class="sound-toggle" id="sound-toggle">🔊</button>
+    <div class="header-flash" id="header-flash"></div>
+    <div class="eyebrow">⚔ Trivia estratégica</div>
+    <h1>Geo<em>Quiz</em></h1>
+    <p class="tagline">Guerras, conflictos y poder global a través de los siglos</p>
+    <div class="header-nav">
+      <button class="nav-btn active" onclick="showTab('menu')">Jugar</button>
+      <button class="nav-btn" onclick="showTab('records')">Récords</button>
+      <button class="nav-btn" onclick="showTab('ranking')">Ranking</button>
+    </div>
+    <span class="era-label" id="era-label"></span>
+  </header>
+
+  <!-- MENU -->
+  <div id="screen-menu" class="screen active">
+    <div class="challenge-banner" id="challenge-banner">
+      <div class="cb-title">🎯 Alguien te ha retado</div>
+      <div class="cb-score" id="cb-score">—</div>
+      <div class="cb-detail" id="cb-detail">—</div>
+    </div>
+    <p class="section-label">Modo de juego:</p>
+    <div class="mode-row" id="mode-row">
+      <button class="mode-btn active" data-mode="solo"><span class="mi">🎯</span><span class="mn">Solo</span><span class="md">Timer por pregunta</span></button>
+      <button class="mode-btn" data-mode="blitz"><span class="mi">⚡</span><span class="mn">Blitz</span><span class="md">60s para todo</span></button>
+      <button class="mode-btn" data-mode="survival"><span class="mi">💀</span><span class="mn">Supervivencia</span><span class="md">Hasta morir</span></button>
+      <button class="mode-btn" data-mode="crono"><span class="mi">📅</span><span class="mn">Cronológico</span><span class="md">Ordena eventos</span></button>
+      <button class="mode-btn" data-mode="duel"><span class="mi">⚔️</span><span class="mn">Duelo</span><span class="md">2 jugadores</span></button>
+    </div>
+    <div id="duel-names" style="display:none;gap:10px;margin-bottom:1.25rem;">
+      <input id="p1name" placeholder="Jugador 1" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:0.6rem 0.9rem;font-size:13px;color:var(--text);font-family:'Inter',sans-serif;">
+      <input id="p2name" placeholder="Jugador 2" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:0.6rem 0.9rem;font-size:13px;color:var(--text);font-family:'Inter',sans-serif;">
+    </div>
+    <div id="cat-diff-section">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;">
+      <p class="section-label" style="margin-bottom:0">Categorías:</p>
+      <button id="select-all-btn" onclick="toggleAllCats()" style="background:transparent;border:1px solid var(--border2);border-radius:20px;padding:3px 12px;font-size:12px;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.15s;">Seleccionar todas</button>
+    </div>
+    <div class="cat-grid" id="cat-grid"></div>
+    <p class="section-label">Dificultad:</p>
+    <div class="diff-row" id="diff-row">
+      <button class="diff-btn active" data-diff="all">Todas</button>
+      <button class="diff-btn" data-diff="facil">Fácil</button>
+      <button class="diff-btn" data-diff="medio">Medio</button>
+      <button class="diff-btn" data-diff="dificil">Difícil</button>
+    </div>
+    </div>
+    <div id="crono-info" style="display:none;background:var(--accent-dim);border:1px solid rgba(201,168,76,0.3);border-radius:var(--radius);padding:0.9rem 1rem;margin-bottom:1.25rem;font-size:13px;color:var(--muted);line-height:1.5;">📅 En el modo <strong style="color:var(--accent)">Cronológico</strong> ordenarás eventos de <strong style="color:var(--text)">todas las épocas</strong> en la línea del tiempo, del más antiguo al más reciente. No hace falta elegir categorías.</div>
+    <button class="start-btn" id="start-btn" disabled>Selecciona al menos una categoría</button>
+  </div>
+
+  <!-- RECORDS -->
+  <div id="screen-records" class="screen"></div>
+
+  <!-- RANKING -->
+  <div id="screen-ranking" class="screen"></div>
+
+  <!-- GAME -->
+  <div id="screen-game" class="screen">
+    <div id="solo-hud" class="hud">
+      <div class="hud-stat"><div class="val" id="hud-score">0</div><div class="lbl">Puntos</div></div>
+      <div class="hud-stat" id="hud-mult-wrap" style="display:none;"><div class="val" id="hud-mult">x1</div><div class="lbl">Mult.</div></div>
+      <div class="hud-progress">
+        <div class="prog-label" id="prog-label">Pregunta 1 de 10</div>
+        <div class="prog-track"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+      </div>
+      <div class="lives" id="lives-wrap"></div>
+      <div class="timer-wrap" id="timer-wrap">
+        <svg class="timer-ring" viewBox="0 0 44 44">
+          <circle class="timer-bg" cx="22" cy="22" r="18"/>
+          <circle class="timer-arc" id="timer-arc" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="0"/>
+        </svg>
+        <div class="timer-num" id="timer-num">20</div>
+      </div>
+    </div>
+    <div id="blitz-bar" class="blitz-bar" style="display:none;">
+      <div class="blitz-top"><span>Modo Blitz ⚡</span><span id="blitz-time">60s</span></div>
+      <div class="prog-track"><div id="blitz-fill" style="background:var(--accent);height:5px;border-radius:4px;width:100%;transition:width 0.5s linear;"></div></div>
+    </div>
+    <div id="survival-label" class="survival-label" style="display:none;">Modo Supervivencia 💀 — Pregunta <span id="surv-num">1</span></div>
+    <div id="duel-hud-wrap" style="display:none;">
+      <div class="duel-turn" id="duel-turn">Turno de Jugador 1</div>
+      <div class="duel-hud">
+        <div class="duel-player active" id="dp1"><div class="dp-name" id="dp1-name">J1</div><div class="dp-score" id="dp1-score">0</div><div class="dp-lives" id="dp1-lives">❤️❤️❤️</div></div>
+        <div class="duel-player" id="dp2"><div class="dp-name" id="dp2-name">J2</div><div class="dp-score" id="dp2-score">0</div><div class="dp-lives" id="dp2-lives">❤️❤️❤️</div></div>
+      </div>
+    </div>
+    <div class="q-card" id="q-card">
+      <div class="q-meta">
+        <span class="q-cat-tag" id="q-cat">—</span>
+        <span class="q-diff-tag" id="q-diff">—</span>
+        <span class="q-pts" id="q-pts">+100 pts</span>
+        <div class="hint-btns">
+          <button class="hint-btn" id="hint-5050" onclick="useHint('5050')">50:50</button>
+          <button class="hint-btn" id="hint-dato" onclick="useHint('dato')">💬 Dato</button>
+          <button class="hint-btn" id="hint-skip" onclick="useHint('skip')">⏭ Saltar</button>
+        </div>
+      </div>
+      <div class="q-text" id="q-text"></div>
+      <div class="options" id="options"></div>
+      <div id="explanation"></div>
+    </div>
+    <button class="next-btn" id="next-btn" style="display:none">Siguiente pregunta →</button>
+  </div>
+
+  <!-- CRONO -->
+  <div id="screen-crono" class="screen">
+    <div id="crono-hud" class="hud">
+      <div class="hud-stat"><div class="val" id="crono-score">0</div><div class="lbl">Puntos</div></div>
+      <div class="hud-progress">
+        <div class="prog-label" id="crono-prog-label">Ronda 1 de 8</div>
+        <div class="prog-track"><div class="prog-fill" id="crono-prog-fill" style="width:0%"></div></div>
+      </div>
+      <div class="timer-wrap">
+        <svg class="timer-ring" viewBox="0 0 44 44">
+          <circle class="timer-bg" cx="22" cy="22" r="18"/>
+          <circle class="timer-arc" id="crono-timer-arc" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="0"/>
+        </svg>
+        <div class="timer-num" id="crono-timer-num">45</div>
+      </div>
+    </div>
+    <div class="crono-card" id="crono-card">
+      <div class="crono-instruction">Arrastra los eventos del más antiguo <span style="color:var(--accent)">↑</span> al más reciente <span style="color:var(--accent)">↓</span></div>
+      <div class="crono-list" id="crono-list"></div>
+      <button class="crono-confirm-btn" id="crono-confirm-btn" onclick="confirmCrono()">✓ Confirmar orden</button>
+      <div id="crono-feedback"></div>
+    </div>
+    <button class="next-btn" id="crono-next-btn" style="display:none" onclick="nextCrono()">Siguiente ronda →</button>
+  </div>
+
+  <!-- RESULT -->
+  <div id="screen-result" class="screen">
+    <div class="result-hero" id="result-hero"></div>
+  </div>
+
+</div>
+
+<div class="share-toast" id="share-toast">¡Copiado!</div>
+
+<!-- El orden de carga importa: datos → estado → utilidades → pantallas → arranque. -->
+<script src="js/data/questions.js"></script>
+<script src="js/data/events.js"></script>
+<script src="js/state.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/crono.js"></script>
+<script src="js/game.js"></script>
+<script src="js/menu.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
