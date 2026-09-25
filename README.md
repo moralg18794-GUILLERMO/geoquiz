@@ -162,3 +162,17 @@ Si cambias de dominio, acuérdate de actualizar la URL en `js/game.js` y `js/cro
   que hasta ahora apuntaban al CodePen original.
 - **2026-09-26** — Añadidas 90 preguntas (411 → 501) para igualar las categorías más
   flojas, y 30 eventos cronológicos (72 → 102).
+
+## Caché al actualizar
+
+Hostinger sirve los `.js` y `.css` con `Cache-Control: max-age=604800` (7 días), así que
+quien ya haya jugado seguiría viendo la versión antigua durante una semana. `index.html`
+sí se revalida en cada visita, y por eso las rutas de los recursos llevan una versión:
+
+```html
+<script src="js/data/questions.js?v=20260926"></script>
+```
+
+**Cada vez que despliegues un cambio hay que subir ese número** en las 12 rutas de
+`index.html` (un buscar y reemplazar). Si no, quien repita no verá el contenido nuevo.
+GitHub Pages no tiene este problema: cachea solo 10 minutos.
