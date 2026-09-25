@@ -8,7 +8,7 @@ function startGame(){
   const selected=gameMode==='survival'?shuffle(fresh):shuffle(fresh).slice(0,10);
   selected.forEach(q=>seenQ.add(q.q));
   gameQ=selected;current=0;score=0;correct=0;wrong=0;lives=3;maxStreak=0;streak=0;skipped=0;
-  hint5050=true;hintSkip=true;hintDato=true;answered=false;blitzLeft=60;lastCat='';
+  hint5050=true;hintSkip=true;hintDato=true;answered=false;blitzLeft=60;timeLeft=20;lastCat='';
   if(gameMode==='duel'){
     duel.p1.name=document.getElementById('p1name').value||'Jugador 1';
     duel.p2.name=document.getElementById('p2name').value||'Jugador 2';
@@ -112,6 +112,7 @@ function timeOutAnswer(){
 function renderQuestion(){
   answered=false;
   const q=gameQ[current];
+  shuffleOptions(q);
   const catChanged=q.cat!==lastCat&&lastCat!=='';
 
   const doRender=()=>{
@@ -338,8 +339,8 @@ function copyResult(){
 
 function copyChallenge(){
   const pct=Math.round((correct/Math.max(correct+wrong,1))*100);
-  // URL pública del juego (ver README). Si cambias de dominio, cámbiala aquí y en js/crono.js
-  const gameURL='https://mediumturquoise-dugong-529601.hostingersite.com/';
+  // El enlace del reto se construye desde la URL actual, así funciona en cualquier dominio
+  const gameURL=generateChallengeURL();
   const text=`🗺️ ¡Te reto en GeoQuiz!\n\nHe conseguido:\n⭐ ${score.toLocaleString()} puntos\n✅ ${correct} correctas (${pct}%)${gameMode==='crono'?'':`\n🎯 Dificultad: ${diffLabel(selectedDiff)}`}\n🔥 Racha máxima: ${maxStreak}\n\n¿Puedes superarme? Juega aquí:\n${gameURL}`;
   navigator.clipboard.writeText(text).then(()=>toast('¡Reto copiado! Pégalo a tus amigos')).catch(()=>{
     // Fallback if clipboard fails

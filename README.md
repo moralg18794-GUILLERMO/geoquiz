@@ -79,7 +79,8 @@ Una pregunta = **una línea** al final del array de `js/data/questions.js`:
   se generan a partir de los valores que aparezcan aquí: un `cat` mal escrito crea una
   categoría nueva sin color ni icono).
 - `pts` debe ir en pareja con `diff`: facil→100, medio→200, dificil→300.
-- `ans` es el índice (0-3) de la opción correcta dentro de `opts`.
+- `ans` es el índice (0-3) de la opción correcta dentro de `opts`. No importa en qué posición
+  la pongas: las opciones se mezclan al renderizar cada pregunta (`shuffleOptions()` en `js/utils.js`).
 - **La línea debe terminar en `},`**, incluida la última del array. Si falta la coma, el
   archivo entero deja de cargar y el juego se queda en blanco.
 - No uses comillas dobles dentro de los textos: el archivo no las escapa.
@@ -114,35 +115,16 @@ Si cambias de dominio, acuérdate de actualizar la URL en `js/game.js` y `js/cro
 
 ## Problemas conocidos (pendientes de decidir)
 
-1. **92 preguntas duplicadas reformuladas.** Además de las 98 copias literales ya
-   eliminadas, quedan ~92 parejas que preguntan lo mismo con otras palabras
-   ("¿En qué año se proclamó la independencia de Grecia?" y "…de Grecia del Imperio
-   Otomano?"). Comparten categoría y respuesta correcta. Limpiarlas dejaría el banco
-   en unas 409 preguntas realmente distintas.
-2. **La respuesta correcta tiende a ser la B.** Reparto de `ans` sobre las 501:
-   A 85, B 224, C 169, D 23. Las opciones se pintan en orden fijo, así que pulsar siempre
-   B acierta el 45 % de las veces. Solución: mezclar `opts` al renderizar.
-   (Las 90 preguntas añadidas en 2026 sí están repartidas: 24/26/24/16.)
-3. **Bonus de tiempo incorrecto en Blitz.** `pick()` calcula el bonus con `timeLeft/20`,
-   pero en Blitz no se usa ese temporizador y `timeLeft` no se reinicia en `startGame()`:
-   arrastra el valor de la partida anterior.
-4. **`generateChallengeURL()` no se usa.** `copyChallenge()` comparte una URL fija en su
-   lugar, así que el banner "alguien te ha retado" (implementado y funcional, responde a
-   `?challenge=1&s=…`) no llega a verse nunca. Usar esa función tendría además la ventaja
-   de que el enlace apuntaría solo al dominio desde el que se está jugando.
-5. **Una pregunta contiene su propia respuesta:** "¿Qué sultán saladin conquistó Jerusalén
-   en 1187…?" (en `questions.js`).
-6. **Una pregunta está a medio traducir:** "¿Qué Second Sino-Japanese War comenzó en 1937?"
-7. **Categoría mal asignada:** "¿Quién lideró la primera gran invasión mongola de Persia
-   y Asia Central en el s. XIII?" está en Antigüedad, no en Edad Media.
-8. **CSS muerto:** `.cat-count` existe pero las tarjetas de categoría no muestran el número
+1. **CSS muerto:** `.cat-count` existe pero las tarjetas de categoría no muestran el número
    de preguntas.
-9. **`prompt()` para pedir el nombre** bloquea la página y está desactivado en algunos
-   navegadores móviles y webviews.
-10. **El nombre del ranking se pinta con `innerHTML`.** Hoy es inofensivo (solo afecta a tu
-    propio navegador), pero **hay que escaparlo antes de pasar el ranking a la nube**.
-11. En el modo Cronológico, dos eventos del mismo año se dan por correctos en cualquier
-    orden. Puede ser intencionado.
+2. **`prompt()` para pedir el nombre** bloquea la página al terminar la partida y está
+   desactivado en algunos navegadores móviles y webviews.
+3. **El nombre del ranking se pinta con `innerHTML`.** Hoy es inofensivo (solo afecta a tu
+   propio navegador), pero **hay que escaparlo antes de pasar el ranking a la nube**.
+4. En el modo Cronológico, dos eventos del mismo año se dan por correctos en cualquier
+   orden. Puede ser intencionado.
+5. Quedan **dos preguntas de Era Napoleónica que responden "2"** (veces que fue exiliado y
+   veces que se casó). Son distintas, pero pueden salir juntas en la misma partida.
 
 ## Ideas pendientes
 
@@ -156,12 +138,19 @@ Si cambias de dominio, acuérdate de actualizar la URL en `js/game.js` y `js/cro
   HTML + CSS + 11 archivos JS, con los datos aislados. Verificado que el CSS y el `<body>`
   quedan byte a byte idénticos al original.
 - **2026-09-25** — Eliminadas 98 preguntas duplicadas literales (509 → 411).
-  Detalle en [`docs/duplicados-eliminados.md`](docs/duplicados-eliminados.md).
 - **2026-09-25** — Publicado en GitHub Pages.
 - **2026-09-26** — Publicado también en Hostinger y actualizadas las URLs de compartir,
-  que hasta ahora apuntaban al CodePen original.
-- **2026-09-26** — Añadidas 90 preguntas (411 → 501) para igualar las categorías más
-  flojas, y 30 eventos cronológicos (72 → 102).
+  que hasta entonces apuntaban al CodePen original.
+- **2026-09-26** — Añadidas 90 preguntas (411 → 501) y 30 eventos cronológicos (72 → 102).
+- **2026-09-26** — Segunda limpieza: 97 duplicados reformulados (501 → 404) y reposición
+  con 97 preguntas nuevas (404 → 501), dejando todas las categorías en 38-39.
+  Detalle de ambas limpiezas en [`docs/duplicados-eliminados.md`](docs/duplicados-eliminados.md).
+- **2026-09-26** — Arreglados cuatro defectos: las opciones ahora se mezclan al renderizar
+  (antes la correcta era la B casi la mitad de las veces), el bonus de tiempo de Blitz ya no
+  arrastra el contador de la partida anterior, el botón de retar genera un enlace con la
+  puntuación (el banner "alguien te ha retado" nunca se había llegado a ver) y se corrigieron
+  tres preguntas defectuosas: una que contenía su respuesta, una a medio traducir y otra
+  cuyo enunciado no casaba con sus opciones.
 
 ## Caché al actualizar
 
@@ -170,7 +159,7 @@ quien ya haya jugado seguiría viendo la versión antigua durante una semana. `i
 sí se revalida en cada visita, y por eso las rutas de los recursos llevan una versión:
 
 ```html
-<script src="js/data/questions.js?v=20260926"></script>
+<script src="js/data/questions.js?v=20260926-2"></script>
 ```
 
 **Cada vez que despliegues un cambio hay que subir ese número** en las 12 rutas de
