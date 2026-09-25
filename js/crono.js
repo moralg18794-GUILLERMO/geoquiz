@@ -220,7 +220,7 @@ function showCronoResult(){
 
 function copyCronoResult(){
   const pct=Math.round((cronoScore/(cronoTotal*800))*100);
-  const gameURL='https://codepen.io/Guillermo-Moral/full/emgzRja';
+  const gameURL='https://mediumturquoise-dugong-529601.hostingersite.com/';
   const text=`🗺️ GeoQuiz — Modo Cronológico\n📅 Ordené eventos históricos en la línea del tiempo\n⭐ ${cronoScore.toLocaleString()} puntos · ${cronoTotal} rondas (${pct}%)\n\n¿Puedes superarme? Juega aquí:\n${gameURL}`;
   navigator.clipboard.writeText(text).then(()=>toast('¡Resultado copiado!')).catch(()=>toast('No se pudo copiar'));
 }

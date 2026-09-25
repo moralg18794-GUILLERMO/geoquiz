@@ -338,11 +338,11 @@ function copyResult(){
 
 function copyChallenge(){
   const pct=Math.round((correct/Math.max(correct+wrong,1))*100);
-  // Use the CodePen full-page URL so friends can play directly
-  const gameURL='https://codepen.io/Guillermo-Moral/full/emgzRja';
+  // URL pública del juego (ver README). Si cambias de dominio, cámbiala aquí y en js/crono.js
+  const gameURL='https://mediumturquoise-dugong-529601.hostingersite.com/';
   const text=`🗺️ ¡Te reto en GeoQuiz!\n\nHe conseguido:\n⭐ ${score.toLocaleString()} puntos\n✅ ${correct} correctas (${pct}%)${gameMode==='crono'?'':`\n🎯 Dificultad: ${diffLabel(selectedDiff)}`}\n🔥 Racha máxima: ${maxStreak}\n\n¿Puedes superarme? Juega aquí:\n${gameURL}`;
   navigator.clipboard.writeText(text).then(()=>toast('¡Reto copiado! Pégalo a tus amigos')).catch(()=>{
     // Fallback if clipboard fails
-    toast('Copia manualmente el enlace del Pen');
+    toast('Copia manualmente el enlace del juego');
   });
 }
