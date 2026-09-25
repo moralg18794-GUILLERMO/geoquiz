@@ -4,7 +4,7 @@ Juego de trivia sobre geopolítica, guerras y conflictos, en español.
 Sitio estático puro: **sin dependencias, sin frameworks y sin proceso de build**.
 Se abre haciendo doble clic en `index.html` y se publica subiendo la carpeta tal cual.
 
-**Jugar online:** _(pendiente: se rellena al desplegar)_
+**Jugar online:** https://moralg18794-guillermo.github.io/geoquiz/
 
 ---
 
@@ -116,3 +116,15 @@ En `js/data/events.js`. `year` negativo significa a.C.:
   quedan byte a byte idénticos al original.
 - **2026-09-25** — Eliminadas 98 preguntas duplicadas (de 509 entradas a 411 únicas).
   Detalle en [`docs/duplicados-eliminados.md`](docs/duplicados-eliminados.md).
+
+## Despliegue
+
+Publicado con **GitHub Pages** desde la rama `main`, carpeta raíz.
+Cada `git push` a `main` republica el sitio en un minuto aproximadamente:
+
+```bash
+git add -A && git commit -m "descripción del cambio" && git push
+```
+
+Estado del último despliegue: pestaña **Actions** del repositorio, o
+`gh api repos/moralg18794-GUILLERMO/geoquiz/pages/builds/latest -q .status`.
