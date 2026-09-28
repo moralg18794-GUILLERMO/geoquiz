@@ -17,6 +17,19 @@ function esc(v){
   return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+// Abre WhatsApp con el texto ya escrito: en el móvil lo recoge la aplicación y en
+// el escritorio, WhatsApp Web. No hace falta número: wa.me sin destinatario deja
+// elegir el chat.
+function compartirWhatsApp(texto){
+  window.open('https://wa.me/?text='+encodeURIComponent(texto),'_blank','noopener');
+}
+
+// Texto para invitar a jugar, sin puntuación: el que se manda desde el menú.
+function textoInvitacion(){
+  const url=window.location.href.split('?')[0];
+  return `🗺️ Te reto en GeoQuiz: 521 preguntas de guerras, conflictos y geopolítica, de la Antigüedad a Ucrania.\n\nSeis modos y ranking compartido, a ver quién queda arriba:\n${url}`;
+}
+
 function toast(msg){
   const t=document.getElementById('share-toast');
   t.textContent=msg;t.classList.add('show');

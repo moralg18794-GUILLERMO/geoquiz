@@ -212,15 +212,19 @@ function showCronoResult(){
     <div class="result-rank">${rank}</div>
     <div class="result-msg">${msg}</div>
     <div class="result-actions" style="margin-top:1.5rem">
+      <button class="btn-whatsapp" onclick="compartirWhatsApp(textoCrono())">💬 WhatsApp</button>
       <button class="btn-secondary" onclick="copyCronoResult()">📋 Copiar</button>
       <button class="btn-primary" onclick="goMenu()">Jugar de nuevo</button>
     </div>`;
   showScreen('screen-result');
 }
 
-function copyCronoResult(){
+function textoCrono(){
   const pct=Math.round((cronoScore/(cronoTotal*800))*100);
   const gameURL=window.location.href.split('?')[0];
-  const text=`🗺️ GeoQuiz — Modo Cronológico\n📅 Ordené eventos históricos en la línea del tiempo\n⭐ ${cronoScore.toLocaleString()} puntos · ${cronoTotal} rondas (${pct}%)\n\n¿Puedes superarme? Juega aquí:\n${gameURL}`;
-  navigator.clipboard.writeText(text).then(()=>toast('¡Resultado copiado!')).catch(()=>toast('No se pudo copiar'));
+  return `🗺️ GeoQuiz — Modo Cronológico\n📅 Ordené eventos históricos en la línea del tiempo\n⭐ ${cronoScore.toLocaleString()} puntos · ${cronoTotal} rondas (${pct}%)\n\n¿Puedes superarme? Juega aquí:\n${gameURL}`;
+}
+
+function copyCronoResult(){
+  navigator.clipboard.writeText(textoCrono()).then(()=>toast('¡Resultado copiado!')).catch(()=>toast('No se pudo copiar'));
 }

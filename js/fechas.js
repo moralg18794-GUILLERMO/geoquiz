@@ -184,15 +184,19 @@ function showFechasResult(){
     <div class="result-rank">${rank}</div>
     <div class="result-msg">${msg}</div>
     <div class="result-actions" style="margin-top:1.5rem">
+      <button class="btn-whatsapp" onclick="compartirWhatsApp(textoFechas())">💬 WhatsApp</button>
       <button class="btn-secondary" onclick="copyFechasResult()">📋 Copiar</button>
       <button class="btn-primary" onclick="goMenu()">Jugar de nuevo</button>
     </div>`;
   showScreen('screen-result');
 }
 
-function copyFechasResult(){
+function textoFechas(){
   const pct=Math.round((fechasScore/(fechasTotal*800))*100);
   const gameURL=window.location.href.split('?')[0];
-  const text=`🗺️ GeoQuiz — Modo Fechas\n🔗 Emparejé eventos históricos con su año\n⭐ ${fechasScore.toLocaleString()} puntos · ${fechasTotal} rondas (${pct}%)\n\n¿Puedes superarme? Juega aquí:\n${gameURL}`;
-  navigator.clipboard.writeText(text).then(()=>toast('¡Resultado copiado!')).catch(()=>toast('No se pudo copiar'));
+  return `🗺️ GeoQuiz — Modo Fechas\n🔗 Emparejé eventos históricos con su año\n⭐ ${fechasScore.toLocaleString()} puntos · ${fechasTotal} rondas (${pct}%)\n\n¿Puedes superarme? Juega aquí:\n${gameURL}`;
+}
+
+function copyFechasResult(){
+  navigator.clipboard.writeText(textoFechas()).then(()=>toast('¡Resultado copiado!')).catch(()=>toast('No se pudo copiar'));
 }

@@ -21,7 +21,7 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="GeoQuiz — Guerras, conflictos y poder global a través de los siglos">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="stylesheet" href="css/styles.css?v=20260928d">
+<link rel="stylesheet" href="css/styles.css?v=20260928e">
 </head>
 <body>
 <div class="app">
@@ -92,6 +92,7 @@
     <div id="crono-info" style="display:none;background:var(--accent-dim);border:1px solid rgba(201,168,76,0.3);border-radius:var(--radius);padding:0.9rem 1rem;margin-bottom:1.25rem;font-size:13px;color:var(--muted);line-height:1.5;">📅 En el modo <strong style="color:var(--accent)">Cronológico</strong> ordenarás eventos de <strong style="color:var(--text)">todas las épocas</strong> en la línea del tiempo, del más antiguo al más reciente. No hace falta elegir categorías.</div>
     <div id="fechas-info" style="display:none;background:var(--accent-dim);border:1px solid rgba(201,168,76,0.3);border-radius:var(--radius);padding:0.9rem 1rem;margin-bottom:1.25rem;font-size:13px;color:var(--muted);line-height:1.5;">🔗 En el modo <strong style="color:var(--accent)">Fechas</strong> emparejarás cada evento con su año. Los cinco de cada ronda son <strong style="color:var(--text)">cercanos en el tiempo</strong>, así que no vale con distinguir a ojo la Antigüedad del siglo XX. No hace falta elegir categorías.</div>
     <button class="start-btn" id="start-btn" disabled>Selecciona al menos una categoría</button>
+    <button class="invitar-btn" onclick="compartirWhatsApp(textoInvitacion())">💬 Invitar por WhatsApp</button>
   </div>
 
   <!-- RECORDS -->
@@ -213,18 +214,18 @@
 <div class="share-toast" id="share-toast">¡Copiado!</div>
 
 <!-- El orden de carga importa: datos → estado → utilidades → pantallas → arranque. -->
-<script src="js/data/questions.js?v=20260928d"></script>
-<script src="js/data/events.js?v=20260928d"></script>
-<script src="js/state.js?v=20260928d"></script>
-<script src="js/audio.js?v=20260928d"></script>
-<script src="js/utils.js?v=20260928d"></script>
-<script src="js/nube.js?v=20260928d"></script>
-<script src="js/theme.js?v=20260928d"></script>
-<script src="js/storage.js?v=20260928d"></script>
-<script src="js/crono.js?v=20260928d"></script>
-<script src="js/fechas.js?v=20260928d"></script>
-<script src="js/game.js?v=20260928d"></script>
-<script src="js/menu.js?v=20260928d"></script>
-<script src="js/main.js?v=20260928d"></script>
+<script src="js/data/questions.js?v=20260928e"></script>
+<script src="js/data/events.js?v=20260928e"></script>
+<script src="js/state.js?v=20260928e"></script>
+<script src="js/audio.js?v=20260928e"></script>
+<script src="js/utils.js?v=20260928e"></script>
+<script src="js/nube.js?v=20260928e"></script>
+<script src="js/theme.js?v=20260928e"></script>
+<script src="js/storage.js?v=20260928e"></script>
+<script src="js/crono.js?v=20260928e"></script>
+<script src="js/fechas.js?v=20260928e"></script>
+<script src="js/game.js?v=20260928e"></script>
+<script src="js/menu.js?v=20260928e"></script>
+<script src="js/main.js?v=20260928e"></script>
 </body>
 </html>

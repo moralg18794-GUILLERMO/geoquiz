@@ -276,7 +276,8 @@ function showResult(){
         </div>
       </div>
       <div class="result-actions">
-        <button class="btn-secondary" onclick="copyResult()">📋 Copiar resultado</button>
+        <button class="btn-whatsapp" onclick="compartirWhatsApp(textoDuelo())">💬 WhatsApp</button>
+        <button class="btn-secondary" onclick="copyResult()">📋 Copiar</button>
         <button class="btn-primary" onclick="goMenu()">Jugar de nuevo</button>
       </div>`;
     showScreen('screen-result');return;
@@ -309,7 +310,8 @@ function showResult(){
     </div>
     <div class="result-actions">
       <button class="btn-secondary" onclick="copyResult()">📋 Copiar</button>
-      <button class="btn-challenge" onclick="copyChallenge()">🎯 Retar amigos</button>
+      <button class="btn-whatsapp" onclick="retarPorWhatsApp()">💬 WhatsApp</button>
+      <button class="btn-challenge" onclick="copyChallenge()">🎯 Copiar reto</button>
       <button class="btn-secondary" onclick="showTab('ranking')">🏆 Ranking</button>
       <button class="btn-primary" onclick="goMenu()">Jugar de nuevo</button>
     </div>`;
@@ -342,13 +344,26 @@ function copyResult(){
   navigator.clipboard.writeText(text).then(()=>toast('¡Resultado copiado!'));
 }
 
-function copyChallenge(){
+// El texto del reto lo comparten dos botones: el de copiar y el de WhatsApp.
+function textoReto(){
   const pct=Math.round((correct/Math.max(correct+wrong,1))*100);
   // El enlace del reto se construye desde la URL actual, así funciona en cualquier dominio
   const gameURL=generateChallengeURL();
-  const text=`🗺️ ¡Te reto en GeoQuiz!\n\nHe conseguido:\n⭐ ${score.toLocaleString()} puntos\n✅ ${correct} correctas (${pct}%)${gameMode==='crono'?'':`\n🎯 Dificultad: ${diffLabel(selectedDiff)}`}\n🔥 Racha máxima: ${maxStreak}\n\n¿Puedes superarme? Juega aquí:\n${gameURL}`;
-  navigator.clipboard.writeText(text).then(()=>toast('¡Reto copiado! Pégalo a tus amigos')).catch(()=>{
+  return `🗺️ ¡Te reto en GeoQuiz!\n\nHe conseguido:\n⭐ ${score.toLocaleString()} puntos\n✅ ${correct} correctas (${pct}%)${gameMode==='crono'?'':`\n🎯 Dificultad: ${diffLabel(selectedDiff)}`}\n🔥 Racha máxima: ${maxStreak}\n\n¿Puedes superarme? Juega aquí:\n${gameURL}`;
+}
+
+function copyChallenge(){
+  navigator.clipboard.writeText(textoReto()).then(()=>toast('¡Reto copiado! Pégalo a tus amigos')).catch(()=>{
     // Fallback if clipboard fails
     toast('Copia manualmente el enlace del juego');
   });
+}
+
+function retarPorWhatsApp(){compartirWhatsApp(textoReto());}
+
+// El duelo no tiene una puntuación propia que retar: se comparte el marcador.
+function textoDuelo(){
+  const url=window.location.href.split('?')[0];
+  const gana=duel.p1.score>duel.p2.score?duel.p1:duel.p2.score>duel.p1.score?duel.p2:null;
+  return `⚔️ GeoQuiz — Duelo\n\n${duel.p1.name}: ${duel.p1.score} puntos\n${duel.p2.name}: ${duel.p2.score} puntos\n${gana?'🏆 Gana '+gana.name:'🤝 ¡Empate!'}\n\n¿Os atrevéis? Juega aquí:\n${url}`;
 }

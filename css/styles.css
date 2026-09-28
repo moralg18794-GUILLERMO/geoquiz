@@ -267,3 +267,9 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 
 /* FIRMA */
 .firma{margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--border);text-align:center;font-family:'Libre Baskerville',serif;font-size:12px;font-style:italic;line-height:1.7;color:var(--muted);opacity:0.75;}
+
+/* COMPARTIR POR WHATSAPP */
+.btn-whatsapp{background:rgba(37,211,102,0.12);color:#43d178;border:1px solid rgba(37,211,102,0.35);}
+.btn-whatsapp:hover{background:rgba(37,211,102,0.22);border-color:rgba(37,211,102,0.55);}
+.invitar-btn{width:100%;margin-top:0.6rem;background:transparent;border:1px solid rgba(37,211,102,0.35);border-radius:var(--radius);padding:0.7rem;font-size:13px;font-weight:500;font-family:'Inter',sans-serif;color:#43d178;cursor:pointer;transition:background 0.15s,border-color 0.15s;}
+.invitar-btn:hover{background:rgba(37,211,102,0.12);border-color:rgba(37,211,102,0.55);}
