@@ -48,6 +48,7 @@
       <button class="mode-btn" data-mode="blitz"><span class="mi">⚡</span><span class="mn">Blitz</span><span class="md">60s para todo</span></button>
       <button class="mode-btn" data-mode="survival"><span class="mi">💀</span><span class="mn">Supervivencia</span><span class="md">Hasta morir</span></button>
       <button class="mode-btn" data-mode="crono"><span class="mi">📅</span><span class="mn">Cronológico</span><span class="md">Ordena eventos</span></button>
+      <button class="mode-btn" data-mode="fechas"><span class="mi">🔗</span><span class="mn">Fechas</span><span class="md">Une evento y año</span></button>
       <button class="mode-btn" data-mode="duel"><span class="mi">⚔️</span><span class="mn">Duelo</span><span class="md">2 jugadores</span></button>
     </div>
     <div id="duel-names" style="display:none;gap:10px;margin-bottom:1.25rem;">
@@ -74,6 +75,7 @@
     </div>
     </div>
     <div id="crono-info" style="display:none;background:var(--accent-dim);border:1px solid rgba(201,168,76,0.3);border-radius:var(--radius);padding:0.9rem 1rem;margin-bottom:1.25rem;font-size:13px;color:var(--muted);line-height:1.5;">📅 En el modo <strong style="color:var(--accent)">Cronológico</strong> ordenarás eventos de <strong style="color:var(--text)">todas las épocas</strong> en la línea del tiempo, del más antiguo al más reciente. No hace falta elegir categorías.</div>
+    <div id="fechas-info" style="display:none;background:var(--accent-dim);border:1px solid rgba(201,168,76,0.3);border-radius:var(--radius);padding:0.9rem 1rem;margin-bottom:1.25rem;font-size:13px;color:var(--muted);line-height:1.5;">🔗 En el modo <strong style="color:var(--accent)">Fechas</strong> emparejarás cada evento con su año. Los cinco de cada ronda son <strong style="color:var(--text)">cercanos en el tiempo</strong>, así que no vale con distinguir a ojo la Antigüedad del siglo XX. No hace falta elegir categorías.</div>
     <button class="start-btn" id="start-btn" disabled>Selecciona al menos una categoría</button>
   </div>
 
@@ -156,6 +158,32 @@
     <button class="next-btn" id="crono-next-btn" style="display:none" onclick="nextCrono()">Siguiente ronda →</button>
   </div>
 
+  <!-- FECHAS -->
+  <div id="screen-fechas" class="screen">
+    <div id="fechas-hud" class="hud">
+      <div class="hud-stat"><div class="val" id="fechas-score">0</div><div class="lbl">Puntos</div></div>
+      <div class="hud-progress">
+        <div class="prog-label" id="fechas-prog-label">Ronda 1 de 5</div>
+        <div class="prog-track"><div class="prog-fill" id="fechas-prog-fill" style="width:0%"></div></div>
+      </div>
+      <div class="timer-wrap">
+        <svg class="timer-ring" viewBox="0 0 44 44">
+          <circle class="timer-bg" cx="22" cy="22" r="18"/>
+          <circle class="timer-arc" id="fechas-timer-arc" cx="22" cy="22" r="18" stroke-dasharray="113.1" stroke-dashoffset="0"/>
+        </svg>
+        <div class="timer-num" id="fechas-timer-num">45</div>
+      </div>
+    </div>
+    <div class="crono-card" id="fechas-card">
+      <div class="crono-instruction">Toca un evento y luego el año que le corresponde</div>
+      <div class="fechas-list" id="fechas-list"></div>
+      <div class="year-pool" id="fechas-pool"></div>
+      <button class="crono-confirm-btn" id="fechas-confirm-btn" onclick="confirmFechas()" disabled>✓ Confirmar</button>
+      <div id="fechas-feedback"></div>
+    </div>
+    <button class="next-btn" id="fechas-next-btn" style="display:none" onclick="nextFechas()">Siguiente ronda →</button>
+  </div>
+
   <!-- RESULT -->
   <div id="screen-result" class="screen">
     <div class="result-hero" id="result-hero"></div>
@@ -174,6 +202,7 @@
 <script src="js/theme.js?v=20260928"></script>
 <script src="js/storage.js?v=20260928"></script>
 <script src="js/crono.js?v=20260928"></script>
+<script src="js/fechas.js?v=20260928"></script>
 <script src="js/game.js?v=20260928"></script>
 <script src="js/menu.js?v=20260928"></script>
 <script src="js/main.js?v=20260928"></script>

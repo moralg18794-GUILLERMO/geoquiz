@@ -77,6 +77,7 @@ function toggleTheme(code,card){
 // Texto de la selección activa, para los récords y para compartir resultado.
 function selectionLabel(){
   if(gameMode==='crono')return'Todos los periodos';
+  if(gameMode==='fechas')return'Eventos y fechas';
   return filterMode==='tematicas'
     ?[...selectedThemes].map(t=>THEMES[t]?THEMES[t].name:t).join(', ')
     :[...selectedCats].join(', ');
@@ -94,10 +95,12 @@ document.getElementById('mode-row').addEventListener('click',e=>{
   document.querySelectorAll('.mode-btn').forEach(x=>x.classList.remove('active'));
   b.classList.add('active');gameMode=b.dataset.mode;
   document.getElementById('duel-names').style.display=gameMode==='duel'?'flex':'none';
-  // En cronológico no aplican ni las épocas ni las temáticas ni la dificultad.
-  const isCrono=gameMode==='crono';
-  document.getElementById('cat-diff-section').style.display=isCrono?'none':'block';
+  // Cronológico y Fechas juegan con los eventos, no con el banco de preguntas: ahí no
+  // aplican ni las épocas ni las temáticas ni la dificultad.
+  const isCrono=gameMode==='crono', isFechas=gameMode==='fechas';
+  document.getElementById('cat-diff-section').style.display=isCrono||isFechas?'none':'block';
   document.getElementById('crono-info').style.display=isCrono?'block':'none';
+  document.getElementById('fechas-info').style.display=isFechas?'block':'none';
   updateStartBtn();
 });
 
@@ -116,6 +119,11 @@ function updateStartBtn(){
     btn.textContent=`Empezar — ${cronoTotal} rondas cronológicas`;
     return;
   }
+  if(gameMode==='fechas'){
+    btn.disabled=false;
+    btn.textContent=`Empezar — ${fechasTotal} rondas de fechas`;
+    return;
+  }
   if(!currentSelection().size){
     btn.disabled=true;
     btn.textContent=filterMode==='tematicas'?'Selecciona al menos una temática':'Selecciona al menos una categoría';
@@ -129,5 +137,6 @@ function updateStartBtn(){
 
 document.getElementById('start-btn').addEventListener('click',()=>{
   if(gameMode==='crono'){startCrono();}
+  else if(gameMode==='fechas'){startFechas();}
   else{startGame();}
 });

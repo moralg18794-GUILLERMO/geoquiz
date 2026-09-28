@@ -243,3 +243,24 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 @media(max-width:480px){
   .crono-event-name{font-size:13px;}
 }
+
+/* MODO FECHAS */
+.fechas-list{display:flex;flex-direction:column;gap:8px;margin-bottom:1rem;}
+.fecha-item{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:0.8rem 1rem;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;transition:border-color 0.15s,background 0.15s;}
+.fecha-item:hover{border-color:var(--border2);}
+.fecha-item.activo{border-color:var(--accent);background:var(--accent-dim);}
+.fecha-item.correct-pos{border-color:var(--green);background:var(--green-bg);}
+.fecha-item.wrong-pos{border-color:var(--red);background:var(--red-bg);}
+.fecha-texto{flex:1;min-width:0;}
+.fecha-nombre{font-size:14px;color:var(--text);font-weight:500;}
+.fecha-desc{font-size:11px;color:var(--muted);margin-top:2px;}
+.fecha-correcta{font-size:11px;color:var(--green);margin-top:3px;display:none;}
+.fecha-item.revelado .fecha-correcta{display:block;}
+.fecha-slot{min-width:78px;height:32px;border:1px dashed var(--border2);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--muted);flex-shrink:0;transition:all 0.15s;}
+.fecha-slot.lleno{border-style:solid;border-color:var(--accent);background:var(--accent-dim);color:var(--accent);}
+.fecha-item.correct-pos .fecha-slot{border-style:solid;border-color:var(--green);background:var(--green-bg);color:var(--green);}
+.fecha-item.wrong-pos .fecha-slot{border-style:solid;border-color:var(--red);background:var(--red-bg);color:var(--red);}
+.year-pool{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:1.25rem;min-height:40px;}
+.year-chip{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:0.45rem 1.1rem;font-size:14px;font-weight:600;color:var(--text);cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.15s;}
+.year-chip:hover{border-color:var(--accent);color:var(--accent);}
+.year-chip.usado{opacity:0.22;pointer-events:none;}

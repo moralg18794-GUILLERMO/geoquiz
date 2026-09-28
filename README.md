@@ -27,13 +27,14 @@ Se abre haciendo doble clic en `index.html` y se publica subiendo la carpeta tal
     Guerra Fría.
 - **Dificultad y puntos:** fácil = 100 pts, medio = 200 pts, difícil = 300 pts.
 - **102 eventos históricos** para el modo Cronológico.
-- **5 modos de juego:**
+- **6 modos de juego:**
   | Modo | Descripción |
   |---|---|
   | Solo | 10 preguntas, 20 s por pregunta, 3 vidas |
   | Blitz | 60 s para todo |
   | Supervivencia | Preguntas infinitas hasta perder las 3 vidas |
   | Cronológico | 5 rondas ordenando 5 eventos por fecha (arrastrando), 45 s por ronda |
+  | Fechas | 5 rondas emparejando 5 eventos con su año, 45 s por ronda |
   | Duelo | 2 jugadores en el mismo dispositivo, por turnos |
 - **Comodines** (uno de cada por partida, desactivados en Duelo): 50:50, Dato (pista) y
   Saltar (añade una pregunta al final para mantener el total de 10).
@@ -59,6 +60,7 @@ GEOQUIZ/
 │   ├── theme.js                Colores/iconos por categoría, cabecera, transiciones
 │   ├── storage.js              Récords, ranking, pestañas y reto por URL
 │   ├── crono.js                Modo Cronológico
+│   ├── fechas.js               Modo Fechas
 │   ├── game.js                 Bucle de juego y pantalla de resultado
 │   ├── menu.js                 Pantalla de menú
 │   └── main.js                 Arranque (debe cargarse el último)
@@ -124,8 +126,8 @@ git add -A && git commit -m "descripción del cambio" && git push
 Estado del último despliegue de Pages:
 `gh api repos/moralg18794-GUILLERMO/geoquiz/pages/builds/latest -q .status`
 
-Si cambias de dominio, acuérdate de actualizar la URL en `js/game.js` y `js/crono.js`
-(constante `gameURL`, usada por los botones de compartir).
+Los botones de compartir construyen el enlace desde `window.location`, así que funcionan en
+cualquiera de los dos dominios sin tocar nada.
 
 ## Problemas conocidos (pendientes de decidir)
 
@@ -140,8 +142,6 @@ Si cambias de dominio, acuérdate de actualizar la URL en `js/game.js` y `js/cro
 
 ## Ideas pendientes
 
-- Modo de juego para **unir eventos con sus fechas**, aprovechando los 102 eventos que ya
-  tiene el modo Cronológico.
 - Récords y ranking **en la nube** en lugar de solo en el navegador. Requiere un backend:
   el sitio es estático y `localStorage` no se comparte entre dispositivos.
 
@@ -173,6 +173,12 @@ Si cambias de dominio, acuérdate de actualizar la URL en `js/game.js` y `js/cro
   Reparto resultante: batallas 112, imperios 99, líderes 95, tratados 80, revoluciones 71,
   economía 53, tecnología 50, atrocidades 31, espionaje 30. 74 preguntas sin temática:
   esas solo salen jugando por épocas.
+
+- **2026-09-28** — Nuevo modo **Fechas**: emparejar cada evento con su año, 5 rondas de 5
+  parejas. Los cinco eventos de cada ronda se eligen de una ventana temporal estrecha y con
+  años distintos, para que no valga con separar a ojo la Antigüedad del siglo XX. La
+  interacción es por toques (tocar evento, tocar año) en vez de arrastre: el Cronológico
+  necesitó manejadores táctiles aparte para funcionar en móvil y aquí no hacen falta.
 
 ## Caché al actualizar
 
