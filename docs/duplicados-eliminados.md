@@ -135,98 +135,98 @@ no aparecen en la tabla: la Segunda Guerra del Congo (estaba en Conflictos Moder
 
 | Línea | Categoría | Pregunta descartada |
 |---|---|---|
-| 88 | África y Oriente Medio | �Qué guerra de los Seis Días de 1967 vio a Israel triplicar su territorio? |
-| 92 | África y Oriente Medio | �Qué revolución de 1979 derrocó al Sha y estableció un régimen teocrático en Irán? |
-| 101 | Geopolítica | �En qué año fue fundada la Unión Europea con ese nombre? |
-| 109 | Geopolítica | �Qué organización regional agrupa a Rusia, China y las repúblicas de Asia Central? |
-| 113 | Geopolítica | �Qué disputa en el Mar de China Meridional involucra a China, Vietnam y Filipinas? |
-| 136 | Asia y Pacífico | �Qué político de Myanmar ganó el Nobel de la Paz y luego fue encarcelada por los militares? |
-| 141 | Era Napoleónica | �En qué año Napoleón se coronó a sí mismo Emperador? |
-| 142 | Era Napoleónica | �Qué batalla de 1805 destruyó la flota franco-española? |
-| 143 | Era Napoleónica | �Qué país resistió durante años la ocupación francesa con una guerra de guerrillas? |
-| 151 | Américas | �En qué año declaró la independencia EE.UU.? |
-| 170 | África y Oriente Medio | �Qué tratado de paz de 1978 entre Egipto e Israel fue el primero entre ambos países? |
-| 172 | África y Oriente Medio | �Qué conflicto interno devastó Líbano entre 1975 y 1990? |
-| 188 | S. XIX | �Qué guerra Bóer introdujo el concepto de campos de concentración? |
-| 231 | Conflictos Modernos | �Qué guerra civil de la República del Congo en los años 90-2000 mató a más de 5 millones? |
-| 235 | Antigüedad | �Qué ciudad fue el centro del Imperio Persa Aqueménida? |
-| 237 | Antigüedad | �Cuántos años tardó Roma en conquistar Cartago definitivamente? |
-| 253 | Antigüedad | �Qué ciudad fue destruida por Roma en 146 a.C. al mismo tiempo que Cartago? |
-| 256 | Antigüedad | �Qué gran biblioteca de la antigüedad fue símbolo del saber y ardió en varios incendios? |
-| 257 | Edad Media | �Qué monarca inglés organizó el asesinato del arzobispo Tomás Becket en 1170? |
-| 258 | Edad Media | �En qué año el Cid conquistó Valencia actuando por su cuenta, sin apoyo real? |
-| 259 | S. XVI–XVIII | �Qué evento de 1492 además del descubrimiento de América marcó el fin de la Reconquista española? |
-| 260 | S. XVI–XVIII | �Qué filósofo francés del s. XVIII escribió el Contrato Social? |
-| 261 | S. XVI–XVIII | �Qué potencia europea dominó el comercio de especias con Asia en el s. XVII? |
-| 262 | S. XVI–XVIII | �Qué conquista española del Imperio Inca fue completada por Pizarro en 1533? |
-| 263 | Era Napoleónica | �En qué año Napoleón se coronó Emperador? |
-| 264 | Era Napoleónica | �En qué año Napoleón vendió Luisiana a EE.UU.? |
-| 265 | S. XIX | �Qué revolución transformó la economía mundial a partir del s. XVIII en Inglaterra? |
-| 266 | S. XIX | �Quién abolió la esclavitud en EE.UU. en 1863? |
-| 267 | S. XIX | �En qué año se proclamó la independencia de Grecia? |
-| 268 | S. XIX | �Qué presidente de EE.UU. fue asesinado en 1865? |
-| 269 | S. XIX | �Qué guerra 1864-1870 fue la más sangrienta de la historia sudamericana? |
-| 270 | I Guerra Mundial | �Qué revolución de 1917 retiró a Rusia de la guerra? |
-| 271 | II Guerra Mundial | �Qué código secreto alemán fue descifrado en Bletchley Park? |
-| 272 | Guerra Fría | �Qué doctrina de 1947 comprometió a EE.UU. a apoyar a países amenazados por el comunismo? |
-| 273 | Conflictos Modernos | �En qué año se desintegró Yugoslavia? |
-| 274 | Américas | �En qué año ocurrió el golpe que derrocó a Allende en Chile? |
-| 275 | Geopolítica | �Cuántos estados miembros tiene la ONU? |
-| 276 | Conflictos Modernos | �Cuándo comenzó la guerra civil en Yemen? |
-| 281 | Edad Media | �En qué año conquistó El Cid Valencia actuando como señor independiente? |
-| 288 | II Guerra Mundial | �Qué operación aliada en 1943 invadió Sicilia? |
-| 289 | II Guerra Mundial | �Qué operación aliada de sept. 1944 intentó cruzar el Rin por los Países Bajos? |
-| 290 | Guerra Fría | �Qué sindicato polaco liderado por Wałęsa desafió al régimen comunista en los años 80? |
-| 291 | I Guerra Mundial | �Cuáles eran los dos grandes bloques en la Primera Guerra Mundial? |
-| 292 | I Guerra Mundial | �Qué batalla naval de 1916 fue la mayor de la guerra? |
-| 293 | África y Oriente Medio | �Qué país africano obtuvo la independencia de Francia tras una guerra de 1954-1962? |
-| 296 | Asia y Pacífico | �Qué régimen genocida de Camboya mató a una cuarta parte de la población? |
-| 297 | Asia y Pacífico | �Qué guerra entre India y Pakistán en 1971 creó Bangladesh? |
-| 298 | S. XIX | �Qué revolución transformó la economía mundial a partir de finales del s. XVIII? |
-| 299 | Geopolítica | �Cuántos miembros permanentes con veto tiene el Consejo de Seguridad de la ONU? |
-| 300 | Geopolítica | �Qué alianza militar occidental se fundó en 1949? |
-| 304 | Geopolítica | �Cómo se llama la teoría que afirma que quien controla el Heartland domina el mundo? |
-| 305 | Geopolítica | �Qué concepto describe la influencia de un país a través de su cultura en vez de la fuerza? |
-| 307 | Geopolítica | �Qué teoría de Samuel Huntington de 1993 predijo conflictos entre civilizaciones? |
-| 308 | Geopolítica | �Qué concepto describe el riesgo de guerra entre una potencia establecida y una ascendente? |
-| 310 | Geopolítica | �Qué concepto describe la dependencia económica mutua que desincentiva la guerra? |
-| 312 | Asia y Pacífico | �Qué país asiático fue el primero en industrializarse fuera de Europa? |
-| 313 | Asia y Pacífico | �En qué año se fundó la República Popular de China? |
-| 314 | Asia y Pacífico | �Qué batalla naval de 1905 demostró el ascenso de Japón como potencia? |
-| 319 | Asia y Pacífico | �Qué acuerdo de 1951 terminó formalmente la II Guerra Mundial con Japón? |
-| 326 | Era Napoleónica | �Qué congreso de 1814-1815 reorganizó Europa tras Napoleón? |
-| 327 | Era Napoleónica | �En qué isla nació Napoleón? |
-| 328 | Era Napoleónica | �En qué isla fue exiliado Napoleón definitivamente? |
-| 329 | Era Napoleónica | �Quién derrotó a Napoleón en Waterloo junto a Wellington? |
-| 332 | Era Napoleónica | �Qué mariscal de Napoleón se convirtió en rey de Suecia? |
-| 334 | Era Napoleónica | �Qué país invadió Napoleón en 1812 con la mayor victoria pírrica de su carrera? |
-| 336 | Era Napoleónica | �Qué general británico derrotó a Napoleón en España antes de Waterloo? |
-| 340 | Américas | �Qué guerra de 1898 marcó el fin del imperio colonial español? |
-| 342 | Américas | �Qué operación secreta de EE.UU. en los 70 apoyó golpes en Latinoamérica? |
-| 343 | Américas | �Qué conflicto de Colombia duró más de 50 años? |
-| 344 | Américas | �Qué invasión de EE.UU. a Panamá en 1989 derrocó a Noriega? |
-| 347 | Américas | �Qué intervención de la CIA en 1954 derrocó al presidente guatemalteco Arbenz? |
-| 348 | Américas | �Qué acuerdo de 1903 dio a EE.UU. el control de la Zona del Canal de Panamá? |
-| 349 | Américas | �Qué guerra entre Paraguay y Bolivia (1932-1935) fue la mayor de Sudamérica del s. XX? |
-| 350 | Américas | �Qué movimiento guerrillero peruano de los 80-90 mató a miles? |
-| 352 | I Guerra Mundial | �Qué nueva arma usó Alemania en masa en Ypres en 1915? |
-| 353 | I Guerra Mundial | �Cuál fue el plan alemán para evitar una guerra en dos frentes? |
-| 354 | I Guerra Mundial | �Qué propuestas de paz formuló Wilson en 1918? |
-| 355 | I Guerra Mundial | �Qué batalla naval de 1916 fue la mayor confrontación de flotas de la guerra? |
-| 360 | I Guerra Mundial | �Cuántos países fueron miembros originales de la Sociedad de Naciones (1920)? |
-| 363 | África y Oriente Medio | �Qué organización terrorista atacó los Juegos Olímpicos de Múnich en 1972? |
-| 364 | África y Oriente Medio | �Cuál fue la primera guerra en usar misiles balísticos a gran escala? |
-| 367 | África y Oriente Medio | �Qué masacre de 1982 en Líbano perpetraron milicias con pasividad israelí? |
-| 370 | II Guerra Mundial | �Qué nombre recibió la invasión alemana de la URSS en 1941? |
-| 372 | Conflictos Modernos | �Qué acuerdos de 2020 normalizaron relaciones de Israel con países árabes? |
-| 373 | Conflictos Modernos | �Qué guerra de 2020 entre Armenia y Azerbaiyán causó pérdida territorial armenia? |
-| 374 | Guerra Fría | �Qué astronauta soviético fue el primer humano en el espacio? |
-| 375 | Guerra Fría | �Qué presidente pronunció 'Ich bin ein Berliner' en 1963? |
-| 376 | Guerra Fría | �Cómo se llamó el plan de ayuda económica de EE.UU. para Europa? |
-| 377 | Guerra Fría | �Qué conflicto de los 50 enfrentó a EE.UU. contra Corea del Norte? |
-| 378 | Guerra Fría | �En qué año lanzó la URSS el Sputnik? |
-| 379 | Guerra Fría | �Qué rebelión anticomunista fue aplastada por los tanques soviéticos en 1956? |
-| 388 | Edad Media | �Qué batalla de 1389 sometió a Serbia al Imperio Otomano? |
-| 398 | S. XIX | �Qué revolución transformó la economía a partir de finales del s. XVIII en Inglaterra? |
-| 401 | S. XIX | �Qué obra de Darwin de 1859 revolucionó la biología? |
-| 407 | Antigüedad | �Qué ciudad fue la capital ceremonial del Imperio Persa? |
+| 88 | África y Oriente Medio | ¿Qué guerra de los Seis Días de 1967 vio a Israel triplicar su territorio? |
+| 92 | África y Oriente Medio | ¿Qué revolución de 1979 derrocó al Sha y estableció un régimen teocrático en Irán? |
+| 101 | Geopolítica | ¿En qué año fue fundada la Unión Europea con ese nombre? |
+| 109 | Geopolítica | ¿Qué organización regional agrupa a Rusia, China y las repúblicas de Asia Central? |
+| 113 | Geopolítica | ¿Qué disputa en el Mar de China Meridional involucra a China, Vietnam y Filipinas? |
+| 136 | Asia y Pacífico | ¿Qué político de Myanmar ganó el Nobel de la Paz y luego fue encarcelada por los militares? |
+| 141 | Era Napoleónica | ¿En qué año Napoleón se coronó a sí mismo Emperador? |
+| 142 | Era Napoleónica | ¿Qué batalla de 1805 destruyó la flota franco-española? |
+| 143 | Era Napoleónica | ¿Qué país resistió durante años la ocupación francesa con una guerra de guerrillas? |
+| 151 | Américas | ¿En qué año declaró la independencia EE.UU.? |
+| 170 | África y Oriente Medio | ¿Qué tratado de paz de 1978 entre Egipto e Israel fue el primero entre ambos países? |
+| 172 | África y Oriente Medio | ¿Qué conflicto interno devastó Líbano entre 1975 y 1990? |
+| 188 | S. XIX | ¿Qué guerra Bóer introdujo el concepto de campos de concentración? |
+| 231 | Conflictos Modernos | ¿Qué guerra civil de la República del Congo en los años 90-2000 mató a más de 5 millones? |
+| 235 | Antigüedad | ¿Qué ciudad fue el centro del Imperio Persa Aqueménida? |
+| 237 | Antigüedad | ¿Cuántos años tardó Roma en conquistar Cartago definitivamente? |
+| 253 | Antigüedad | ¿Qué ciudad fue destruida por Roma en 146 a.C. al mismo tiempo que Cartago? |
+| 256 | Antigüedad | ¿Qué gran biblioteca de la antigüedad fue símbolo del saber y ardió en varios incendios? |
+| 257 | Edad Media | ¿Qué monarca inglés organizó el asesinato del arzobispo Tomás Becket en 1170? |
+| 258 | Edad Media | ¿En qué año el Cid conquistó Valencia actuando por su cuenta, sin apoyo real? |
+| 259 | S. XVI–XVIII | ¿Qué evento de 1492 además del descubrimiento de América marcó el fin de la Reconquista española? |
+| 260 | S. XVI–XVIII | ¿Qué filósofo francés del s. XVIII escribió el Contrato Social? |
+| 261 | S. XVI–XVIII | ¿Qué potencia europea dominó el comercio de especias con Asia en el s. XVII? |
+| 262 | S. XVI–XVIII | ¿Qué conquista española del Imperio Inca fue completada por Pizarro en 1533? |
+| 263 | Era Napoleónica | ¿En qué año Napoleón se coronó Emperador? |
+| 264 | Era Napoleónica | ¿En qué año Napoleón vendió Luisiana a EE.UU.? |
+| 265 | S. XIX | ¿Qué revolución transformó la economía mundial a partir del s. XVIII en Inglaterra? |
+| 266 | S. XIX | ¿Quién abolió la esclavitud en EE.UU. en 1863? |
+| 267 | S. XIX | ¿En qué año se proclamó la independencia de Grecia? |
+| 268 | S. XIX | ¿Qué presidente de EE.UU. fue asesinado en 1865? |
+| 269 | S. XIX | ¿Qué guerra 1864-1870 fue la más sangrienta de la historia sudamericana? |
+| 270 | I Guerra Mundial | ¿Qué revolución de 1917 retiró a Rusia de la guerra? |
+| 271 | II Guerra Mundial | ¿Qué código secreto alemán fue descifrado en Bletchley Park? |
+| 272 | Guerra Fría | ¿Qué doctrina de 1947 comprometió a EE.UU. a apoyar a países amenazados por el comunismo? |
+| 273 | Conflictos Modernos | ¿En qué año se desintegró Yugoslavia? |
+| 274 | Américas | ¿En qué año ocurrió el golpe que derrocó a Allende en Chile? |
+| 275 | Geopolítica | ¿Cuántos estados miembros tiene la ONU? |
+| 276 | Conflictos Modernos | ¿Cuándo comenzó la guerra civil en Yemen? |
+| 281 | Edad Media | ¿En qué año conquistó El Cid Valencia actuando como señor independiente? |
+| 288 | II Guerra Mundial | ¿Qué operación aliada en 1943 invadió Sicilia? |
+| 289 | II Guerra Mundial | ¿Qué operación aliada de sept. 1944 intentó cruzar el Rin por los Países Bajos? |
+| 290 | Guerra Fría | ¿Qué sindicato polaco liderado por Wałęsa desafió al régimen comunista en los años 80? |
+| 291 | I Guerra Mundial | ¿Cuáles eran los dos grandes bloques en la Primera Guerra Mundial? |
+| 292 | I Guerra Mundial | ¿Qué batalla naval de 1916 fue la mayor de la guerra? |
+| 293 | África y Oriente Medio | ¿Qué país africano obtuvo la independencia de Francia tras una guerra de 1954-1962? |
+| 296 | Asia y Pacífico | ¿Qué régimen genocida de Camboya mató a una cuarta parte de la población? |
+| 297 | Asia y Pacífico | ¿Qué guerra entre India y Pakistán en 1971 creó Bangladesh? |
+| 298 | S. XIX | ¿Qué revolución transformó la economía mundial a partir de finales del s. XVIII? |
+| 299 | Geopolítica | ¿Cuántos miembros permanentes con veto tiene el Consejo de Seguridad de la ONU? |
+| 300 | Geopolítica | ¿Qué alianza militar occidental se fundó en 1949? |
+| 304 | Geopolítica | ¿Cómo se llama la teoría que afirma que quien controla el Heartland domina el mundo? |
+| 305 | Geopolítica | ¿Qué concepto describe la influencia de un país a través de su cultura en vez de la fuerza? |
+| 307 | Geopolítica | ¿Qué teoría de Samuel Huntington de 1993 predijo conflictos entre civilizaciones? |
+| 308 | Geopolítica | ¿Qué concepto describe el riesgo de guerra entre una potencia establecida y una ascendente? |
+| 310 | Geopolítica | ¿Qué concepto describe la dependencia económica mutua que desincentiva la guerra? |
+| 312 | Asia y Pacífico | ¿Qué país asiático fue el primero en industrializarse fuera de Europa? |
+| 313 | Asia y Pacífico | ¿En qué año se fundó la República Popular de China? |
+| 314 | Asia y Pacífico | ¿Qué batalla naval de 1905 demostró el ascenso de Japón como potencia? |
+| 319 | Asia y Pacífico | ¿Qué acuerdo de 1951 terminó formalmente la II Guerra Mundial con Japón? |
+| 326 | Era Napoleónica | ¿Qué congreso de 1814-1815 reorganizó Europa tras Napoleón? |
+| 327 | Era Napoleónica | ¿En qué isla nació Napoleón? |
+| 328 | Era Napoleónica | ¿En qué isla fue exiliado Napoleón definitivamente? |
+| 329 | Era Napoleónica | ¿Quién derrotó a Napoleón en Waterloo junto a Wellington? |
+| 332 | Era Napoleónica | ¿Qué mariscal de Napoleón se convirtió en rey de Suecia? |
+| 334 | Era Napoleónica | ¿Qué país invadió Napoleón en 1812 con la mayor victoria pírrica de su carrera? |
+| 336 | Era Napoleónica | ¿Qué general británico derrotó a Napoleón en España antes de Waterloo? |
+| 340 | Américas | ¿Qué guerra de 1898 marcó el fin del imperio colonial español? |
+| 342 | Américas | ¿Qué operación secreta de EE.UU. en los 70 apoyó golpes en Latinoamérica? |
+| 343 | Américas | ¿Qué conflicto de Colombia duró más de 50 años? |
+| 344 | Américas | ¿Qué invasión de EE.UU. a Panamá en 1989 derrocó a Noriega? |
+| 347 | Américas | ¿Qué intervención de la CIA en 1954 derrocó al presidente guatemalteco Arbenz? |
+| 348 | Américas | ¿Qué acuerdo de 1903 dio a EE.UU. el control de la Zona del Canal de Panamá? |
+| 349 | Américas | ¿Qué guerra entre Paraguay y Bolivia (1932-1935) fue la mayor de Sudamérica del s. XX? |
+| 350 | Américas | ¿Qué movimiento guerrillero peruano de los 80-90 mató a miles? |
+| 352 | I Guerra Mundial | ¿Qué nueva arma usó Alemania en masa en Ypres en 1915? |
+| 353 | I Guerra Mundial | ¿Cuál fue el plan alemán para evitar una guerra en dos frentes? |
+| 354 | I Guerra Mundial | ¿Qué propuestas de paz formuló Wilson en 1918? |
+| 355 | I Guerra Mundial | ¿Qué batalla naval de 1916 fue la mayor confrontación de flotas de la guerra? |
+| 360 | I Guerra Mundial | ¿Cuántos países fueron miembros originales de la Sociedad de Naciones (1920)? |
+| 363 | África y Oriente Medio | ¿Qué organización terrorista atacó los Juegos Olímpicos de Múnich en 1972? |
+| 364 | África y Oriente Medio | ¿Cuál fue la primera guerra en usar misiles balísticos a gran escala? |
+| 367 | África y Oriente Medio | ¿Qué masacre de 1982 en Líbano perpetraron milicias con pasividad israelí? |
+| 370 | II Guerra Mundial | ¿Qué nombre recibió la invasión alemana de la URSS en 1941? |
+| 372 | Conflictos Modernos | ¿Qué acuerdos de 2020 normalizaron relaciones de Israel con países árabes? |
+| 373 | Conflictos Modernos | ¿Qué guerra de 2020 entre Armenia y Azerbaiyán causó pérdida territorial armenia? |
+| 374 | Guerra Fría | ¿Qué astronauta soviético fue el primer humano en el espacio? |
+| 375 | Guerra Fría | ¿Qué presidente pronunció 'Ich bin ein Berliner' en 1963? |
+| 376 | Guerra Fría | ¿Cómo se llamó el plan de ayuda económica de EE.UU. para Europa? |
+| 377 | Guerra Fría | ¿Qué conflicto de los 50 enfrentó a EE.UU. contra Corea del Norte? |
+| 378 | Guerra Fría | ¿En qué año lanzó la URSS el Sputnik? |
+| 379 | Guerra Fría | ¿Qué rebelión anticomunista fue aplastada por los tanques soviéticos en 1956? |
+| 388 | Edad Media | ¿Qué batalla de 1389 sometió a Serbia al Imperio Otomano? |
+| 398 | S. XIX | ¿Qué revolución transformó la economía a partir de finales del s. XVIII en Inglaterra? |
+| 401 | S. XIX | ¿Qué obra de Darwin de 1859 revolucionó la biología? |
+| 407 | Antigüedad | ¿Qué ciudad fue la capital ceremonial del Imperio Persa? |
