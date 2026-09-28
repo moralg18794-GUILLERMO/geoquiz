@@ -96,6 +96,15 @@ function selectionCode(){
 // Congela en `partida` lo que se ha elegido en el menú. Lo llaman los tres arranques
 // (startGame, startCrono, startFechas) justo antes de la primera pregunta.
 function congelarPartida(){
+  // Antes de nada, cortar los cronómetros de cualquier partida anterior que siguiera viva.
+  // La barra Jugar/Récords/Ranking está en el <header>, fuera de las pantallas, así que se
+  // puede volver al menú a mitad de partida y empezar otra sin que la primera se entere: sus
+  // cronómetros seguían corriendo y, al agotarse, llamaba a showResult() con el `partida`
+  // de la SEGUNDA, de modo que una ronda de Cronológico podía guardarse como si fuera una
+  // partida oficial de modo solo. Empezar una partida cancela la anterior, que es lo que el
+  // jugador está haciendo de todas formas.
+  clearInterval(timerInt); clearInterval(blitzInt);
+  clearInterval(cronoTimerInt); clearInterval(fechasTimerInt);
   partida={modo:gameMode,dif:gameMode==='crono'||gameMode==='fechas'?'na':selectedDiff,...selectionCode(),cats:selectionLabel()};
 }
 

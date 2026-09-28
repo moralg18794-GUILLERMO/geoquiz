@@ -341,6 +341,13 @@ function showScreen(id){
 }
 
 function copyResult(){
+  // En Duelo los puntos y las vidas viven en duel.p1 y duel.p2: score, correct, wrong y
+  // maxStreak no se tocan nunca, así que el texto de abajo saldría con ceros y con pinta de
+  // ser verdad. El botón de WhatsApp de esa misma pantalla ya usa textoDuelo().
+  if(partida.modo==='duel'){
+    navigator.clipboard.writeText(textoDuelo()).then(()=>toast('¡Resultado copiado!')).catch(()=>toast('No se pudo copiar'));
+    return;
+  }
   const pct=Math.round((correct/Math.max(correct+wrong,1))*100);
   const dif=partida.modo==='crono'?'':`\nDificultad: ${diffLabel(partida.dif)}`;
   const cats=partida.cats;
