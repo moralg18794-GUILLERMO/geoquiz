@@ -5,6 +5,7 @@ let cronoItems=[], cronoDragSrc=null, cronoSeen=new Set();
 
 function startCrono(){
   playStart();
+  congelarPartida();
   cronoRound=0; cronoScore=0;
   cronoSeen=new Set();
   showScreen('screen-crono');
@@ -202,8 +203,8 @@ function showCronoResult(){
   else{rank="Analfabeto Temporal";msg="La línea del tiempo es tu enemigo… de momento.";}
 
   const playerName=prompt('¿Tu nombre para el ranking? (deja vacío para no guardar)','');
-  if(playerName&&playerName.trim())saveRanking(playerName.trim(),cronoScore,pct,'—');
-  saveRecord({score:cronoScore,correct:'-',total:cronoTotal+'r',mode:'cronológico',diff:'—',cats:'Todos los periodos',date:new Date().toLocaleDateString('es-ES')});
+  if(playerName&&playerName.trim())saveRanking(playerName.trim(),cronoScore,pct);
+  saveRecord({score:cronoScore,correct:'-',total:cronoTotal+'r',mode:modeLabel(partida.modo),diff:'—',cats:partida.cats,date:new Date().toLocaleDateString('es-ES')});
 
   document.getElementById('result-hero').innerHTML=`
     <div style="font-size:40px;margin-bottom:0.5rem">📅</div>

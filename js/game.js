@@ -7,6 +7,7 @@ function startGame(){
   if(fresh.length<(gameMode==='survival'?5:10)){seenQ.clear();fresh=pool;}
   const selected=gameMode==='survival'?shuffle(fresh):shuffle(fresh).slice(0,10);
   selected.forEach(q=>seenQ.add(q.q));
+  congelarPartida();
   gameQ=selected;current=0;score=0;correct=0;wrong=0;lives=3;maxStreak=0;streak=0;skipped=0;
   hint5050=true;hintSkip=true;hintDato=true;answered=false;blitzLeft=60;timeLeft=20;lastCat='';
   if(gameMode==='duel'){
@@ -293,8 +294,8 @@ function showResult(){
 
   // Ask name for ranking
   const playerName=prompt('¿Tu nombre para el ranking? (deja vacío para no guardar)','');
-  if(playerName&&playerName.trim())saveRanking(playerName.trim(),score,pct,diffLabel(selectedDiff));
-  saveRecord({score,correct,total:correct+wrong,mode:gameMode,diff:diffLabel(selectedDiff),cats:selectionLabel(),date:new Date().toLocaleDateString('es-ES')});
+  if(playerName&&playerName.trim())saveRanking(playerName.trim(),score,pct);
+  saveRecord({score,correct,total:correct+wrong,mode:modeLabel(partida.modo),diff:diffLabel(partida.dif),cats:partida.cats,date:new Date().toLocaleDateString('es-ES')});
 
   document.getElementById('result-hero').innerHTML=`
     <div><span class="result-score-num">${score.toLocaleString()}</span></div>
@@ -337,10 +338,10 @@ function showScreen(id){
 
 function copyResult(){
   const pct=Math.round((correct/Math.max(correct+wrong,1))*100);
-  const dif=gameMode==='crono'?'':`\nDificultad: ${diffLabel(selectedDiff)}`;
-  const cats=selectionLabel();
-  const eje=filterMode==='tematicas'&&gameMode!=='crono'?'Temáticas':'Categorías';
-  const text=`🗺️ GeoQuiz — Guerras & Conflictos\nModo: ${gameMode}${dif}\n${eje}: ${cats}\n✅ ${correct} correctas (${pct}%)\n⭐ ${score.toLocaleString()} puntos · 🔥 Racha: ${maxStreak}\n\n¿Puedes superarme?`;
+  const dif=partida.modo==='crono'?'':`\nDificultad: ${diffLabel(partida.dif)}`;
+  const cats=partida.cats;
+  const eje=partida.eje==='t'?'Temáticas':'Categorías';
+  const text=`🗺️ GeoQuiz — Guerras & Conflictos\nModo: ${modeLabel(partida.modo)}${dif}\n${eje}: ${cats}\n✅ ${correct} correctas (${pct}%)\n⭐ ${score.toLocaleString()} puntos · 🔥 Racha: ${maxStreak}\n\n¿Puedes superarme?`;
   navigator.clipboard.writeText(text).then(()=>toast('¡Resultado copiado!'));
 }
 
@@ -349,7 +350,7 @@ function textoReto(){
   const pct=Math.round((correct/Math.max(correct+wrong,1))*100);
   // El enlace del reto se construye desde la URL actual, así funciona en cualquier dominio
   const gameURL=generateChallengeURL();
-  return `🗺️ ¡Te reto en GeoQuiz!\n\nHe conseguido:\n⭐ ${score.toLocaleString()} puntos\n✅ ${correct} correctas (${pct}%)${gameMode==='crono'?'':`\n🎯 Dificultad: ${diffLabel(selectedDiff)}`}\n🔥 Racha máxima: ${maxStreak}\n\n¿Puedes superarme? Juega aquí:\n${gameURL}`;
+  return `🗺️ ¡Te reto en GeoQuiz!\n\nHe conseguido:\n⭐ ${score.toLocaleString()} puntos\n✅ ${correct} correctas (${pct}%)${partida.modo==='crono'?'':`\n🎯 Dificultad: ${diffLabel(partida.dif)}`}\n🔥 Racha máxima: ${maxStreak}\n\n¿Puedes superarme? Juega aquí:\n${gameURL}`;
 }
 
 function copyChallenge(){

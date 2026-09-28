@@ -12,6 +12,7 @@ function anyoTexto(y){return y<0?Math.abs(y)+' a.C.':String(y);}
 
 function startFechas(){
   playStart();
+  congelarPartida();
   fechasRound=0; fechasScore=0; fechasSeen=new Set();
   showScreen('screen-fechas');
   setHeaderStyle('Antigüedad');
@@ -174,8 +175,8 @@ function showFechasResult(){
   else{rank="Despistado Temporal";msg="Los siglos te bailan. Eso se arregla jugando.";}
 
   const playerName=prompt('¿Tu nombre para el ranking? (deja vacío para no guardar)','');
-  if(playerName&&playerName.trim())saveRanking(playerName.trim(),fechasScore,pct,'—');
-  saveRecord({score:fechasScore,correct:'-',total:fechasTotal+'r',mode:'fechas',diff:'—',cats:'Eventos y fechas',date:new Date().toLocaleDateString('es-ES')});
+  if(playerName&&playerName.trim())saveRanking(playerName.trim(),fechasScore,pct);
+  saveRecord({score:fechasScore,correct:'-',total:fechasTotal+'r',mode:modeLabel(partida.modo),diff:'—',cats:partida.cats,date:new Date().toLocaleDateString('es-ES')});
 
   document.getElementById('result-hero').innerHTML=`
     <div style="font-size:40px;margin-bottom:0.5rem">🔗</div>

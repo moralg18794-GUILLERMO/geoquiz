@@ -35,12 +35,45 @@ function gq_db(): PDO {
     return $pdo;
 }
 
-// Las tablas se crean solas en la primera petición. `nombre` es ÚNICO a propósito:
-// así cada jugador ocupa una sola fila con su mejor marca y nadie puede copar el
-// ranking entero repitiendo envíos. `envios` existe aparte porque, al quedarse el
-// ranking en una fila por nombre, no sirve para contar cuántas veces ha enviado
-// alguien en la última hora.
+// Las tablas se crean solas en la primera petición.
+//
+// `partidas` guarda UNA FILA POR PARTIDA, no una por jugador. La tabla vieja `ranking`
+// guardaba solo la mejor marca global de cada uno, así que la mejor partida de alguien
+// en Difícil se borraba sola en cuanto hacía una mejor en Supervivencia: el dato que
+// hace falta para comparar se destruía justo al guardarlo. Aquí no se pierde nada.
+//
+// Es una tabla NUEVA y no un ALTER de la vieja a propósito. gq_consulta() solo sabe
+// reintentar cuando MySQL dice que la tabla no existe (42S02); una columna que falta es
+// 42S22 y acabaría en 500 en todos los envíos hasta entrar a phpMyAdmin a mano. Creando
+// una tabla nueva se usa el mismo mecanismo que ya funciona en este servidor, y `ranking`
+// se queda intacta por si algún día hay que mirarla.
+//
+// `dif` y `modo` guardan CÓDIGOS ('dificil', 'solo'), nunca la etiqueta que se pinta:
+// si se guardara 'Difícil' con su acento, cambiar el texto en pantalla dejaría huérfanas
+// todas las filas anteriores y sin dar ningún error.
+//
+// `envios` existe aparte para poder contar cuántas veces ha enviado alguien en la última
+// hora sin que las propias partidas sirvan de contador.
 function gq_crear_tablas(PDO $pdo): void {
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS partidas (
+            id        INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            nombre    VARCHAR(24)  NOT NULL,
+            puntos    INT UNSIGNED NOT NULL,
+            pct       TINYINT UNSIGNED NOT NULL,
+            modo      VARCHAR(12)  NOT NULL,
+            dif       VARCHAR(8)   NOT NULL DEFAULT "",
+            eje       CHAR(1)      NOT NULL DEFAULT "",
+            nsel      TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            ntot      TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            oficial   TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            ip_hash   CHAR(64)     NOT NULL,
+            creado_en DATETIME     NOT NULL,
+            PRIMARY KEY (id),
+            KEY idx_oficial (oficial, puntos DESC, id),
+            KEY idx_jugador (nombre, oficial, puntos DESC)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
     $pdo->exec(
         'CREATE TABLE IF NOT EXISTS ranking (
             id          INT UNSIGNED NOT NULL AUTO_INCREMENT,

@@ -83,6 +83,22 @@ function selectionLabel(){
     :[...selectedCats].join(', ');
 }
 
+// Resumen numérico de la selección, que es lo que viaja al ranking global. No se manda
+// el nombre de las categorías por dos motivos: no cabe en la tabla, y sería texto libre
+// escrito por cualquiera y pintado en el navegador de todos los demás.
+function selectionCode(){
+  if(gameMode==='crono'||gameMode==='fechas')return{eje:'n',nsel:0,ntot:0};
+  return filterMode==='tematicas'
+    ?{eje:'t',nsel:selectedThemes.size,ntot:THEME_KEYS.length}
+    :{eje:'e',nsel:selectedCats.size,ntot:Object.keys(CATEGORIES).length};
+}
+
+// Congela en `partida` lo que se ha elegido en el menú. Lo llaman los tres arranques
+// (startGame, startCrono, startFechas) justo antes de la primera pregunta.
+function congelarPartida(){
+  partida={modo:gameMode,dif:gameMode==='crono'||gameMode==='fechas'?'na':selectedDiff,...selectionCode(),cats:selectionLabel()};
+}
+
 // ── DIFICULTAD Y MODO ─────────────────────────────────────────────────────
 document.getElementById('diff-row').addEventListener('click',e=>{
   const b=e.target.closest('.diff-btn');if(!b)return;
