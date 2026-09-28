@@ -25,9 +25,11 @@ function compartirWhatsApp(texto){
 }
 
 // Texto para invitar a jugar, sin puntuación: el que se manda desde el menú.
+// Va en singular y sin lista de funciones: el gancho es el pique del ranking,
+// no las cifras.
 function textoInvitacion(){
   const url=window.location.href.split('?')[0];
-  return `🗺️ Te reto en GeoQuiz: 521 preguntas de guerras, conflictos y geopolítica, de la Antigüedad a Ucrania.\n\nSeis modos y ranking compartido, a ver quién queda arriba:\n${url}`;
+  return `🗺️ Te he hecho un juego de preguntas sobre guerras y geopolítica. Hay ranking compartido, así que esto va a acabar mal.\n\nNo hace falta que me cuentes qué tal se te ha dado: lo veré en el ranking.\n\n${url}`;
 }
 
 function toast(msg){
