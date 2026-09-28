@@ -29,15 +29,18 @@ function gq_db(): PDO {
         ]);
     } catch (PDOException $e) {
         // El mensaje de PDO puede llevar credenciales: no sale nunca al cliente.
+        error_log('GeoQuiz ranking: sin conexión a la base de datos: ' . $e->getMessage());
         gq_error(500, 'sin_conexion', 'No se pudo conectar con la base de datos.');
     }
     return $pdo;
 }
 
-// La tabla se crea sola la primera vez. Se intenta la consulta y solo si MySQL
-// responde "la tabla no existe" (SQLSTATE 42S02) se crea y se reintenta, para no
-// lanzar un CREATE en cada petición.
-function gq_crear_tabla(PDO $pdo): void {
+// Las tablas se crean solas en la primera petición. `nombre` es ÚNICO a propósito:
+// así cada jugador ocupa una sola fila con su mejor marca y nadie puede copar el
+// ranking entero repitiendo envíos. `envios` existe aparte porque, al quedarse el
+// ranking en una fila por nombre, no sirve para contar cuántas veces ha enviado
+// alguien en la última hora.
+function gq_crear_tablas(PDO $pdo): void {
     $pdo->exec(
         'CREATE TABLE IF NOT EXISTS ranking (
             id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -49,12 +52,24 @@ function gq_crear_tabla(PDO $pdo): void {
             ip_hash     CHAR(64)     NOT NULL,
             creado_en   DATETIME     NOT NULL,
             PRIMARY KEY (id),
-            KEY idx_puntos (puntos DESC, id),
+            UNIQUE KEY uq_nombre (nombre),
+            KEY idx_puntos (puntos DESC, id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS envios (
+            id        INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            ip_hash   CHAR(64)     NOT NULL,
+            creado_en DATETIME     NOT NULL,
+            PRIMARY KEY (id),
             KEY idx_ip_fecha (ip_hash, creado_en)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
     );
 }
 
+// Se intenta la consulta y solo si MySQL responde "la tabla no existe"
+// (SQLSTATE 42S02) se crean las tablas y se reintenta, para no lanzar un CREATE
+// en cada petición.
 function gq_consulta(PDO $pdo, string $sql, array $params = []): PDOStatement {
     try {
         $st = $pdo->prepare($sql);
@@ -62,7 +77,7 @@ function gq_consulta(PDO $pdo, string $sql, array $params = []): PDOStatement {
         return $st;
     } catch (PDOException $e) {
         if ($e->getCode() === '42S02') {
-            gq_crear_tabla($pdo);
+            gq_crear_tablas($pdo);
             $st = $pdo->prepare($sql);
             $st->execute($params);
             return $st;
@@ -82,7 +97,17 @@ function gq_ip_hash(): string {
 function gq_json(int $codigo, array $cuerpo): void {
     http_response_code($codigo);
     header('Content-Type: application/json; charset=utf-8');
-    echo json_encode($cuerpo, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    $txt = json_encode($cuerpo, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    if ($txt === false) {
+        // Alguna fila trae bytes que no son UTF-8 válido. Antes de devolver un
+        // cuerpo vacío a todo el mundo, se sustituyen y se deja constancia.
+        error_log('GeoQuiz ranking: json_encode falló: ' . json_last_error_msg());
+        $txt = json_encode($cuerpo, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+    }
+    if ($txt === false) {
+        $txt = '{"ok":false,"error":"codificacion","mensaje":"Respuesta no codificable."}';
+    }
+    echo $txt;
     exit;
 }
 

@@ -264,15 +264,15 @@ function showResult(){
     document.getElementById('result-hero').innerHTML=`
       <div style="font-size:36px;margin-bottom:0.5rem">⚔️</div>
       <div class="result-rank">Duelo finalizado</div>
-      <div class="duel-winner">${w?'🏆 '+w.name+' gana':'¡Empate!'}</div>
+      <div class="duel-winner">${w?'🏆 '+esc(w.name)+' gana':'¡Empate!'}</div>
       <div class="duel-scores">
         <div class="duel-score-card${duel.p1.score>=duel.p2.score?' winner':''}">
           <div class="dsc-crown">${duel.p1.score>duel.p2.score?'👑':''}</div>
-          <div class="dsc-name">${duel.p1.name}</div><div class="dsc-pts">${duel.p1.score}</div>
+          <div class="dsc-name">${esc(duel.p1.name)}</div><div class="dsc-pts">${duel.p1.score}</div>
         </div>
         <div class="duel-score-card${duel.p2.score>=duel.p1.score?' winner':''}">
           <div class="dsc-crown">${duel.p2.score>duel.p1.score?'👑':''}</div>
-          <div class="dsc-name">${duel.p2.name}</div><div class="dsc-pts">${duel.p2.score}</div>
+          <div class="dsc-name">${esc(duel.p2.name)}</div><div class="dsc-pts">${duel.p2.score}</div>
         </div>
       </div>
       <div class="result-actions">

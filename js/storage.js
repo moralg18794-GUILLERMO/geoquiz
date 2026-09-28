@@ -46,10 +46,17 @@ function renderRecords(){
 
 // El ranking es global: se pide a la API. Si no hay conexión se enseña el de este
 // dispositivo, avisando de que es solo local para que nadie lo confunda.
+//
+// El contador evita que una respuesta lenta de una visita anterior pise a la de la
+// visita actual: al entrar y salir de la pestaña varias veces seguidas, la primera
+// petición puede llegar después de la segunda y dejar datos viejos en pantalla.
+let gqRankingGen=0;
 async function renderRanking(){
+  const gen=++gqRankingGen;
   const div=document.getElementById('screen-ranking');
   div.innerHTML='<div class="no-records">Cargando ranking global…</div>';
   const res=await cargarRankingGlobal(50);
+  if(gen!==gqRankingGen)return;
 
   if(res.ok&&res.cuerpo&&Array.isArray(res.cuerpo.ranking)){
     const r=res.cuerpo.ranking;

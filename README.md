@@ -153,12 +153,19 @@ de Pages llama a la API de Hostinger por CORS.
 en `public_html/api/` del servidor, `.gitignore` lo excluye y el `.htaccess` de la carpeta
 impide servirlo. Para recrearlo, copia `config.example.php` y rellénalo desde hPanel.
 
+**Una fila por jugador.** El nombre es único en la tabla y cada envío se queda con la mejor
+marca de ese nombre. Así nadie puede copar el ranking repitiendo partidas, y dos personas
+que usen el mismo nombre comparten entrada.
+
 **Qué se guarda.** Nombre, puntos, porcentaje, modo, dificultad y fecha. De la IP solo un
 hash con sal, que sirve para limitar envíos sin almacenar la IP en claro.
 
-**Defensas.** Sentencias preparadas con PDO, validación de todo lo que entra (nombre, rango
-de puntos, porcentaje, modo contra lista blanca), 20 envíos por hora y conexión, y escape de
-HTML al pintar: los nombres los escribe cualquiera y acaban en el navegador de todos.
+**Defensas.** Sentencias preparadas con PDO; validación de todo lo que entra, con lista
+blanca para modo y dificultad; rechazo de nombres formados solo por caracteres invisibles o
+de control bidireccional; 20 envíos por hora y conexión; tope de 2.000 filas; y escape de
+HTML al pintar, porque los nombres los escribe cualquiera y acaban en el navegador de todos.
+El endpoint responde JSON pase lo que pase: un fallo de base de datos se registra en el log
+del servidor y devuelve un error limpio, sin filtrar la consulta ni la ruta.
 
 **En local no funciona** y es lo esperado: `localhost` no está en la lista de orígenes
 permitidos, así que el juego cae al ranking local avisando de ello. Para probar la API de

@@ -13,8 +13,8 @@
 return [
     'host'    => '127.0.0.1',
     'port'    => 3306,
-    'nombre'  => 'u810534943_geoquiz',
-    'usuario' => 'u810534943_geoquiz',
+    'nombre'  => 'TU_USUARIO_NOMBRE_BD',
+    'usuario' => 'TU_USUARIO_BD',
     'clave'   => 'PON_AQUI_LA_CONTRASENA',
     'sal_ip'  => 'PON_AQUI_UNA_SAL_ALEATORIA',
 ];
