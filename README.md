@@ -12,7 +12,7 @@ Se abre haciendo doble clic en `index.html` y se publica subiendo la carpeta tal
 
 ## Estado del proyecto
 
-- **501 preguntas** tipo test repartidas en **13 categorías**: Antigüedad, Edad Media,
+- **521 preguntas** tipo test repartidas en **13 categorías**: Antigüedad, Edad Media,
   S. XVI–XVIII, Era Napoleónica, S. XIX, I Guerra Mundial, II Guerra Mundial, Guerra Fría,
   Conflictos Modernos, Geopolítica, Asia y Pacífico, África y Oriente Medio, Américas.
   Todas con pista y explicación. El reparto está igualado: entre 38 y 42 por categoría.
@@ -51,7 +51,7 @@ GEOQUIZ/
 ├── index.html                  Marcado de las 6 pantallas
 ├── css/styles.css              Todo el CSS (variables en :root)
 ├── js/
-│   ├── data/questions.js       Las 501 preguntas  ← aquí se añaden preguntas
+│   ├── data/questions.js       Las 521 preguntas  ← aquí se añaden preguntas
 │   ├── data/events.js          Los 102 eventos    ← aquí se añaden eventos
 │   ├── state.js                Estado global de la partida
 │   ├── audio.js                Efectos de sonido
@@ -165,6 +165,15 @@ Si cambias de dominio, acuérdate de actualizar la URL en `js/game.js` y `js/cro
   tres preguntas defectuosas: una que contenía su respuesta, una a medio traducir y otra
   cuyo enunciado no casaba con sus opciones.
 
+- **2026-09-28** — Nuevo eje de filtrado **por temáticas**: 9 etiquetas transversales
+  asignadas a las 521 preguntas con un flujo de 57 agentes (24 lotes etiquetados, 24
+  revisados por un segundo agente y 9 auditores de precisión, uno por temática, que
+  retiraron 76 asignaciones forzadas). Añadidas además 20 preguntas de espionaje
+  (501 → 521) porque esa temática se quedaba en 10, justo una partida.
+  Reparto resultante: batallas 112, imperios 99, líderes 95, tratados 80, revoluciones 71,
+  economía 53, tecnología 50, atrocidades 31, espionaje 30. 74 preguntas sin temática:
+  esas solo salen jugando por épocas.
+
 ## Caché al actualizar
 
 Hostinger sirve los `.js` y `.css` con `Cache-Control: max-age=604800` (7 días), así que
@@ -172,7 +181,7 @@ quien ya haya jugado seguiría viendo la versión antigua durante una semana. `i
 sí se revalida en cada visita, y por eso las rutas de los recursos llevan una versión:
 
 ```html
-<script src="js/data/questions.js?v=20260926-2"></script>
+<script src="js/data/questions.js?v=20260928"></script>
 ```
 
 **Cada vez que despliegues un cambio hay que subir ese número** en las 12 rutas de
