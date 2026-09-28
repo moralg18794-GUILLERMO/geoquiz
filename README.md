@@ -39,8 +39,9 @@ Se abre haciendo doble clic en `index.html` y se publica subiendo la carpeta tal
 - **Comodines** (uno de cada por partida, desactivados en Duelo): 50:50, Dato (pista) y
   Saltar (añade una pregunta al final para mantener el total de 10).
 - **Multiplicador por racha:** x2 a partir de 3 aciertos seguidos, x3 a partir de 6.
-- **Récords** (top 10) y **Ranking** con nombre (top 20), guardados en `localStorage`
-  del navegador: son **por dispositivo**, no se comparten entre usuarios.
+- **Récords**: tus diez mejores partidas, en `localStorage`, solo de ese dispositivo.
+- **Ranking global**: compartido por todo el que juega, en una base de datos MySQL del
+  hosting. Si la API no responde, el juego enseña el ranking local avisando de que lo es.
 - Compartir resultado y "retar amigos" copiando texto al portapapeles.
 - Tema visual por época: cada categoría cambia el degradado de la cabecera.
 - Sonido sintetizado con WebAudio (sin archivos de audio), con interruptor en la cabecera.
@@ -59,11 +60,17 @@ GEOQUIZ/
 │   ├── utils.js                shuffle() y toast()
 │   ├── theme.js                Colores/iconos por categoría, cabecera, transiciones
 │   ├── storage.js              Récords, ranking, pestañas y reto por URL
+│   ├── nube.js                 Cliente del ranking global
 │   ├── crono.js                Modo Cronológico
 │   ├── fechas.js               Modo Fechas
 │   ├── game.js                 Bucle de juego y pantalla de resultado
 │   ├── menu.js                 Pantalla de menú
 │   └── main.js                 Arranque (debe cargarse el último)
+├── api/                        Ranking global en PHP (solo se despliega en Hostinger)
+│   ├── ranking.php             Endpoint: GET clasificación, POST puntuación
+│   ├── db.php                  Conexión PDO y esquema
+│   ├── config.example.php      Plantilla; el config.php real solo vive en el servidor
+│   └── .htaccess               Impide servir config.php y db.php
 ├── tools/version.sh            Sube la versión de caché de todas las rutas
 ├── docs/                       Notas de mantenimiento
 └── geopolitica-quiz.html       Original de un solo archivo, congelado como referencia
@@ -130,21 +137,51 @@ Estado del último despliegue de Pages:
 Los botones de compartir construyen el enlace desde `window.location`, así que funcionan en
 cualquiera de los dos dominios sin tocar nada.
 
+## Ranking global
+
+Vive en `api/`, sobre el MySQL del propio hosting, así que no hace falta ninguna cuenta ni
+servicio extra. **Solo se despliega en Hostinger**: GitHub Pages no ejecuta PHP, y la copia
+de Pages llama a la API de Hostinger por CORS.
+
+| | |
+|---|---|
+| Base de datos | `u810534943_geoquiz` |
+| `GET /api/ranking.php?limit=50` | Devuelve la clasificación |
+| `POST /api/ranking.php` | Envía una puntuación (JSON) |
+
+**Credenciales.** `api/config.php` **no está en el repositorio** y no debe estarlo: vive solo
+en `public_html/api/` del servidor, `.gitignore` lo excluye y el `.htaccess` de la carpeta
+impide servirlo. Para recrearlo, copia `config.example.php` y rellénalo desde hPanel.
+
+**Una fila por jugador.** El nombre es único en la tabla y cada envío se queda con la mejor
+marca de ese nombre. Así nadie puede copar el ranking repitiendo partidas, y dos personas
+que usen el mismo nombre comparten entrada.
+
+**Qué se guarda.** Nombre, puntos, porcentaje, modo, dificultad y fecha. De la IP solo un
+hash con sal, que sirve para limitar envíos sin almacenar la IP en claro.
+
+**Defensas.** Sentencias preparadas con PDO; validación de todo lo que entra, con lista
+blanca para modo y dificultad; rechazo de nombres formados solo por caracteres invisibles o
+de control bidireccional; 20 envíos por hora y conexión; tope de 2.000 filas; y escape de
+HTML al pintar, porque los nombres los escribe cualquiera y acaban en el navegador de todos.
+El endpoint responde JSON pase lo que pase: un fallo de base de datos se registra en el log
+del servidor y devuelve un error limpio, sin filtrar la consulta ni la ruta.
+
+**En local no funciona** y es lo esperado: `localhost` no está en la lista de orígenes
+permitidos, así que el juego cae al ranking local avisando de ello. Para probar la API de
+verdad hay que abrir el sitio desplegado.
+
 ## Problemas conocidos (pendientes de decidir)
 
 1. **`prompt()` para pedir el nombre** bloquea la página al terminar la partida y está
    desactivado en algunos navegadores móviles y webviews.
-2. **El nombre del ranking se pinta con `innerHTML`.** Hoy es inofensivo (solo afecta a tu
-   propio navegador), pero **hay que escaparlo antes de pasar el ranking a la nube**.
+2. **Las puntuaciones se pueden falsificar** desde la consola del navegador. En un sitio
+   estático no hay forma de impedirlo sin cuentas ni sesiones. Lo que sí está acotado es el
+   daño: topes de valores, lista blanca de modos y 20 envíos por hora y conexión.
 3. En el modo Cronológico, dos eventos del mismo año se dan por correctos en cualquier
    orden. Puede ser intencionado.
 4. Quedan **dos preguntas de Era Napoleónica que responden "2"** (veces que fue exiliado y
    veces que se casó). Son distintas, pero pueden salir juntas en la misma partida.
-
-## Ideas pendientes
-
-- Récords y ranking **en la nube** en lugar de solo en el navegador. Requiere un backend:
-  el sitio es estático y `localStorage` no se comparte entre dispositivos.
 
 ## Historial
 
@@ -180,6 +217,12 @@ cualquiera de los dos dominios sin tocar nada.
   años distintos, para que no valga con separar a ojo la Antigüedad del siglo XX. La
   interacción es por toques (tocar evento, tocar año) en vez de arrastre: el Cronológico
   necesitó manejadores táctiles aparte para funcionar en móvil y aquí no hacen falta.
+
+- **2026-09-28** — **Ranking global** sobre el MySQL del propio hosting, sin servicios de
+  terceros. La pestaña Ranking pasa a ser compartida por todo el que juega y Récords se
+  queda como historial local. Se arregla de paso el XSS que llevaba avisado desde la
+  migración: los nombres ahora se escapan al pintarlos, que es obligatorio en cuanto los
+  escribe cualquiera y acaban en el navegador de los demás.
 
 ## Caché al actualizar
 

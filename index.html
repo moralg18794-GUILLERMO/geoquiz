@@ -4,9 +4,24 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GeoQuiz — Guerras & Conflictos</title>
-<meta name="description" content="Trivia de geopolítica, guerras y conflictos: 521 preguntas en 13 categorías, cinco modos de juego y línea temporal.">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗺️</text></svg>">
-<link rel="stylesheet" href="css/styles.css?v=20260928b">
+<meta name="description" content="Trivia de geopolítica, guerras y conflictos: 521 preguntas en 13 categorías, seis modos de juego y ranking global.">
+<link rel="icon" href="img/icono.png">
+<link rel="apple-touch-icon" href="img/icono.png">
+<!-- Vista previa al compartir el enlace (WhatsApp, Telegram, redes). La imagen tiene
+     que ir con URL absoluta: los rastreadores no resuelven rutas relativas. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="GeoQuiz">
+<meta property="og:locale" content="es_ES">
+<meta property="og:title" content="GeoQuiz — Guerras & Conflictos">
+<meta property="og:description" content="521 preguntas de guerras, conflictos y geopolítica, de la Antigüedad a Ucrania. Seis modos de juego y ranking compartido.">
+<meta property="og:url" content="https://mediumturquoise-dugong-529601.hostingersite.com/">
+<meta property="og:image" content="https://mediumturquoise-dugong-529601.hostingersite.com/img/og.png?v=1">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="GeoQuiz — Guerras, conflictos y poder global a través de los siglos">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="stylesheet" href="css/styles.css?v=20260928d">
 </head>
 <body>
 <div class="app">
@@ -189,22 +204,27 @@
     <div class="result-hero" id="result-hero"></div>
   </div>
 
+  <footer class="firma">
+    Hecho por Guillermo Moral<br>para sus mejores amigos
+  </footer>
+
 </div>
 
 <div class="share-toast" id="share-toast">¡Copiado!</div>
 
 <!-- El orden de carga importa: datos → estado → utilidades → pantallas → arranque. -->
-<script src="js/data/questions.js?v=20260928b"></script>
-<script src="js/data/events.js?v=20260928b"></script>
-<script src="js/state.js?v=20260928b"></script>
-<script src="js/audio.js?v=20260928b"></script>
-<script src="js/utils.js?v=20260928b"></script>
-<script src="js/theme.js?v=20260928b"></script>
-<script src="js/storage.js?v=20260928b"></script>
-<script src="js/crono.js?v=20260928b"></script>
-<script src="js/fechas.js?v=20260928b"></script>
-<script src="js/game.js?v=20260928b"></script>
-<script src="js/menu.js?v=20260928b"></script>
-<script src="js/main.js?v=20260928b"></script>
+<script src="js/data/questions.js?v=20260928d"></script>
+<script src="js/data/events.js?v=20260928d"></script>
+<script src="js/state.js?v=20260928d"></script>
+<script src="js/audio.js?v=20260928d"></script>
+<script src="js/utils.js?v=20260928d"></script>
+<script src="js/nube.js?v=20260928d"></script>
+<script src="js/theme.js?v=20260928d"></script>
+<script src="js/storage.js?v=20260928d"></script>
+<script src="js/crono.js?v=20260928d"></script>
+<script src="js/fechas.js?v=20260928d"></script>
+<script src="js/game.js?v=20260928d"></script>
+<script src="js/menu.js?v=20260928d"></script>
+<script src="js/main.js?v=20260928d"></script>
 </body>
 </html>

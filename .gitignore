@@ -10,3 +10,6 @@ desktop.ini
 
 # Paquetes de despliegue
 *.zip
+
+# Credenciales: solo en el servidor
+api/config.php

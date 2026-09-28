@@ -264,3 +264,6 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .year-chip{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:0.45rem 1.1rem;font-size:14px;font-weight:600;color:var(--text);cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.15s;}
 .year-chip:hover{border-color:var(--accent);color:var(--accent);}
 .year-chip.usado{opacity:0.22;pointer-events:none;}
+
+/* FIRMA */
+.firma{margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--border);text-align:center;font-family:'Libre Baskerville',serif;font-size:12px;font-style:italic;line-height:1.7;color:var(--muted);opacity:0.75;}

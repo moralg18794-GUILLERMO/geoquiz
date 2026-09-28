@@ -11,6 +11,12 @@ function shuffleOptions(q){
   q.ans=q.opts.indexOf(correcta);
 }
 
+// Escapa texto para meterlo en innerHTML. Imprescindible desde que el ranking es
+// global: los nombres los escribe cualquiera y se pintan en el navegador de todos.
+function esc(v){
+  return String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 function toast(msg){
   const t=document.getElementById('share-toast');
   t.textContent=msg;t.classList.add('show');
