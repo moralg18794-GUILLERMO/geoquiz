@@ -153,17 +153,42 @@ de Pages llama a la API de Hostinger por CORS.
 en `public_html/api/` del servidor, `.gitignore` lo excluye y el `.htaccess` de la carpeta
 impide servirlo. Para recrearlo, copia `config.example.php` y rellénalo desde hPanel.
 
-**Una fila por jugador.** El nombre es único en la tabla y cada envío se queda con la mejor
-marca de ese nombre. Así nadie puede copar el ranking repitiendo partidas, y dos personas
-que usen el mismo nombre comparten entrada.
+**Una fila por partida** (tabla `partidas`). Antes había una fila por jugador con su mejor
+marca global, y eso borraba la mejor partida de alguien en Difícil en cuanto hacía una mejor
+en Supervivencia: el dato que hacía falta para comparar se destruía justo al guardarlo. Ahora
+se guarda cada partida y se conservan las diez mejores de cada jugador en cada lista.
 
-**Qué se guarda.** Nombre, puntos, porcentaje, modo, dificultad y fecha. De la IP solo un
+Es una tabla **nueva** y no un `ALTER` de la antigua a propósito: `gq_consulta()` solo sabe
+reintentar cuando MySQL dice que la tabla no existe (42S02), no cuando falta una columna
+(42S22), así que un `ALTER` fallido habría dejado todos los envíos en 500 hasta entrar a
+phpMyAdmin a mano. La tabla vieja `ranking` se queda ahí, sin usarse.
+
+**Partida oficial.** El ranking de portada lista solo las partidas de modo solo con las 13
+épocas seleccionadas, que por construcción son la misma partida para todo el mundo, con la
+dificultad a la vista. El resto —blitz, supervivencia, cronológico, fechas y las selecciones
+parciales— va a una segunda lista, para que nadie desaparezca por jugar a otra cosa. En cada
+lista se enseña una fila por jugador: su mejor partida de esa lista.
+
+**Qué se guarda.** Nombre, puntos, porcentaje, modo, dificultad, eje de selección (épocas o
+temáticas) y cuántas de cuántas. Nunca el nombre de las categorías: no cabe en la tabla y
+sería texto libre escrito por cualquiera y pintado en el navegador de todos. De la IP solo un
 hash con sal, que sirve para limitar envíos sin almacenar la IP en claro.
 
+**Códigos, no etiquetas.** El modo y la dificultad viajan y se almacenan como `solo` y
+`dificil`, y el texto se compone al pintar. Si se guardara `Difícil` con su acento, cambiar
+ese rótulo dejaría huérfanas todas las filas anteriores y sin dar ningún error.
+
+**Ajustes congelados.** El cliente fija modo, dificultad y selección al pulsar Empezar
+(`partida` en `js/state.js`, `congelarPartida()` en `js/menu.js`). Leerlos al terminar
+permitía empezar en Fácil, volver al menú a mitad de partida —la barra de navegación sigue
+visible y `showTab()` no detiene los cronómetros— y guardar la partida como Difícil.
+
 **Defensas.** Sentencias preparadas con PDO; validación de todo lo que entra, con lista
-blanca para modo y dificultad; rechazo de nombres formados solo por caracteres invisibles o
-de control bidireccional; 20 envíos por hora y conexión; tope de 2.000 filas; y escape de
-HTML al pintar, porque los nombres los escribe cualquiera y acaban en el navegador de todos.
+blanca para modo, dificultad y eje; rechazo de nombres formados solo por caracteres invisibles
+o de control bidireccional; 20 envíos por hora y conexión; diez partidas por jugador y lista;
+tope de 5.000 filas; y escape de HTML al pintar, porque los nombres los escribe cualquiera y
+acaban en el navegador de todos. Lo que no se reconoce se degrada en vez de rechazarse: un 400
+se le enseña al jugador como «sin conexión», así que perdería la partida culpando al wifi.
 El endpoint responde JSON pase lo que pase: un fallo de base de datos se registra en el log
 del servidor y devuelve un error limpio, sin filtrar la consulta ni la ruta.
 
