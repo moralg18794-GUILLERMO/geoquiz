@@ -1,16 +1,88 @@
-// GeoQuiz — pantalla de menú: categorías, dificultad y modos.
-// ── MENU BUILD ────────────────────────────────────────────────────────────
+// GeoQuiz — pantalla de menú: épocas, temáticas, dificultad y modos.
+// El banco se puede filtrar de dos formas excluyentes entre sí: por categoría
+// cronológica (las 13 de siempre) o por temática transversal (campo `t` de cada
+// pregunta). La variable global filterMode dice cuál está activa.
+
+// ── REJILLA DE ÉPOCAS ─────────────────────────────────────────────────────
 const CATEGORIES={};
-ALL_Q.forEach(q=>{if(!CATEGORIES[q.cat])CATEGORIES[q.cat]={};});
+ALL_Q.forEach(q=>{CATEGORIES[q.cat]=(CATEGORIES[q.cat]||0)+1;});
 const catGrid=document.getElementById('cat-grid');
 Object.keys(CATEGORIES).forEach(cat=>{
   const card=document.createElement('div');
   card.className='cat-card';card.dataset.cat=cat;
-  card.innerHTML=`<div class="cat-check">✓</div><div class="cat-icon">${CAT_ICONS[cat]||'📌'}</div><div class="cat-name">${cat}</div>`;
+  card.innerHTML=`<div class="cat-check">✓</div><div class="cat-icon">${CAT_ICONS[cat]||'📌'}</div><div class="cat-name">${cat}</div><div class="cat-count">${CATEGORIES[cat]} preguntas</div>`;
   card.addEventListener('click',()=>toggleCat(cat,card));
   catGrid.appendChild(card);
 });
 
+// ── REJILLA DE TEMÁTICAS ──────────────────────────────────────────────────
+const THEME_COUNTS={};
+Object.keys(THEMES).forEach(t=>{THEME_COUNTS[t]=0;});
+ALL_Q.forEach(q=>{(q.t||[]).forEach(t=>{if(t in THEME_COUNTS)THEME_COUNTS[t]++;});});
+const THEME_KEYS=Object.keys(THEMES).filter(t=>THEME_COUNTS[t]>0);
+const themeGrid=document.getElementById('theme-grid');
+THEME_KEYS.forEach(code=>{
+  const card=document.createElement('div');
+  card.className='cat-card';card.dataset.theme=code;
+  card.innerHTML=`<div class="cat-check">✓</div><div class="cat-icon">${THEMES[code].icon}</div><div class="cat-name">${THEMES[code].name}</div><div class="cat-count">${THEME_COUNTS[code]} preguntas</div>`;
+  card.addEventListener('click',()=>toggleTheme(code,card));
+  themeGrid.appendChild(card);
+});
+// Si todavía no hay ninguna pregunta etiquetada, el selector no tendría sentido.
+if(!THEME_KEYS.length)document.getElementById('filter-switch').style.display='none';
+
+// ── SELECTOR ÉPOCAS / TEMÁTICAS ───────────────────────────────────────────
+document.getElementById('filter-switch').addEventListener('click',e=>{
+  const b=e.target.closest('.fs-btn');if(!b||b.dataset.filter===filterMode)return;
+  document.querySelectorAll('.fs-btn').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active');filterMode=b.dataset.filter;
+  const esTema=filterMode==='tematicas';
+  catGrid.style.display=esTema?'none':'grid';
+  themeGrid.style.display=esTema?'grid':'none';
+  document.getElementById('grid-label').textContent=esTema?'Temáticas:':'Categorías:';
+  updateSelectAllBtn();updateStartBtn();
+});
+
+// ── SELECCIÓN ─────────────────────────────────────────────────────────────
+function currentKeys(){return filterMode==='tematicas'?THEME_KEYS:Object.keys(CATEGORIES);}
+function currentSelection(){return filterMode==='tematicas'?selectedThemes:selectedCats;}
+function currentCards(){return document.querySelectorAll(filterMode==='tematicas'?'#theme-grid .cat-card':'#cat-grid .cat-card');}
+
+function updateSelectAllBtn(){
+  const sel=currentSelection();
+  document.getElementById('select-all-btn').textContent=
+    currentKeys().length&&currentKeys().every(k=>sel.has(k))?'Deseleccionar todas':'Seleccionar todas';
+}
+
+function toggleAllCats(){
+  const keys=currentKeys(),sel=currentSelection();
+  const todas=keys.every(k=>sel.has(k));
+  if(todas){keys.forEach(k=>sel.delete(k));currentCards().forEach(c=>c.classList.remove('selected'));}
+  else{keys.forEach(k=>sel.add(k));currentCards().forEach(c=>c.classList.add('selected'));}
+  updateSelectAllBtn();updateStartBtn();
+}
+
+function toggleCat(cat,card){
+  if(selectedCats.has(cat)){selectedCats.delete(cat);card.classList.remove('selected');}
+  else{selectedCats.add(cat);card.classList.add('selected');}
+  updateSelectAllBtn();updateStartBtn();
+}
+
+function toggleTheme(code,card){
+  if(selectedThemes.has(code)){selectedThemes.delete(code);card.classList.remove('selected');}
+  else{selectedThemes.add(code);card.classList.add('selected');}
+  updateSelectAllBtn();updateStartBtn();
+}
+
+// Texto de la selección activa, para los récords y para compartir resultado.
+function selectionLabel(){
+  if(gameMode==='crono')return'Todos los periodos';
+  return filterMode==='tematicas'
+    ?[...selectedThemes].map(t=>THEMES[t]?THEMES[t].name:t).join(', ')
+    :[...selectedCats].join(', ');
+}
+
+// ── DIFICULTAD Y MODO ─────────────────────────────────────────────────────
 document.getElementById('diff-row').addEventListener('click',e=>{
   const b=e.target.closest('.diff-btn');if(!b)return;
   document.querySelectorAll('.diff-btn').forEach(x=>x.classList.remove('active'));
@@ -22,38 +94,21 @@ document.getElementById('mode-row').addEventListener('click',e=>{
   document.querySelectorAll('.mode-btn').forEach(x=>x.classList.remove('active'));
   b.classList.add('active');gameMode=b.dataset.mode;
   document.getElementById('duel-names').style.display=gameMode==='duel'?'flex':'none';
-  // Hide categories & difficulty in crono mode (they don't apply), show info instead
+  // En cronológico no aplican ni las épocas ni las temáticas ni la dificultad.
   const isCrono=gameMode==='crono';
   document.getElementById('cat-diff-section').style.display=isCrono?'none':'block';
   document.getElementById('crono-info').style.display=isCrono?'block':'none';
   updateStartBtn();
 });
 
-function toggleAllCats(){
-  const allCats=Object.keys(CATEGORIES);
-  const allSelected=allCats.every(c=>selectedCats.has(c));
-  const btn=document.getElementById('select-all-btn');
-  if(allSelected){
-    selectedCats.clear();
-    document.querySelectorAll('.cat-card').forEach(c=>c.classList.remove('selected'));
-    btn.textContent='Seleccionar todas';
-  } else {
-    allCats.forEach(c=>selectedCats.add(c));
-    document.querySelectorAll('.cat-card').forEach(c=>c.classList.add('selected'));
-    btn.textContent='Deseleccionar todas';
-  }
-  updateStartBtn();
+// ── POOL Y BOTÓN DE INICIO ────────────────────────────────────────────────
+function buildPool(){
+  const base=filterMode==='tematicas'
+    ?ALL_Q.filter(q=>(q.t||[]).some(t=>selectedThemes.has(t)))
+    :ALL_Q.filter(q=>selectedCats.has(q.cat));
+  return base.filter(q=>selectedDiff==='all'||q.diff===selectedDiff);
 }
 
-function toggleCat(cat,card){
-  if(selectedCats.has(cat)){selectedCats.delete(cat);card.classList.remove('selected');}
-  else{selectedCats.add(cat);card.classList.add('selected');}
-  const allCats=Object.keys(CATEGORIES);
-  const btn=document.getElementById('select-all-btn');
-  btn.textContent=allCats.every(c=>selectedCats.has(c))?'Deseleccionar todas':'Seleccionar todas';
-  updateStartBtn();
-}
-function buildPool(){return ALL_Q.filter(q=>selectedCats.has(q.cat)&&(selectedDiff==='all'||q.diff===selectedDiff));}
 function updateStartBtn(){
   const btn=document.getElementById('start-btn');
   if(gameMode==='crono'){
@@ -61,11 +116,17 @@ function updateStartBtn(){
     btn.textContent=`Empezar — ${cronoTotal} rondas cronológicas`;
     return;
   }
+  if(!currentSelection().size){
+    btn.disabled=true;
+    btn.textContent=filterMode==='tematicas'?'Selecciona al menos una temática':'Selecciona al menos una categoría';
+    return;
+  }
   const pool=buildPool();
-  btn.disabled=pool.length===0||selectedCats.size===0;
+  btn.disabled=pool.length===0;
   const max=gameMode==='survival'?'∞':Math.min(pool.length,10);
   btn.textContent=pool.length>0?`Empezar — ${max} preguntas`:'Sin preguntas con estos filtros';
 }
+
 document.getElementById('start-btn').addEventListener('click',()=>{
   if(gameMode==='crono'){startCrono();}
   else{startGame();}

@@ -26,7 +26,7 @@ function renderRecords(){
   const medals=['🥇','🥈','🥉'];
   const recDiv=document.getElementById('screen-records');
   if(!recs.length){recDiv.innerHTML='<div class="no-records">Aún no hay récords. ¡Juega tu primera partida!</div>';return;}
-  recDiv.innerHTML=`<div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Puntos</th><th>Correctas</th><th>Modo</th><th>Dificultad</th><th>Categorías</th><th>Fecha</th></tr></thead><tbody>${recs.map((r,i)=>`<tr><td>${medals[i]||i+1}</td><td style="color:var(--accent);font-weight:600">${r.score.toLocaleString()}</td><td>${r.correct}/${r.total}</td><td>${r.mode}</td><td>${r.diff||'—'}</td><td style="font-size:11px;color:var(--muted)">${r.cats}</td><td style="font-size:11px;color:var(--muted)">${r.date}</td></tr>`).join('')}</tbody></table></div><button class="clear-btn" onclick="clearRecords()">🗑 Borrar récords</button>`;
+  recDiv.innerHTML=`<div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Puntos</th><th>Correctas</th><th>Modo</th><th>Dificultad</th><th>Selección</th><th>Fecha</th></tr></thead><tbody>${recs.map((r,i)=>`<tr><td>${medals[i]||i+1}</td><td style="color:var(--accent);font-weight:600">${r.score.toLocaleString()}</td><td>${r.correct}/${r.total}</td><td>${r.mode}</td><td>${r.diff||'—'}</td><td style="font-size:11px;color:var(--muted)">${r.cats}</td><td style="font-size:11px;color:var(--muted)">${r.date}</td></tr>`).join('')}</tbody></table></div><button class="clear-btn" onclick="clearRecords()">🗑 Borrar récords</button>`;
 }
 
 function renderRanking(){

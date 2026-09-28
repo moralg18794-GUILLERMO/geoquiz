@@ -16,6 +16,15 @@ Se abre haciendo doble clic en `index.html` y se publica subiendo la carpeta tal
   S. XVI–XVIII, Era Napoleónica, S. XIX, I Guerra Mundial, II Guerra Mundial, Guerra Fría,
   Conflictos Modernos, Geopolítica, Asia y Pacífico, África y Oriente Medio, Américas.
   Todas con pista y explicación. El reparto está igualado: entre 38 y 42 por categoría.
+- **Dos ejes de filtrado excluyentes**, elegibles con el selector del menú:
+  - **Por épocas** — las 13 categorías cronológicas de siempre.
+  - **Por temáticas** — 9 etiquetas transversales que cruzan todas las épocas:
+    Batallas y asedios, Líderes y estrategas, Tratados y diplomacia, Imperios y
+    colonización, Revoluciones y golpes, Tecnología y armamento, Espionaje e
+    inteligencia, Economía y recursos, y Crímenes y atrocidades.
+    Funcionan con Solo, Blitz, Supervivencia y Duelo, así que se puede jugar por
+    ejemplo una partida Blitz solo de espionaje, saltando de la Antigüedad a la
+    Guerra Fría.
 - **Dificultad y puntos:** fácil = 100 pts, medio = 200 pts, difícil = 300 pts.
 - **102 eventos históricos** para el modo Cronológico.
 - **5 modos de juego:**
@@ -72,7 +81,7 @@ Tras editar un archivo, recarga con `Ctrl+F5` (recarga forzada, para saltarse la
 Una pregunta = **una línea** al final del array de `js/data/questions.js`:
 
 ```js
-{cat:"Guerra Fría",diff:"medio",pts:200,q:"¿Pregunta?",opts:["A","B","C","D"],ans:1,hint:"Pista.",exp:"Explicación."},
+{cat:"Guerra Fría",diff:"medio",pts:200,q:"¿Pregunta?",opts:["A","B","C","D"],ans:1,hint:"Pista.",exp:"Explicación.",t:["esp","dip"]},
 ```
 
 - `cat` debe coincidir **exactamente** con una de las 13 categorías (las tarjetas del menú
@@ -81,6 +90,11 @@ Una pregunta = **una línea** al final del array de `js/data/questions.js`:
 - `pts` debe ir en pareja con `diff`: facil→100, medio→200, dificil→300.
 - `ans` es el índice (0-3) de la opción correcta dentro de `opts`. No importa en qué posición
   la pongas: las opciones se mezclan al renderizar cada pregunta (`shuffleOptions()` en `js/utils.js`).
+- `t` son las temáticas transversales, de 0 a 3 códigos de tres letras definidos en
+  `THEMES` (`js/theme.js`): `bat` batallas, `lid` líderes, `dip` tratados, `imp` imperios,
+  `rev` revoluciones, `tec` tecnología, `esp` espionaje, `eco` economía, `atr` atrocidades.
+  Etiqueta por lo que la pregunta **evalúa**, no por palabras sueltas del enunciado.
+  `t:[]` es válido: esa pregunta simplemente no aparece jugando por temáticas.
 - **La línea debe terminar en `},`**, incluida la última del array. Si falta la coma, el
   archivo entero deja de cargar y el juego se queda en blanco.
 - No uses comillas dobles dentro de los textos: el archivo no las escapa.
@@ -115,22 +129,21 @@ Si cambias de dominio, acuérdate de actualizar la URL en `js/game.js` y `js/cro
 
 ## Problemas conocidos (pendientes de decidir)
 
-1. **CSS muerto:** `.cat-count` existe pero las tarjetas de categoría no muestran el número
-   de preguntas.
-2. **`prompt()` para pedir el nombre** bloquea la página al terminar la partida y está
+1. **`prompt()` para pedir el nombre** bloquea la página al terminar la partida y está
    desactivado en algunos navegadores móviles y webviews.
-3. **El nombre del ranking se pinta con `innerHTML`.** Hoy es inofensivo (solo afecta a tu
+2. **El nombre del ranking se pinta con `innerHTML`.** Hoy es inofensivo (solo afecta a tu
    propio navegador), pero **hay que escaparlo antes de pasar el ranking a la nube**.
-4. En el modo Cronológico, dos eventos del mismo año se dan por correctos en cualquier
+3. En el modo Cronológico, dos eventos del mismo año se dan por correctos en cualquier
    orden. Puede ser intencionado.
-5. Quedan **dos preguntas de Era Napoleónica que responden "2"** (veces que fue exiliado y
+4. Quedan **dos preguntas de Era Napoleónica que responden "2"** (veces que fue exiliado y
    veces que se casó). Son distintas, pero pueden salir juntas en la misma partida.
 
 ## Ideas pendientes
 
-- Modo de juego por **temáticas transversales** (espionaje, economía de guerra, tecnología
-  militar, tratados…), separado de las categorías actuales, que son cronológicas.
-- Récords y ranking **en la nube** en lugar de solo en el navegador.
+- Modo de juego para **unir eventos con sus fechas**, aprovechando los 102 eventos que ya
+  tiene el modo Cronológico.
+- Récords y ranking **en la nube** en lugar de solo en el navegador. Requiere un backend:
+  el sitio es estático y `localStorage` no se comparte entre dispositivos.
 
 ## Historial
 

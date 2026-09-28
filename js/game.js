@@ -16,13 +16,17 @@ function startGame(){
   }
 
   const firstCat=gameQ[0].cat;
-  showCatTransition(firstCat,()=>{
+  const arrancar=()=>{
     showScreen('screen-game');
     setupHUD();
     setHeaderStyle(firstCat);
     lastCat=firstCat;
     renderQuestion();
-  });
+  };
+  // Jugando por temáticas se salta de época en casi cada pregunta: la cortinilla
+  // de época no aporta nada y retrasa 900 ms cada ronda.
+  if(filterMode==='tematicas')arrancar();
+  else showCatTransition(firstCat,arrancar);
 }
 
 function setupHUD(){
@@ -113,7 +117,7 @@ function renderQuestion(){
   answered=false;
   const q=gameQ[current];
   shuffleOptions(q);
-  const catChanged=q.cat!==lastCat&&lastCat!=='';
+  const catChanged=filterMode!=='tematicas'&&q.cat!==lastCat&&lastCat!=='';
 
   const doRender=()=>{
     setHeaderStyle(q.cat);lastCat=q.cat;
@@ -289,7 +293,7 @@ function showResult(){
   // Ask name for ranking
   const playerName=prompt('¿Tu nombre para el ranking? (deja vacío para no guardar)','');
   if(playerName&&playerName.trim())saveRanking(playerName.trim(),score,pct,diffLabel(selectedDiff));
-  saveRecord({score,correct,total:correct+wrong,mode:gameMode,diff:diffLabel(selectedDiff),cats:[...selectedCats].slice(0,3).join(', ')+(selectedCats.size>3?'…':''),date:new Date().toLocaleDateString('es-ES')});
+  saveRecord({score,correct,total:correct+wrong,mode:gameMode,diff:diffLabel(selectedDiff),cats:selectionLabel(),date:new Date().toLocaleDateString('es-ES')});
 
   document.getElementById('result-hero').innerHTML=`
     <div><span class="result-score-num">${score.toLocaleString()}</span></div>
@@ -332,8 +336,9 @@ function showScreen(id){
 function copyResult(){
   const pct=Math.round((correct/Math.max(correct+wrong,1))*100);
   const dif=gameMode==='crono'?'':`\nDificultad: ${diffLabel(selectedDiff)}`;
-  const cats=gameMode==='crono'?'Todos los periodos':[...selectedCats].join(', ');
-  const text=`🗺️ GeoQuiz — Guerras & Conflictos\nModo: ${gameMode}${dif}\nCategorías: ${cats}\n✅ ${correct} correctas (${pct}%)\n⭐ ${score.toLocaleString()} puntos · 🔥 Racha: ${maxStreak}\n\n¿Puedes superarme?`;
+  const cats=selectionLabel();
+  const eje=filterMode==='tematicas'&&gameMode!=='crono'?'Temáticas':'Categorías';
+  const text=`🗺️ GeoQuiz — Guerras & Conflictos\nModo: ${gameMode}${dif}\n${eje}: ${cats}\n✅ ${correct} correctas (${pct}%)\n⭐ ${score.toLocaleString()} puntos · 🔥 Racha: ${maxStreak}\n\n¿Puedes superarme?`;
   navigator.clipboard.writeText(text).then(()=>toast('¡Resultado copiado!'));
 }
 

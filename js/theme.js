@@ -17,6 +17,22 @@ const CAT_STYLES={
 const DEFAULT_STYLE={bg:"linear-gradient(135deg,#1a1209,#3d2b0a 40%,#7a5c1e 70%,#2a1f06)",label:""};
 const CAT_ICONS={"Antigüedad":"⚱️","Edad Media":"🏰","S. XVI–XVIII":"⚓","Era Napoleónica":"🎖️","S. XIX":"🏭","I Guerra Mundial":"🪖","II Guerra Mundial":"✈️","Guerra Fría":"☢️","Conflictos Modernos":"🌍","Geopolítica":"🗺️","Asia y Pacífico":"🌏","África y Oriente Medio":"🏜️","Américas":"🌎"};
 
+// ── TEMÁTICAS ─────────────────────────────────────────────────────────────
+// Transversales a las categorías: una pregunta de Antigüedad y otra de Guerra Fría
+// pueden compartir temática. El código de tres letras es el que se guarda en el
+// campo `t` de cada pregunta, en js/data/questions.js.
+const THEMES={
+  bat:{name:"Batallas y asedios",icon:"⚔️"},
+  lid:{name:"Líderes y estrategas",icon:"👤"},
+  dip:{name:"Tratados y diplomacia",icon:"📜"},
+  imp:{name:"Imperios y colonización",icon:"🏛️"},
+  rev:{name:"Revoluciones y golpes",icon:"✊"},
+  tec:{name:"Tecnología y armamento",icon:"⚙️"},
+  esp:{name:"Espionaje e inteligencia",icon:"🕵️"},
+  eco:{name:"Economía y recursos",icon:"💰"},
+  atr:{name:"Crímenes y atrocidades",icon:"🕯️"},
+};
+
 // ── HEADER ────────────────────────────────────────────────────────────────
 function setHeaderStyle(cat){
   const s=CAT_STYLES[cat]||DEFAULT_STYLE;
