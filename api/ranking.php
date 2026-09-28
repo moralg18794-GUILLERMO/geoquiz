@@ -4,10 +4,18 @@
 //   POST /api/ranking.php            envía una puntuación (JSON en el cuerpo)
 //
 // El ranking de portada lista solo PARTIDAS OFICIALES: modo solo con las 13 épocas
-// seleccionadas. Es la única forma de que dos filas sean comparables sin pedirle al
-// jugador que entienda nada: mismo mazo y mismo modo por construcción. Todo lo demás
-// (blitz, supervivencia, cronológico, fechas y las selecciones parciales) va a una
-// segunda lista, para que nadie desaparezca por jugar a otra cosa.
+// seleccionadas. Todo lo demás (blitz, supervivencia, cronológico, fechas y las selecciones
+// parciales) va a una segunda lista, para que nadie desaparezca por jugar a otra cosa.
+//
+// OJO CON LO QUE ESTO GARANTIZA Y LO QUE NO. La condición de oficial fija el modo y el
+// temario, pero NO la dificultad, y la dificultad multiplica los puntos: una pregunta vale
+// 100, 200 o 300 según sea fácil, media o difícil. El techo de una partida perfecta de 10
+// preguntas es 2.730 en Fácil, 5.460 en Medio y 8.190 en Difícil, así que la lista está
+// ordenada por puntos entre partidas que NO valen lo mismo y quien juega en Fácil no puede
+// alcanzar a quien juega en Difícil ni jugando perfecto. Es deliberado: Guillermo prefirió
+// una sola lista con la dificultad a la vista antes que cuatro listas separadas, sabiendo
+// esto. Si algún día se quiere comparabilidad estricta, hay que añadir $dif a la condición
+// de abajo o clasificar por grupos de dificultad en vez de por puntos crudos.
 
 declare(strict_types=1);
 require __DIR__ . '/db.php';
@@ -110,19 +118,25 @@ function gq_limpiar_nombre(string $bruto): string {
 // Una fila por jugador: su MEJOR partida dentro de la lista pedida. Se filtra por id de
 // la mejor en vez de agrupar para no depender de ONLY_FULL_GROUP_BY, que viene activado
 // por defecto en MySQL 8 y tumbaría un GROUP BY con columnas sueltas.
-function gq_listar(PDO $pdo, int $oficial, int $limite): array {
+//
+// $oficial vale 1 (oficiales), 0 (el resto) o null (todas mezcladas, que es lo que reciben
+// los clientes con el JavaScript viejo en caché: ellos no saben pintar dos listas y así
+// siguen viendo el ranking de siempre, con sus propias partidas dentro).
+function gq_listar(PDO $pdo, ?int $oficial, int $limite): array {
     $limite = max(1, min($limite, GQ_TOPE_LISTA));
+    $filtro = $oficial === null ? '' : 'p.oficial = :of AND ';
+    $sub    = $oficial === null ? '' : 'p2.oficial = :of2 AND ';
     // El límite va interpolado y no como parámetro porque MySQL no admite marcadores
     // en LIMIT; queda a salvo porque antes se fuerza a entero acotado.
     $sql = 'SELECT p.nombre, p.puntos, p.pct, p.modo, p.dif, p.eje, p.nsel, p.ntot, p.creado_en
             FROM partidas p
-            WHERE p.oficial = :of
-              AND p.id = (SELECT p2.id FROM partidas p2
-                          WHERE p2.oficial = :of2 AND p2.nombre = p.nombre
+            WHERE ' . $filtro . 'p.id = (SELECT p2.id FROM partidas p2
+                          WHERE ' . $sub . 'p2.nombre = p.nombre
                           ORDER BY p2.puntos DESC, p2.id ASC LIMIT 1)
             ORDER BY p.puntos DESC, p.id ASC
             LIMIT ' . $limite;
-    $filas = gq_consulta($pdo, $sql, ['of' => $oficial, 'of2' => $oficial])->fetchAll();
+    $params = $oficial === null ? [] : ['of' => $oficial, 'of2' => $oficial];
+    $filas = gq_consulta($pdo, $sql, $params)->fetchAll();
     $salida = [];
     foreach ($filas as $i => $f) {
         $salida[] = [
@@ -146,13 +160,18 @@ $pdo = gq_db();
 // ── GET: clasificación ────────────────────────────────────────────────────
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') {
     $limite = (int) ($_GET['limit'] ?? 50);
-    // La clave `ranking` conserva el nombre y la forma de siempre para que los clientes
-    // con el JavaScript viejo en caché sigan pintando la tabla sin enterarse del cambio.
-    gq_json(200, [
-        'ok'      => true,
-        'ranking' => gq_listar($pdo, 1, $limite),
-        'otras'   => gq_listar($pdo, 0, $limite),
-    ]);
+    // Solo el cliente nuevo pide la lista partida en dos (`split=1`). Al que tiene el
+    // JavaScript viejo en caché se le devuelve todo mezclado bajo la clave `ranking`, que
+    // es la única que sabe pintar: si se le mandaran solo las oficiales vería una tabla
+    // donde sus propias partidas no aparecen nunca, sin entender por qué.
+    if (($_GET['split'] ?? '') === '1') {
+        gq_json(200, [
+            'ok'      => true,
+            'ranking' => gq_listar($pdo, 1, $limite),
+            'otras'   => gq_listar($pdo, 0, $limite),
+        ]);
+    }
+    gq_json(200, ['ok' => true, 'ranking' => gq_listar($pdo, null, $limite)]);
 }
 
 if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
@@ -268,22 +287,38 @@ if ($total > GQ_TOPE_FILAS) {
     );
 }
 
-// El puesto se saca de la MISMA lista que se devuelve, buscando al jugador en ella. Así
-// el número que se le anuncia al terminar no puede discrepar de la tabla que ve después,
-// que es lo que pasaba antes al calcularlo con una consulta aparte.
-$lista = gq_listar($pdo, $oficial, GQ_TOPE_LISTA);
+// El puesto se saca de la MISMA lista que el jugador va a ver, buscándolo en ella. Así el
+// número que se le anuncia al terminar no puede discrepar de la tabla que abre después, que
+// es lo que pasaba antes al calcularlo con una consulta aparte. Un cliente con el JavaScript
+// viejo solo sabe pintar una lista mezclada, así que su puesto se calcula sobre esa.
+$clienteNuevo = array_key_exists('eje', $datos);
+$lista = gq_listar($pdo, $clienteNuevo ? $oficial : null, GQ_TOPE_LISTA);
+
+// La grafía que sobrevive en la lista es la de la partida con más puntos, y MySQL agrupa los
+// nombres con una colación que ignora mayúsculas y acentos: 'Guille' y 'guille' son el mismo
+// jugador. Comparar con === el nombre recién enviado dejaría el puesto en null cada vez que
+// alguien lo escribiera de otra forma, así que primero se le pregunta a MySQL cuál es la suya.
+$canon = gq_consulta(
+    $pdo,
+    'SELECT nombre FROM partidas WHERE ' . ($clienteNuevo ? 'oficial = ? AND ' : '') . 'nombre = ?
+     ORDER BY puntos DESC, id ASC LIMIT 1',
+    $clienteNuevo ? [$oficial, $nombre] : [$nombre]
+)->fetchColumn();
+$buscado = $canon === false ? $nombre : (string) $canon;
+
 $posicion = null;
 foreach ($lista as $fila) {
-    if ($fila['nombre'] === $nombre) {
+    if ($fila['nombre'] === $buscado) {
         $posicion = $fila['pos'];
         break;
     }
 }
 
-gq_json(201, [
-    'ok'      => true,
-    'pos'     => $posicion,
-    'oficial' => $oficial === 1,
-    'ranking' => $oficial === 1 ? $lista : gq_listar($pdo, 1, 50),
-    'otras'   => $oficial === 1 ? gq_listar($pdo, 0, 50) : $lista,
-]);
+$salida = ['ok' => true, 'pos' => $posicion, 'oficial' => $oficial === 1];
+if ($clienteNuevo) {
+    $salida['ranking'] = $oficial === 1 ? $lista : gq_listar($pdo, 1, GQ_TOPE_LISTA);
+    $salida['otras']   = $oficial === 1 ? gq_listar($pdo, 0, GQ_TOPE_LISTA) : $lista;
+} else {
+    $salida['ranking'] = $lista;
+}
+gq_json(201, $salida);

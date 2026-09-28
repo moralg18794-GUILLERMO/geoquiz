@@ -260,7 +260,11 @@ function showResult(){
   playFinish();
   const total=gameQ.length;
 
-  if(gameMode==='duel'){
+  // Por partida.modo y no por gameMode: gameMode es la variable del MENÚ, y esta rama sale
+  // con return antes del prompt, de saveRanking y de saveRecord. Si alguien dejaba marcado
+  // Duelo en el menú mientras terminaba una partida de Blitz, se pintaba un duelo falso y la
+  // partida se tiraba a la basura sin avisar.
+  if(partida.modo==='duel'){
     const w=duel.p1.score>duel.p2.score?duel.p1:duel.p2.score>duel.p1.score?duel.p2:null;
     document.getElementById('result-hero').innerHTML=`
       <div style="font-size:36px;margin-bottom:0.5rem">⚔️</div>
@@ -295,7 +299,7 @@ function showResult(){
   // Ask name for ranking
   const playerName=prompt('¿Tu nombre para el ranking? (deja vacío para no guardar)','');
   if(playerName&&playerName.trim())saveRanking(playerName.trim(),score,pct);
-  saveRecord({score,correct,total:correct+wrong,mode:modeLabel(partida.modo),diff:diffLabel(partida.dif),cats:partida.cats,date:new Date().toLocaleDateString('es-ES')});
+  saveRecord({score,correct,total:correct+wrong,mode:partida.modo,diff:diffLabel(partida.dif),cats:partida.cats,date:new Date().toLocaleDateString('es-ES')});
 
   document.getElementById('result-hero').innerHTML=`
     <div><span class="result-score-num">${score.toLocaleString()}</span></div>
@@ -307,7 +311,7 @@ function showResult(){
       <div class="rstat"><div class="rv red">${wrong}</div><div class="rl">Errores</div></div>
       <div class="rstat"><div class="rv gold">${score.toLocaleString()}</div><div class="rl">Puntos</div></div>
       <div class="rstat"><div class="rv" style="color:var(--text)">${maxStreak}</div><div class="rl">Racha máx.</div></div>
-      ${gameMode==='survival'?`<div class="rstat"><div class="rv" style="color:var(--blue)">${correct+wrong}</div><div class="rl">Respondidas</div></div>`:''}
+      ${partida.modo==='survival'?`<div class="rstat"><div class="rv" style="color:var(--blue)">${correct+wrong}</div><div class="rl">Respondidas</div></div>`:''}
     </div>
     <div class="result-actions">
       <button class="btn-secondary" onclick="copyResult()">📋 Copiar</button>

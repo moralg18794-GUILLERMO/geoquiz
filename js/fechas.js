@@ -176,7 +176,7 @@ function showFechasResult(){
 
   const playerName=prompt('¿Tu nombre para el ranking? (deja vacío para no guardar)','');
   if(playerName&&playerName.trim())saveRanking(playerName.trim(),fechasScore,pct);
-  saveRecord({score:fechasScore,correct:'-',total:fechasTotal+'r',mode:modeLabel(partida.modo),diff:'—',cats:partida.cats,date:new Date().toLocaleDateString('es-ES')});
+  saveRecord({score:fechasScore,correct:'-',total:fechasTotal+'r',mode:partida.modo,diff:'—',cats:partida.cats,date:new Date().toLocaleDateString('es-ES')});
 
   document.getElementById('result-hero').innerHTML=`
     <div style="font-size:40px;margin-bottom:0.5rem">🔗</div>

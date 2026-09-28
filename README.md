@@ -164,8 +164,12 @@ reintentar cuando MySQL dice que la tabla no existe (42S02), no cuando falta una
 phpMyAdmin a mano. La tabla vieja `ranking` se queda ahí, sin usarse.
 
 **Partida oficial.** El ranking de portada lista solo las partidas de modo solo con las 13
-épocas seleccionadas, que por construcción son la misma partida para todo el mundo, con la
-dificultad a la vista. El resto —blitz, supervivencia, cronológico, fechas y las selecciones
+épocas seleccionadas, con la dificultad a la vista. Fija el modo y el temario, **no la
+dificultad**: una pregunta vale 100, 200 o 300 puntos según sea fácil, media o difícil, así
+que el techo de una partida perfecta es 2.730 en Fácil, 5.460 en Medio y 8.190 en Difícil y
+la cabeza de la tabla será siempre de Difícil. Es deliberado —se prefirió una sola lista con
+la dificultad visible antes que cuatro listas separadas—, pero conviene saberlo: la lista es
+homogénea en temario, no en puntuación. El resto —blitz, supervivencia, cronológico, fechas y las selecciones
 parciales— va a una segunda lista, para que nadie desaparezca por jugar a otra cosa. En cada
 lista se enseña una fila por jugador: su mejor partida de esa lista.
 

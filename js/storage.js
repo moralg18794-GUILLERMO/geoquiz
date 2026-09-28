@@ -47,7 +47,7 @@ function getRanking(){try{return JSON.parse(localStorage.getItem('gq_ranking')||
 // menú: entre medias se puede haber cambiado la dificultad sin que la partida cambiase.
 function saveRanking(name,score,pct){
   const r=getRanking();
-  r.push({name,score,pct,diff:diffLabel(partida.dif),date:new Date().toLocaleDateString('es-ES')});
+  r.push({name,score,pct,modo:partida.modo,dif:partida.dif,eje:partida.eje,nsel:partida.nsel,ntot:partida.ntot,diff:diffLabel(partida.dif),date:new Date().toLocaleDateString("es-ES")});
   r.sort((a,b)=>b.score-a.score);
   localStorage.setItem('gq_ranking',JSON.stringify(r.slice(0,20)));
   enviarPuntuacionGlobal({
@@ -84,12 +84,14 @@ function renderRecords(){
   const recs=getRecords();
   const recDiv=document.getElementById('screen-records');
   if(!recs.length){recDiv.innerHTML='<div class="no-records">Aún no hay récords. ¡Juega tu primera partida!</div>';return;}
-  recDiv.innerHTML=`<p class="section-label">Tus mejores partidas en este dispositivo.</p><div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Puntos</th><th>Correctas</th><th>Modo</th><th>Dificultad</th><th>Selección</th><th>Fecha</th></tr></thead><tbody>${recs.map((r,i)=>`<tr><td>${MEDALLAS[i]||i+1}</td><td style="color:var(--accent);font-weight:600">${esc(Number(r.score).toLocaleString())}</td><td>${esc(r.correct)}/${esc(r.total)}</td><td>${esc(r.mode)}</td><td>${esc(r.diff||'—')}</td><td style="font-size:11px;color:var(--muted)">${esc(r.cats)}</td><td style="font-size:11px;color:var(--muted)">${esc(r.date)}</td></tr>`).join('')}</tbody></table></div><button class="clear-btn" onclick="clearRecords()">🗑 Borrar récords</button>`;
+  recDiv.innerHTML=`<p class="section-label">Tus mejores partidas en este dispositivo.</p><div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Puntos</th><th>Correctas</th><th>Modo</th><th>Dificultad</th><th>Selección</th><th>Fecha</th></tr></thead><tbody>${recs.map((r,i)=>`<tr><td>${MEDALLAS[i]||i+1}</td><td style="color:var(--accent);font-weight:600">${esc(Number(r.score).toLocaleString())}</td><td>${esc(r.correct)}/${esc(r.total)}</td><td>${esc(modeLabel(r.mode))}</td><td>${esc(r.diff||'—')}</td><td style="font-size:11px;color:var(--muted)">${esc(r.cats)}</td><td style="font-size:11px;color:var(--muted)">${esc(r.date)}</td></tr>`).join('')}</tbody></table></div><button class="clear-btn" onclick="clearRecords()">🗑 Borrar récords</button>`;
 }
 
 // Ranking de portada: solo PARTIDAS OFICIALES, es decir, modo solo con las 13 épocas
-// puestas. Así todas las filas jugaron con el mismo mazo y el mismo formato, que es la
-// única forma de compararlas sin pedirle al jugador que entienda nada.
+// puestas. Todas las filas jugaron el mismo temario y el mismo formato; la dificultad NO
+// está fijada y sí multiplica los puntos (ver el comentario largo de api/ranking.php), por
+// eso se pinta en su propia columna: es el dato que explica por qué dos filas no valen lo
+// mismo aunque estén en la misma lista.
 //
 // La columna de Modo desaparece porque en esta lista siempre pone lo mismo, y su hueco
 // lo ocupa la dificultad: seis columnas antes y seis después, sin ensanchar la tabla,
@@ -119,7 +121,7 @@ async function renderRanking(){
   const gen=++gqRankingGen;
   const div=document.getElementById('screen-ranking');
   div.innerHTML='<div class="no-records">Cargando ranking global…</div>';
-  const res=await cargarRankingGlobal(50);
+  const res=await cargarRankingGlobal();
   if(gen!==gqRankingGen)return;
 
   if(res.ok&&res.cuerpo&&Array.isArray(res.cuerpo.ranking)){
@@ -130,7 +132,11 @@ async function renderRanking(){
   const local=getRanking();
   const aviso='<p class="section-label" style="color:var(--orange)">⚠ No se pudo cargar el ranking global. Esto es solo lo de este dispositivo.</p>';
   if(!local.length){div.innerHTML=aviso+'<div class="no-records">Y aquí tampoco hay nada todavía.</div>';return;}
-  div.innerHTML=aviso+`<div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Jugador</th><th>Puntos</th><th>Aciertos</th><th>Dificultad</th><th class="celda-fecha">Fecha</th></tr></thead><tbody>${local.map((e,i)=>`<tr><td>${MEDALLAS[i]||i+1}</td><td style="font-weight:600">${esc(e.name)}</td><td style="color:var(--accent);font-weight:600">${esc(Number(e.score).toLocaleString())}</td><td>${esc(e.pct)}%</td><td>${esc(e.diff||'—')}</td><td class="celda-fecha" style="font-size:11px;color:var(--muted)">${esc(e.date)}</td></tr>`).join('')}</tbody></table></div><button class="clear-btn" onclick="clearRanking()">🗑 Borrar ranking local</button>`;
+  // En dos líneas, igual que la lista de otras partidas: aquí conviven los seis modos y con
+  // una cabecera fija de "Aciertos" se estaría llamando acierto al porcentaje de puntuación
+  // máxima de Cronológico y Fechas, que es otra cosa. partidaResumen() lo distingue.
+  // Las entradas guardadas antes de este cambio no traen modo, así que se pinta lo que hay.
+  div.innerHTML=aviso+`<div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Jugador</th><th>Puntos</th></tr></thead><tbody>${local.map((e,i)=>`<tr><td>${MEDALLAS[i]||i+1}</td><td style="font-weight:600">${esc(e.name)}<div class="fila-detalle">${esc(e.modo?partidaResumen(e):`${e.diff||'—'} · ${e.pct}%`)} · ${esc(e.date)}</div></td><td style="color:var(--accent);font-weight:600">${esc(Number(e.score).toLocaleString())}</td></tr>`).join('')}</tbody></table></div><button class="clear-btn" onclick="clearRanking()">🗑 Borrar ranking local</button>`;
 }
 
 function clearRecords(){localStorage.removeItem('gq_records');renderRecords();}

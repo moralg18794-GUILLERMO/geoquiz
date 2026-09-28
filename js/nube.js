@@ -26,8 +26,15 @@ async function gqFetch(url,opciones){
   }
 }
 
+// split=1 pide las dos listas separadas (oficiales y el resto). Sin ese parámetro la API
+// devuelve todo mezclado bajo `ranking`, que es lo que necesitan los navegadores con el
+// JavaScript viejo todavía en caché.
+//
+// Se piden 100 y no 50 porque el puesto que anuncia la API al terminar una partida se
+// calcula sobre 100: pidiendo menos, a alguien del puesto 60 se le anunciaba un número que
+// luego no aparecía en la tabla.
 function cargarRankingGlobal(limite){
-  return gqFetch(`${GQ_API}?limit=${limite||50}`,{method:'GET'});
+  return gqFetch(`${GQ_API}?split=1&limit=${limite||100}`,{method:'GET'});
 }
 
 function enviarPuntuacionGlobal(datos){
