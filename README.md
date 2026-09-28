@@ -64,6 +64,7 @@ GEOQUIZ/
 │   ├── game.js                 Bucle de juego y pantalla de resultado
 │   ├── menu.js                 Pantalla de menú
 │   └── main.js                 Arranque (debe cargarse el último)
+├── tools/version.sh            Sube la versión de caché de todas las rutas
 ├── docs/                       Notas de mantenimiento
 └── geopolitica-quiz.html       Original de un solo archivo, congelado como referencia
 ```
@@ -187,9 +188,17 @@ quien ya haya jugado seguiría viendo la versión antigua durante una semana. `i
 sí se revalida en cada visita, y por eso las rutas de los recursos llevan una versión:
 
 ```html
-<script src="js/data/questions.js?v=20260928"></script>
+<script src="js/data/questions.js?v=20260928b"></script>
 ```
 
-**Cada vez que despliegues un cambio hay que subir ese número** en las 12 rutas de
-`index.html` (un buscar y reemplazar). Si no, quien repita no verá el contenido nuevo.
+**Antes de cada despliegue hay que subir ese número.** No lo hagas a mano: hay un script
+que lo cambia en todas las rutas a la vez y avisa si se deja alguna sin versionar.
+
+```bash
+bash tools/version.sh 20260928b
+```
+
+Olvidarlo no rompe el sitio de forma visible: sirve el `index.html` nuevo con el CSS y el
+JS viejos, así que la función recién añadida aparece en el menú pero no funciona y sale sin
+estilos. Pasó justo así al publicar el modo Fechas.
 GitHub Pages no tiene este problema: cachea solo 10 minutos.
