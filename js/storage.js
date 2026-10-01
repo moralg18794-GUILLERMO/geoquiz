@@ -93,21 +93,41 @@ function renderRecords(){
 // eso se pinta en su propia columna: es el dato que explica por qué dos filas no valen lo
 // mismo aunque estén en la misma lista.
 //
-// La columna de Modo desaparece porque en esta lista siempre pone lo mismo, y su hueco
-// lo ocupa la dificultad: seis columnas antes y seis después, sin ensanchar la tabla,
-// que a 375 px ya se sale (410 px de tabla en 343 disponibles).
+// La columna de Modo desaparece porque en la lista oficial siempre pone lo mismo, y su
+// hueco lo ocupa la dificultad: seis columnas, sin ensanchar la tabla, que a 375 px ya se
+// sale (410 px de tabla en 343 disponibles).
+//
+// Las DOS listas se pintan con esta misma función, así que no pueden divergir: mismas
+// columnas, mismo orden, mismas medallas. Lo único propio de cada una es el encabezado y,
+// en la de otras partidas, una línea pequeña bajo el nombre con el modo y la selección, que
+// son los dos datos que ahí varían y para los que no queda columna.
+function htmlTabla(r,detalle){
+  return `<div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Jugador</th><th>Puntos</th><th>Aciertos</th><th>Dificultad</th><th class="celda-fecha">Fecha</th></tr></thead><tbody>${r.map(e=>`<tr><td>${MEDALLAS[e.pos-1]||e.pos}</td><td style="font-weight:600">${esc(e.nombre)}${detalle?`<div class="fila-detalle">${esc(detalle(e))}</div>`:''}</td><td style="color:var(--accent);font-weight:600">${esc(Number(e.puntos).toLocaleString())}</td><td>${esc(pctColumna(e))}</td><td class="celda-dif">${esc(diffLabel(e.dif))}</td><td class="celda-fecha" style="font-size:11px;color:var(--muted)">${esc(fechaCorta(e.fecha))}</td></tr>`).join('')}</tbody></table></div>`;
+}
+
+// Cronológico y Fechas no puntúan por aciertos sino por porcentaje de la puntuación máxima,
+// así que debajo de la cabecera "Aciertos" no se les puede poner un número sin mentir. Se
+// deja un guion y el dato real se enseña en la línea de detalle.
+function pctColumna(e){return e.modo==='crono'||e.modo==='fechas'?'—':`${e.pct}%`;}
+
+// Lo que no cabe en las columnas de la lista de otras partidas: el modo y la selección.
+function detalleOtras(e){
+  const t=[modeLabel(e.modo)];
+  const sel=selLabel(e.eje,e.nsel,e.ntot);
+  if(sel)t.push(sel);
+  if(e.modo==='crono'||e.modo==='fechas')t.push(`${e.pct}% de la máxima`);
+  return t.join(' · ');
+}
+
 function htmlOficial(r){
   const cab='<p class="section-label">🏆 Ranking global — partida oficial: las 13 épocas, modo solo.</p>';
   if(!r.length)return cab+'<div class="no-records">Todavía no hay ninguna partida oficial.<br>¡Sé el primero!</div>';
-  return cab+`<div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Jugador</th><th>Puntos</th><th>Aciertos</th><th>Dificultad</th><th class="celda-fecha">Fecha</th></tr></thead><tbody>${r.map(e=>`<tr><td>${MEDALLAS[e.pos-1]||e.pos}</td><td style="font-weight:600">${esc(e.nombre)}</td><td style="color:var(--accent);font-weight:600">${esc(Number(e.puntos).toLocaleString())}</td><td>${esc(e.pct)}%</td><td class="celda-dif">${esc(diffLabel(e.dif))}</td><td class="celda-fecha" style="font-size:11px;color:var(--muted)">${esc(fechaCorta(e.fecha))}</td></tr>`).join('')}</tbody></table></div>`;
+  return cab+htmlTabla(r,null);
 }
 
-// Lista secundaria: todo lo que no encaja en la oficial. Va en dos líneas en vez de en
-// columnas porque aquí hay cuatro datos que enseñar (modo, dificultad, selección y
-// porcentaje) y a lo ancho no caben de ninguna manera.
 function htmlOtras(r){
   if(!r.length)return'';
-  return `<p class="section-label" style="margin-top:1.5rem">Otras partidas — blitz, supervivencia, cronológico, fechas y selecciones parciales.</p><div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Jugador</th><th>Puntos</th></tr></thead><tbody>${r.map(e=>`<tr><td>${e.pos}</td><td style="font-weight:600">${esc(e.nombre)}<div class="fila-detalle">${esc(partidaResumen(e))}</div></td><td style="color:var(--accent);font-weight:600">${esc(Number(e.puntos).toLocaleString())}</td></tr>`).join('')}</tbody></table></div>`;
+  return '<p class="section-label" style="margin-top:1.5rem">Ranking de otras partidas — blitz, supervivencia, cronológico, fechas y selecciones parciales.</p>'+htmlTabla(r,detalleOtras);
 }
 
 // El ranking es global: se pide a la API. Si no hay conexión se enseña el de este
