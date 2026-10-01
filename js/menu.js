@@ -4,18 +4,23 @@
 // pregunta). La variable global filterMode dice cuál está activa.
 
 // ── REJILLA DE ÉPOCAS ─────────────────────────────────────────────────────
+// El recuento por categoría se sigue calculando aunque ya no se enseñe en la ficha: de
+// aquí salen las claves de la rejilla y el total de épocas que decide si una partida es
+// oficial (selectionCode más abajo). No borrar el contador por quitar el número.
 const CATEGORIES={};
 ALL_Q.forEach(q=>{CATEGORIES[q.cat]=(CATEGORIES[q.cat]||0)+1;});
 const catGrid=document.getElementById('cat-grid');
 Object.keys(CATEGORIES).forEach(cat=>{
   const card=document.createElement('div');
   card.className='cat-card';card.dataset.cat=cat;
-  card.innerHTML=`<div class="cat-check">✓</div><div class="cat-icon">${CAT_ICONS[cat]||'📌'}</div><div class="cat-name">${cat}</div><div class="cat-count">${CATEGORIES[cat]} preguntas</div>`;
+  card.innerHTML=`<div class="cat-check">✓</div><div class="cat-icon">${CAT_ICONS[cat]||'📌'}</div><div class="cat-name">${cat}</div>`;
   card.addEventListener('click',()=>toggleCat(cat,card));
   catGrid.appendChild(card);
 });
 
 // ── REJILLA DE TEMÁTICAS ──────────────────────────────────────────────────
+// Igual que arriba: el recuento tampoco se pinta, pero THEME_KEYS lo necesita para dejar
+// fuera de la rejilla cualquier temática que se quede sin preguntas.
 const THEME_COUNTS={};
 Object.keys(THEMES).forEach(t=>{THEME_COUNTS[t]=0;});
 ALL_Q.forEach(q=>{(q.t||[]).forEach(t=>{if(t in THEME_COUNTS)THEME_COUNTS[t]++;});});
@@ -24,7 +29,7 @@ const themeGrid=document.getElementById('theme-grid');
 THEME_KEYS.forEach(code=>{
   const card=document.createElement('div');
   card.className='cat-card';card.dataset.theme=code;
-  card.innerHTML=`<div class="cat-check">✓</div><div class="cat-icon">${THEMES[code].icon}</div><div class="cat-name">${THEMES[code].name}</div><div class="cat-count">${THEME_COUNTS[code]} preguntas</div>`;
+  card.innerHTML=`<div class="cat-check">✓</div><div class="cat-icon">${THEMES[code].icon}</div><div class="cat-name">${THEMES[code].name}</div>`;
   card.addEventListener('click',()=>toggleTheme(code,card));
   themeGrid.appendChild(card);
 });

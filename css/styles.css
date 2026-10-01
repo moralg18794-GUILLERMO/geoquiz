@@ -64,8 +64,9 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .cat-card:hover::before,.cat-card.selected::before{opacity:1;}
 .cat-card.selected{border-color:var(--accent);background:var(--accent-dim);}
 .cat-icon{font-size:22px;margin-bottom:6px;}
-.cat-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;}
-.cat-count{font-size:11px;color:var(--muted);}
+/* Sin margen inferior: el hueco de abajo era para el recuento de preguntas, que ya no se
+   enseña, y sin él la ficha quedaba descentrada. */
+.cat-name{font-size:13px;font-weight:600;color:var(--text);}
 .cat-check{position:absolute;top:8px;right:8px;width:16px;height:16px;background:var(--accent);border-radius:50%;display:none;align-items:center;justify-content:center;font-size:9px;color:#000;}
 .cat-card.selected .cat-check{display:flex;}
 .mode-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem;}
