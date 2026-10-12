@@ -1,0 +1,145 @@
+{
+  "slug": "2026-10-12-hispanidad",
+  "titulo": "Torneo de la Hispanidad",
+  "tema": "Cinco siglos de historia de España, del 12 de octubre de 1492 a las Cortes de Cádiz",
+  "empieza_en": "2026-10-12 00:00",
+  "acaba_en": "2026-10-18 22:00",
+  "borrador": false,
+  "preguntas": [
+    {
+      "cat": "Américas",
+      "diff": "facil",
+      "q": "¿Qué acontecimiento conmemora España cada 12 de octubre?",
+      "opts": ["La derrota de los franceses en Bailén", "La llegada de Colón a América", "La toma de Granada", "La coronación de Carlos I"],
+      "ans": 1,
+      "hint": "Ocurrió de madrugada, después de cinco semanas sin ver tierra.",
+      "exp": "En la madrugada del 12 de octubre de 1492 la expedición de Colón avistó una isla de las Bahamas que sus habitantes llamaban Guanahaní y que él bautizó San Salvador. Creyó hasta su muerte que había llegado a Asia."
+    },
+    {
+      "cat": "Américas",
+      "diff": "facil",
+      "q": "¿Qué monarcas financiaron el primer viaje de Colón?",
+      "opts": ["Carlos I y Juana la Loca", "Felipe II y María Tudor", "Los Reyes Católicos", "Juan II de Castilla y Blanca de Navarra"],
+      "ans": 2,
+      "hint": "Un matrimonio que unió dos coronas sin fundirlas en una sola.",
+      "exp": "Isabel de Castilla y Fernando de Aragón apoyaron el proyecto tras varias negativas de las juntas de expertos, que no dudaban de que la Tierra fuese redonda sino de los cálculos de Colón sobre su tamaño. Y en eso tenían razón: se equivocaba."
+    },
+    {
+      "cat": "S. XVI–XVIII",
+      "diff": "facil",
+      "q": "¿En qué ciudad fijó Felipe II la capital de la monarquía en 1561?",
+      "opts": ["Toledo", "Valladolid", "Madrid", "Sevilla"],
+      "ans": 2,
+      "hint": "Hasta entonces la corte iba de ciudad en ciudad.",
+      "exp": "Felipe II trasladó la corte en 1561 a una villa pequeña pero bien situada en el centro de la Península. Hasta ese momento la monarquía castellana había sido itinerante, y Toledo y Valladolid se turnaban como sede."
+    },
+    {
+      "cat": "Era Napoleónica",
+      "diff": "facil",
+      "q": "¿A quién puso Napoleón en el trono de España en 1808?",
+      "opts": ["A su hermano José", "A su hijo", "Al mariscal Murat", "A Manuel Godoy"],
+      "ans": 0,
+      "hint": "El pueblo le puso un apodo que aludía a la bebida, y encima era injusto.",
+      "exp": "José Bonaparte reinó como José I entre 1808 y 1813. Lo apodaron Pepe Botella pese a que apenas bebía, y nunca gobernó más que el territorio que ocupaba el ejército francés."
+    },
+    {
+      "cat": "Américas",
+      "diff": "medio",
+      "q": "¿Qué ruta marítima unió durante 250 años Manila con Acapulco?",
+      "opts": ["La Carrera de Indias", "La ruta de Magallanes", "La Flota de Nueva España", "El Galeón de Manila"],
+      "ans": 3,
+      "hint": "Cruzaba el Pacífico con seda y porcelana, y volvía cargado de plata.",
+      "exp": "Entre 1565 y 1815 llevó plata americana a Asia y trajo seda, porcelana y especias. Fue la primera ruta comercial regular entre América y Asia, y se considera un precedente del comercio global."
+    },
+    {
+      "cat": "S. XVI–XVIII",
+      "diff": "medio",
+      "q": "¿De qué cerro salió la plata que sostuvo la economía del imperio español?",
+      "opts": ["Zacatecas", "Potosí", "Guanajuato", "Taxco"],
+      "ans": 1,
+      "hint": "Está en el Alto Perú, hoy Bolivia, a más de 4.000 metros de altitud.",
+      "exp": "El Cerro Rico fue la mayor mina de plata del mundo durante dos siglos. De ahí viene la expresión vale un potosí, y también la inflación que esa plata provocó en toda Europa. Zacatecas, Guanajuato y Taxco fueron minas reales, pero mexicanas."
+    },
+    {
+      "cat": "S. XVI–XVIII",
+      "diff": "medio",
+      "q": "El rey Carlos I de España era conocido fuera de ella por otro nombre y número. ¿Cuál?",
+      "opts": ["Carlos II de Borgoña", "Carlos III de Nápoles", "Carlos V, emperador del Sacro Imperio", "Carlos IV de Flandes"],
+      "ans": 2,
+      "hint": "El mismo hombre, dos coronas y dos numeraciones distintas.",
+      "exp": "Heredó Castilla y Aragón de sus abuelos maternos y fue elegido emperador en 1519. Al abdicar en 1556 repartió la herencia: España y las Indias para su hijo Felipe, el Imperio para su hermano Fernando."
+    },
+    {
+      "cat": "Era Napoleónica",
+      "diff": "medio",
+      "q": "¿Qué ciudad resistió dos asedios franceses entre 1808 y 1809 con Palafox al mando?",
+      "opts": ["Gerona", "Zaragoza", "Cádiz", "Badajoz"],
+      "ans": 1,
+      "hint": "De allí salió la fama de Agustina de Aragón.",
+      "exp": "Soportó dos sitios y una lucha casa por casa que costó miles de vidas. Gerona y Cádiz también resistieron asedios largos, pero este se convirtió en el símbolo de la guerra."
+    },
+    {
+      "cat": "Era Napoleónica",
+      "diff": "medio",
+      "q": "¿Por qué se conoce como La Pepa a la Constitución de 1812?",
+      "opts": ["Por la reina que la firmó", "Por la imprenta gaditana que la publicó", "Porque se promulgó el día de San José", "Por el apodo del diputado que la redactó"],
+      "ans": 2,
+      "hint": "Manda la fecha, no las personas.",
+      "exp": "Se promulgó en Cádiz el 19 de marzo de 1812, día de San José, y de ahí el apodo. Proclamaba la soberanía nacional mientras la mayor parte del país seguía ocupada por los franceses."
+    },
+    {
+      "cat": "Américas",
+      "diff": "medio",
+      "q": "¿Dónde estaba la capital del Virreinato de Nueva España?",
+      "opts": ["Lima", "La Habana", "Cartagena de Indias", "Ciudad de México"],
+      "ans": 3,
+      "hint": "Se levantó encima de la capital del imperio al que sustituyó.",
+      "exp": "Creado en 1535, se gobernaba desde Ciudad de México, construida sobre las ruinas de Tenochtitlán. Llegó a abarcar desde el norte de California hasta Centroamérica, además de Filipinas."
+    },
+    {
+      "cat": "S. XVI–XVIII",
+      "diff": "medio",
+      "q": "¿Qué dinastía llegó al trono español con Felipe V?",
+      "opts": ["Los Borbones", "Los Habsburgo", "Los Saboya", "Los Trastámara"],
+      "ans": 0,
+      "hint": "La misma casa que reinaba entonces en Francia.",
+      "exp": "Felipe V era nieto de Luis XIV. Media Europa se coaligó para impedir que un Borbón reuniera las coronas francesa y española, y aunque la guerra duró hasta 1714, la dinastía se quedó."
+    },
+    {
+      "cat": "S. XVI–XVIII",
+      "diff": "dificil",
+      "q": "¿Qué batalla de 1643 acabó con la fama de invencibles de los tercios españoles?",
+      "opts": ["Nördlingen", "Rocroi", "San Quintín", "Ceriñola"],
+      "ans": 1,
+      "hint": "En las Ardenas, frente a un general francés de veintiún años.",
+      "exp": "El duque de Enghien, futuro Gran Condé, rompió a la infantería española en el norte de Francia. Los tercios siguieron combatiendo décadas, pero el aura de invencibilidad no se recuperó."
+    },
+    {
+      "cat": "Américas",
+      "diff": "dificil",
+      "q": "¿Qué se debatió en la Junta de Valladolid de 1550 y 1551?",
+      "opts": ["El reparto del oro de las Indias", "El traslado de la corte a Madrid", "La expulsión de los moriscos", "La legitimidad de la conquista y el trato a los indígenas"],
+      "ans": 3,
+      "hint": "Un fraile dominico contra un humanista, ante un jurado de teólogos.",
+      "exp": "Bartolomé de las Casas defendió que los indígenas eran súbditos libres con plenos derechos; Juan Ginés de Sepúlveda, que la conquista estaba justificada. No hubo veredicto claro, pero que el debate llegara a celebrarse no tiene equivalente en otros imperios de la época."
+    },
+    {
+      "cat": "S. XVI–XVIII",
+      "diff": "dificil",
+      "q": "¿Qué rey extranjero cayó prisionero de las tropas de Carlos I en la batalla de Pavía de 1525?",
+      "opts": ["Enrique VIII de Inglaterra", "Solimán el Magnífico", "Francisco I de Francia", "Cristián II de Dinamarca"],
+      "ans": 2,
+      "hint": "Escribió que lo había perdido todo menos el honor.",
+      "exp": "Capturado en el campo de batalla y llevado preso a Madrid, firmó un tratado renunciando a sus pretensiones en Italia. Lo repudió en cuanto quedó libre y la guerra continuó."
+    },
+    {
+      "cat": "S. XVI–XVIII",
+      "diff": "dificil",
+      "q": "¿Qué movimiento castellano fue derrotado en la batalla de Villalar en 1521?",
+      "opts": ["Los comuneros", "Las germanías", "Los irmandiños", "Los remensas"],
+      "ans": 0,
+      "hint": "Sus tres cabecillas fueron ejecutados al día siguiente.",
+      "exp": "Las ciudades castellanas se alzaron contra Carlos I por el reparto de cargos entre su séquito flamenco y por los nuevos impuestos. Padilla, Bravo y Maldonado fueron decapitados en Villalar, y el 23 de abril quedó como fecha señalada en Castilla y León."
+    }
+  ]
+}
