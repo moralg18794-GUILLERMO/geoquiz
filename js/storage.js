@@ -71,6 +71,7 @@ function showTab(tab){
   if(nb)nb.classList.add('active');
   if(tab==='records')renderRecords();
   if(tab==='ranking')renderRanking();
+  if(tab==='torneo')renderTorneo();
 }
 
 function tbl(headers,rows,emptyMsg){

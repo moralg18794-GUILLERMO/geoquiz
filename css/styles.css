@@ -57,6 +57,21 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .fs-btn:hover{color:var(--text);}
 .fs-btn.active{background:var(--accent-dim);color:var(--accent);}
 .fs-icon{font-size:15px;}
+/* ── AVISO DEL TORNEO ──────────────────────────────────────────────────────
+   Nace oculto y js/torneo.js le pone .show solo si hay torneo. Sin esto, cualquier
+   fallo de red dejaría un hueco vacío en la portada. */
+.torneo-aviso{display:none;position:relative;background:linear-gradient(135deg,rgba(201,168,76,0.16),rgba(201,168,76,0.04));border:1px solid var(--accent);border-radius:var(--radius-lg);padding:1.1rem 1.1rem 0.9rem;margin-bottom:1.25rem;text-align:center;}
+.torneo-aviso.show{display:block;}
+.ta-cerrar{position:absolute;top:6px;right:8px;background:none;border:none;color:var(--muted);font-size:15px;cursor:pointer;line-height:1;padding:4px 6px;}
+.ta-cerrar:hover{color:var(--text);}
+.ta-eyebrow{font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;}
+.ta-titulo{font-size:17px;font-weight:600;color:var(--text);line-height:1.25;}
+.ta-tema{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.35;}
+.ta-cuenta{font-size:12px;color:var(--accent);margin-top:8px;font-weight:600;}
+.ta-jugar{margin-top:0.9rem;width:100%;background:var(--accent);color:#000;border:none;border-radius:var(--radius);padding:11px 18px;font-size:14px;font-weight:600;font-family:'Inter',sans-serif;cursor:pointer;transition:filter 0.15s;}
+.ta-jugar:hover{filter:brightness(1.1);}
+.ta-nota{font-size:11px;color:var(--muted);margin-top:7px;}
+
 .cat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:1.25rem;}
 .cat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.1rem;cursor:pointer;transition:border-color 0.15s,background 0.15s,transform 0.1s;position:relative;overflow:hidden;}
 .cat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);opacity:0;transition:opacity 0.15s;}

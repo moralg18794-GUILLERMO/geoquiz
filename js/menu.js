@@ -108,9 +108,8 @@ function congelarPartida(){
   // de la SEGUNDA, de modo que una ronda de Cronológico podía guardarse como si fuera una
   // partida oficial de modo solo. Empezar una partida cancela la anterior, que es lo que el
   // jugador está haciendo de todas formas.
-  clearInterval(timerInt); clearInterval(blitzInt);
-  clearInterval(cronoTimerInt); clearInterval(fechasTimerInt);
-  partida={modo:gameMode,dif:gameMode==='crono'||gameMode==='fechas'?'na':selectedDiff,...selectionCode(),cats:selectionLabel()};
+  pararCronometros();
+  partida={modo:gameMode,dif:gameMode==='crono'||gameMode==='fechas'?'na':selectedDiff,...selectionCode(),cats:selectionLabel(),torneo:''};
 }
 
 // ── DIFICULTAD Y MODO ─────────────────────────────────────────────────────

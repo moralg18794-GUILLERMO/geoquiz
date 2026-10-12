@@ -38,6 +38,9 @@ function setupHUD(){
   document.getElementById('duel-hud-wrap').style.display=gameMode==='duel'?'block':'none';
   document.getElementById('timer-wrap').style.display=gameMode==='blitz'?'none':'flex';
   document.getElementById('hud-mult-wrap').style.display=gameMode==='solo'||gameMode==='survival'?'flex':'none';
+  // En el torneo no hay vidas: todos responden las 15. Enseñar tres corazones que nunca
+  // bajan sería mentir, así que se esconden.
+  document.getElementById('lives-wrap').style.display=partida.modo==='torneo'?'none':'';
   if(gameMode==='duel'){
     document.getElementById('dp1-name').textContent=duel.p1.name;
     document.getElementById('dp2-name').textContent=duel.p2.name;
@@ -176,8 +179,10 @@ function useHint(type){
   if(type==='skip'&&hintSkip){
     hintSkip=false;skipped++;
     clearInterval(timerInt);
-    // Add a fresh question at the end so the player still answers 10 in total
-    if(gameMode!=='survival'){
+    // Se añade una pregunta al final para que se respondan 10 igualmente. En el TORNEO no:
+    // saldría del banco general, el jugador vería una pregunta que nadie más ha tenido y se
+    // acabó el «las mismas 15 para todos», que es lo único que hace comparables las marcas.
+    if(gameMode!=='survival'&&partida.modo!=='torneo'){
       const pool=buildPool();
       const usedQs=new Set(gameQ.map(x=>x.q));
       let extra=pool.filter(q=>!usedQs.has(q.q)&&!seenQ.has(q.q));
@@ -189,7 +194,7 @@ function useHint(type){
     }
     document.getElementById('hint-skip').disabled=true;
     document.getElementById('hint-skip').textContent='—';
-    document.getElementById('explanation').innerHTML=`<div class="explanation timeout">⏭ Pregunta saltada. Se añade otra al final.</div>`;
+    document.getElementById('explanation').innerHTML=`<div class="explanation timeout">⏭ Pregunta saltada.${partida.modo==='torneo'?' Te quedan una menos: en el torneo no se repone.':' Se añade otra al final.'}</div>`;
     document.getElementById('next-btn').style.display='block';
     answered=true;
   }
@@ -259,6 +264,10 @@ function showResult(){
   clearInterval(timerInt);clearInterval(blitzInt);
   playFinish();
   const total=gameQ.length;
+
+  // El torneo tiene su propia tabla y su propia pantalla: no entra en el ranking global ni
+  // en los récords, porque se jugó con otro examen y mezclarlo falsearía las dos listas.
+  if(partida.modo==='torneo'){mostrarResultadoTorneo();return;}
 
   // Por partida.modo y no por gameMode: gameMode es la variable del MENÚ, y esta rama sale
   // con return antes del prompt, de saveRanking y de saveRecord. Si alguien dejaba marcado

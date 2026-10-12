@@ -21,7 +21,7 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="GeoQuiz — Guerras, conflictos y poder global a través de los siglos">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="stylesheet" href="css/styles.css?v=20261001b">
+<link rel="stylesheet" href="css/styles.css?v=20261012a">
 </head>
 <body>
 <div class="app">
@@ -46,12 +46,26 @@
       <button class="nav-btn active" onclick="showTab('menu')">Jugar</button>
       <button class="nav-btn" onclick="showTab('records')">Récords</button>
       <button class="nav-btn" onclick="showTab('ranking')">Ranking</button>
+      <!-- Solo aparece cuando hay torneo: el resto del tiempo sobra en la barra. -->
+      <button class="nav-btn" id="nav-torneo" style="display:none" onclick="showTab('torneo')">🏆 Torneo</button>
     </div>
     <span class="era-label" id="era-label"></span>
   </header>
 
   <!-- MENU -->
   <div id="screen-menu" class="screen active">
+    <!-- Aviso del torneo de la semana. Nace oculto y lo enseña js/torneo.js solo si hay
+         torneo: una vez por torneo y dispositivo, o siempre que ya se haya jugado, porque
+         entonces en vez de invitar informa del puesto. -->
+    <div class="torneo-aviso" id="torneo-aviso">
+      <button class="ta-cerrar" onclick="cerrarAvisoTorneo()" aria-label="Cerrar">✕</button>
+      <div class="ta-eyebrow" id="ta-eyebrow">🏆 Torneo de la semana</div>
+      <div class="ta-titulo" id="ta-titulo">—</div>
+      <div class="ta-tema" id="ta-tema"></div>
+      <div class="ta-cuenta" id="ta-cuenta"></div>
+      <button class="ta-jugar" id="ta-jugar" onclick="jugarTorneo()">Jugar el torneo</button>
+      <div class="ta-nota">Una sola partida por persona</div>
+    </div>
     <div class="challenge-banner" id="challenge-banner">
       <div class="cb-title">🎯 Alguien te ha retado</div>
       <div class="cb-score" id="cb-score">—</div>
@@ -100,6 +114,9 @@
 
   <!-- RANKING -->
   <div id="screen-ranking" class="screen"></div>
+
+  <!-- TORNEO -->
+  <div id="screen-torneo" class="screen"></div>
 
   <!-- GAME -->
   <div id="screen-game" class="screen">
@@ -214,18 +231,19 @@
 <div class="share-toast" id="share-toast">¡Copiado!</div>
 
 <!-- El orden de carga importa: datos → estado → utilidades → pantallas → arranque. -->
-<script src="js/data/questions.js?v=20261001b"></script>
-<script src="js/data/events.js?v=20261001b"></script>
-<script src="js/state.js?v=20261001b"></script>
-<script src="js/audio.js?v=20261001b"></script>
-<script src="js/utils.js?v=20261001b"></script>
-<script src="js/nube.js?v=20261001b"></script>
-<script src="js/theme.js?v=20261001b"></script>
-<script src="js/storage.js?v=20261001b"></script>
-<script src="js/crono.js?v=20261001b"></script>
-<script src="js/fechas.js?v=20261001b"></script>
-<script src="js/game.js?v=20261001b"></script>
-<script src="js/menu.js?v=20261001b"></script>
-<script src="js/main.js?v=20261001b"></script>
+<script src="js/data/questions.js?v=20261012a"></script>
+<script src="js/data/events.js?v=20261012a"></script>
+<script src="js/state.js?v=20261012a"></script>
+<script src="js/audio.js?v=20261012a"></script>
+<script src="js/utils.js?v=20261012a"></script>
+<script src="js/nube.js?v=20261012a"></script>
+<script src="js/theme.js?v=20261012a"></script>
+<script src="js/storage.js?v=20261012a"></script>
+<script src="js/crono.js?v=20261012a"></script>
+<script src="js/fechas.js?v=20261012a"></script>
+<script src="js/game.js?v=20261012a"></script>
+<script src="js/torneo.js?v=20261012a"></script>
+<script src="js/menu.js?v=20261012a"></script>
+<script src="js/main.js?v=20261012a"></script>
 </body>
 </html>
