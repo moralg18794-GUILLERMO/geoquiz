@@ -200,6 +200,48 @@ del servidor y devuelve un error limpio, sin filtrar la consulta ni la ruta.
 permitidos, así que el juego cae al ranking local avisando de ello. Para probar la API de
 verdad hay que abrir el sitio desplegado.
 
+## Torneos semanales
+
+Un torneo dura de **lunes 00:00 a domingo 22:00**, hora de Madrid, y son **15 preguntas
+sobre un tema** (un aniversario, una efeméride, lo que toque esa semana). Cierra el domingo
+a las diez para que el podio se vea antes de ir a la cama.
+
+**Una partida por nick y torneo**, y no lo decide el navegador: lo impone la clave única
+`uq_jugador` de `torneo_partidas`. Un segundo envío con el mismo nick responde 409 y no se
+guarda. Quien quiera puede volver a jugar con otro nombre, pero entonces no es su marca,
+que es justo el trato.
+
+**Todos reciben las mismas 15 preguntas en el mismo orden.** Con un solo intento, repartir
+preguntas distintas convertiría el torneo en una tómbola: a uno le tocan diez fáciles y a
+otro diez difíciles. Es también lo que hace que, por primera vez, dos puntuaciones sean
+comparables de verdad.
+
+**Los torneos viven en la base de datos, no en el código.** Publicar uno es meter filas, no
+volver a desplegar el sitio. Si cada torneo costara un despliegue, la idea se abandonaría
+en tres semanas. Tres tablas: `torneos`, `torneo_preguntas` y `torneo_partidas`.
+
+### Publicar uno
+
+Cada torneo es un JSON en `torneos/`, que queda en git con su historial y se puede revisar
+antes. La carpeta **no se sube al servidor**: es fuente, no sitio.
+
+```bash
+bash tools/publicar-torneo.sh torneos/2026-10-12-hispanidad.json
+bash tools/publicar-torneo.sh --listar
+```
+
+El formato lo marca `torneos/_prueba.json`. Las fechas se escriben en **hora de Madrid** y
+el servidor las convierte a UTC, así que el cambio de hora de octubre no mueve el cierre.
+Los puntos no se ponen: salen de la dificultad (100/200/300), como en el resto del juego.
+
+El token sale de `api/config.php` y viaja en la cabecera `X-GQ-Admin`, nunca en la URL, para
+que no acabe en los registros del servidor. Sin token el endpoint responde **404**: desde
+fuera no existe. Y no emite cabeceras CORS, así que ninguna página puede invocarlo.
+
+Si el torneo ya lo ha jugado alguien, republicarlo se rechaza con un 409: cambiar las
+preguntas dejaría sus puntuaciones sin significado. Hay que pedirlo a propósito con
+`"forzar": true`, y entonces se borran.
+
 ## Problemas conocidos (pendientes de decidir)
 
 1. **`prompt()` para pedir el nombre** bloquea la página al terminar la partida y está

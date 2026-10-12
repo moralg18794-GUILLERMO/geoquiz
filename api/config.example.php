@@ -9,6 +9,10 @@
 // La sal se usa para hashear la IP de quien envía una puntuación: sirve para
 // limitar envíos sin guardar la IP en claro. Genera una nueva con:
 //   openssl rand -hex 32
+//
+// token_admin es la contraseña para publicar torneos (api/torneo-admin.php). Es lo
+// único que separa a cualquiera de poder cambiar el torneo de la semana, así que
+// genérala igual de larga y no la pegues nunca en el navegador ni en un mensaje.
 
 return [
     'host'    => '127.0.0.1',
@@ -17,4 +21,5 @@ return [
     'usuario' => 'TU_USUARIO_BD',
     'clave'   => 'PON_AQUI_LA_CONTRASENA',
     'sal_ip'  => 'PON_AQUI_UNA_SAL_ALEATORIA',
+    'token_admin' => 'PON_AQUI_OTRO_VALOR_ALEATORIO',
 ];

@@ -39,29 +39,11 @@ register_shutdown_function(function (): void {
     }
 });
 
-// ── CORS ──────────────────────────────────────────────────────────────────
-// El juego se sirve desde dos dominios y la API vive solo en uno de ellos.
-const GQ_ORIGENES = [
-    'https://mediumturquoise-dugong-529601.hostingersite.com',
-    'https://moralg18794-guillermo.github.io',
-];
-$origen = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origen, GQ_ORIGENES, true)) {
-    header('Access-Control-Allow-Origin: ' . $origen);
-    header('Vary: Origin');
-}
-header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type');
-header('Access-Control-Max-Age: 86400');
-header('Cache-Control: no-store');
-
-if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
-    http_response_code(204);
-    exit;
-}
+gq_cors();
 
 // ── LÍMITES ───────────────────────────────────────────────────────────────
-const GQ_MAX_NOMBRE  = 24;
+// GQ_MAX_NOMBRE, gq_recortar() y gq_limpiar_nombre() viven ahora en db.php, compartidos
+// con el endpoint de torneos.
 const GQ_MAX_PUNTOS  = 500000;   // Supervivencia no tiene techo, pero sí sentido común.
 const GQ_TOPE_LISTA  = 100;
 const GQ_ENVIOS_HORA = 20;       // por conexión
@@ -85,35 +67,6 @@ const GQ_DIFS_VIEJAS = [
     '—' => 'na', '' => 'na',
 ];
 
-// Recorta por CARACTERES, nunca por bytes: cortar UTF-8 a mitad de secuencia deja
-// un valor inválido que MySQL rechaza con el error 1366. Con el modificador /u,
-// el punto de PCRE consume un carácter completo, así que el respaldo sin mbstring
-// tampoco puede partir nada.
-function gq_recortar(string $s, int $max): string {
-    if (function_exists('mb_substr')) {
-        return mb_substr($s, 0, $max, 'UTF-8');
-    }
-    return preg_match('/^.{0,' . $max . '}/us', $s, $m) ? $m[0] : '';
-}
-
-function gq_limpiar_nombre(string $bruto): string {
-    // No se usa strip_tags: mutilaría nombres legítimos como "Ana <3". El nombre se
-    // guarda tal cual y es el cliente quien lo escapa al pintarlo (esc() en
-    // js/utils.js), que es donde de verdad importa.
-    $n = preg_replace('/[\x{0000}-\x{001F}\x{007F}]/u', '', $bruto) ?? '';
-    // Fuera caracteres de formato invisibles y de control bidireccional: si no,
-    // alguien puede colarse en cabeza con una celda aparentemente vacía o dar la
-    // vuelta al texto de la fila.
-    $n = preg_replace('/[\x{200B}-\x{200F}\x{202A}-\x{202E}\x{2060}-\x{2064}\x{2066}-\x{206F}\x{FEFF}]/u', '', $n) ?? '';
-    $n = preg_replace('/\s+/u', ' ', $n) ?? '';
-    $n = trim($n);
-    $n = gq_recortar($n, GQ_MAX_NOMBRE);
-    // Tiene que quedar algo visible de verdad.
-    if (preg_match('/\p{L}|\p{N}|\p{S}|\p{P}/u', $n) !== 1) {
-        return '';
-    }
-    return $n;
-}
 
 // Una fila por jugador: su MEJOR partida dentro de la lista pedida. Se filtra por id de
 // la mejor en vez de agrupar para no depender de ONLY_FULL_GROUP_BY, que viene activado
