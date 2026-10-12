@@ -183,10 +183,14 @@ async function mostrarResultadoTorneo() {
     body: JSON.stringify({ slug, nombre: torneoNombre, puntos: score, correctas: correct, segundos }),
   });
 
-  torneoApuntarJugado(slug, torneoNombre);
   const msg = document.getElementById('torneo-envio');
 
   if (res.ok && res.cuerpo) {
+    // Solo se apunta como jugado cuando el servidor lo confirma. Apuntarlo siempre dejaba
+    // a alguien sin torneo por un corte de red: su marca no se había guardado en ninguna
+    // parte y aun así este navegador le habría dicho «ya jugaste» para el resto de la
+    // semana, sin manera de volver a intentarlo.
+    torneoApuntarJugado(slug, torneoNombre);
     torneoTabla = res.cuerpo.clasificacion || [];
     const pos = res.cuerpo.pos;
     msg.innerHTML = pos
@@ -194,6 +198,7 @@ async function mostrarResultadoTorneo() {
       : 'Marca guardada.';
   } else if (res.estado === 409 && res.cuerpo) {
     // Alguien ya había jugado con ese nick. No se guarda nada: es la regla, no un fallo.
+    torneoApuntarJugado(slug, torneoNombre);
     torneoTabla = res.cuerpo.clasificacion || torneoTabla;
     const yo = res.cuerpo.yo;
     msg.innerHTML = yo

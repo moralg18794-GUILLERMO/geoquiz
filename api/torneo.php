@@ -182,8 +182,13 @@ if ($metodo === 'GET') {
     // necesita saber para enseñar "ya jugaste, vas 4º" en vez de invitarle otra vez.
     $nombre = isset($_GET['nombre']) && is_string($_GET['nombre']) ? gq_limpiar_nombre($_GET['nombre']) : '';
     if ($nombre !== '') {
-        $respuesta['yo'] = gq_t_buscar($respuesta['clasificacion'], gq_t_nombre_guardado($pdo, $id, $nombre));
-        $respuesta['jugado'] = $respuesta['yo'] !== null;
+        // `jugado` sale de preguntarle a la tabla, NO de buscar en la clasificación: esa
+        // viene recortada (50 filas por defecto) y un jugador que quedara por debajo del
+        // corte parecería no haber jugado. Se le dejaría empezar y perdería su único
+        // intento al enviar. `yo` sí puede venir vacío: es solo su fila si está a la vista.
+        $guardado = gq_t_nombre_guardado($pdo, $id, $nombre);
+        $respuesta['jugado'] = $guardado !== null;
+        $respuesta['yo'] = gq_t_buscar($respuesta['clasificacion'], $guardado);
     }
 
     gq_json(200, $respuesta);
