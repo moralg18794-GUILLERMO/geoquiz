@@ -58,6 +58,31 @@ function torneoPintarCuenta() {
   el.textContent = `Quedan ${r}`;
 }
 
+// Cuándo cierra, escrito como lo diría una persona: "domingo, 18 de octubre, 22:00".
+// Lo formatea el navegador, así que sale en la hora local de quien lo lee.
+function torneoCierre() {
+  if (!torneo) return '';
+  const d = new Date(torneo.acaba_en);
+  // Por partes y no con un solo toLocaleString: así se puede quitar la coma que mete el
+  // formato largo y queda "domingo 18 de octubre a las 22:00" en vez de una enumeración.
+  const dia = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).replace(',', '');
+  const hora = d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  return `${dia} a las ${hora}`;
+}
+
+// El reto para mandar por WhatsApp. Lleva el plazo y la regla del intento único, que es
+// lo que convierte el enlace en un reto y no en otro enlace más.
+function textoRetoTorneo() {
+  if (!torneo) return '';
+  const url = window.location.href.split('?')[0];
+  const r = torneoRestante(torneo.acaba_en);
+  return `🏆 ${torneo.titulo}\n${torneo.tema}\n\n15 preguntas, las mismas para todos. Una sola partida por cabeza: no hay segunda oportunidad.\n\nCierra el ${torneoCierre()}${r ? ` · quedan ${r}` : ''}.\n\n${url}`;
+}
+
+function retarAlTorneo() {
+  compartirWhatsApp(textoRetoTorneo());
+}
+
 // ── AVISO AL ENTRAR ───────────────────────────────────────────────────────
 async function cargarTorneo() {
   const res = await gqFetch(GQ_TORNEO_API, { method: 'GET' });
@@ -80,6 +105,9 @@ function pintarAvisoTorneo() {
   const yaJugo = torneoJugadoAqui(torneo.slug);
   const cerrado = torneo.estado !== 'activo';
   const btn = document.getElementById('ta-jugar');
+
+  // Retar a alguien a un torneo que ya ha cerrado no lleva a ninguna parte.
+  document.getElementById('ta-retar').style.display = cerrado ? 'none' : '';
 
   if (cerrado) {
     document.getElementById('ta-eyebrow').textContent = '🏆 Torneo terminado';
@@ -242,13 +270,17 @@ async function renderTorneo() {
   const cab = `<p class="section-label">🏆 ${esc(torneo.titulo)}${torneo.tema ? ' — ' + esc(torneo.tema) : ''}</p>
     <p class="section-label" style="margin-top:-0.3rem">${activo && r ? 'Quedan ' + esc(r) + ' · una sola partida por persona' : 'Torneo terminado'}</p>`;
 
+  // Mientras está abierto, lo útil es traer gente; cuando cierra, enseñar el podio.
+  const pie = activo
+    ? '<button class="invitar-btn" onclick="retarAlTorneo()">💬 Retar a alguien por WhatsApp</button>'
+    : '<button class="clear-btn" style="border-color:var(--accent);color:var(--accent)" onclick="compartirWhatsApp(textoPodio())">🏆 Compartir el podio</button>';
+
   if (!torneoTabla.length) {
-    div.innerHTML = cab + '<div class="no-records">Todavía no ha jugado nadie.<br>¡Sé el primero!</div>';
+    div.innerHTML = cab + '<div class="no-records">Todavía no ha jugado nadie.<br>¡Sé el primero!</div>' + pie;
     return;
   }
 
-  div.innerHTML = cab + `<div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Jugador</th><th>Puntos</th><th>Aciertos</th><th class="celda-fecha">Fecha</th></tr></thead><tbody>${torneoTabla.map(e => `<tr><td>${MEDALLAS[e.pos - 1] || e.pos}</td><td style="font-weight:600">${esc(e.nombre)}</td><td style="color:var(--accent);font-weight:600">${esc(Number(e.puntos).toLocaleString())}</td><td>${esc(e.correctas)}/${esc(e.total)}</td><td class="celda-fecha" style="font-size:11px;color:var(--muted)">${esc(fechaCorta(e.fecha))}</td></tr>`).join('')}</tbody></table></div>`
-    + (activo ? '' : `<button class="clear-btn" style="border-color:var(--accent);color:var(--accent)" onclick="compartirWhatsApp(textoPodio())">🏆 Compartir el podio</button>`);
+  div.innerHTML = cab + `<div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Jugador</th><th>Puntos</th><th>Aciertos</th><th class="celda-fecha">Fecha</th></tr></thead><tbody>${torneoTabla.map(e => `<tr><td>${MEDALLAS[e.pos - 1] || e.pos}</td><td style="font-weight:600">${esc(e.nombre)}</td><td style="color:var(--accent);font-weight:600">${esc(Number(e.puntos).toLocaleString())}</td><td>${esc(e.correctas)}/${esc(e.total)}</td><td class="celda-fecha" style="font-size:11px;color:var(--muted)">${esc(fechaCorta(e.fecha))}</td></tr>`).join('')}</tbody></table></div>` + pie;
 }
 
 // El final del torneo es lo que vende el siguiente, así que el podio sale listo para pegar.
