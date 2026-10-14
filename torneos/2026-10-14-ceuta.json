@@ -37,18 +37,18 @@
       "cat": "Conflictos Modernos",
       "diff": "facil",
       "q": "En mayo de 2021 miles de personas entraron en Ceuta en apenas dos días. ¿Cómo lo hizo la mayoría?",
-      "opts": ["Escondidas en camiones", "Saltando la valla con escaleras", "En pateras desde Tánger", "A nado y a pie, bordeando el espigón"],
+      "opts": ["Escondidas en camiones", "Saltando la valla", "En pateras desde Tánger", "A nado y a pie"],
       "ans": 3,
       "hint": "Las imágenes que dieron la vuelta al mundo eran de gente saliendo del agua.",
       "exp": "Entraron unas 8.000 personas en cuarenta y ocho horas, muchas de ellas menores, rodeando los espigones de El Tarajal por la playa mientras la gendarmería marroquí se apartaba. España desplegó al Ejército y devolvió a la mayoría en los días siguientes."
     },
     {
       "cat": "Antigüedad",
-      "diff": "medio",
+      "diff": "dificil",
       "q": "¿De dónde viene el nombre de Ceuta?",
       "opts": ["De una diosa fenicia", "Del árabe sabta, que significa puerta", "Del latín Septem Fratres, los siete hermanos", "Del nombre de su primer gobernador romano"],
       "ans": 2,
-      "hint": "Cuenta las colinas que tiene la ciudad detrás.",
+      "hint": "Tiene que ver con el relieve que rodea la ciudad, no con ningún personaje.",
       "exp": "Los romanos la llamaron Septem Fratres por las siete colinas que la rodean. De ahí salió el árabe Sebta y, de este, el Ceuta actual."
     },
     {
@@ -81,10 +81,10 @@
     {
       "cat": "Edad Media",
       "diff": "medio",
-      "q": "La bandera de Ceuta es casi idéntica a la de otra ciudad europea. ¿A cuál, y por qué?",
-      "opts": ["A la de Génova, por sus comerciantes", "A la de Venecia, por su puerto", "A la de Cádiz, por la cercanía", "A la de Lisboa, por su pasado portugués"],
+      "q": "¿A la bandera de qué ciudad se parece muchísimo la de Ceuta?",
+      "opts": ["Génova", "Venecia", "Cádiz", "Lisboa"],
       "ans": 3,
-      "hint": "Mira quién mandaba allí entre 1415 y 1668.",
+      "hint": "No es una ciudad española.",
       "exp": "Es el mismo girolado en blanco y negro que usa Lisboa, heredado de los dos siglos y medio de dominio portugués. En el centro lleva el escudo de España."
     },
     {
@@ -111,16 +111,16 @@
       "q": "Ceuta sufrió el asedio más largo de la historia, iniciado por el sultán Muley Ismail. ¿Cuánto duró?",
       "opts": ["Tres años", "Once años", "Treinta y tres años", "Ciento dos años"],
       "ans": 2,
-      "hint": "Empezó en 1694 y lo levantaron en 1727.",
+      "hint": "No lo levantaron por las armas: lo levantaron cuando murió el sultán que lo había empezado.",
       "exp": "Treinta y tres años de bloqueo que la ciudad resistió abastecida por mar. Suele citarse como el asedio más largo registrado, muy por encima de los de Troya o Candía."
     },
     {
       "cat": "Geopolítica",
       "diff": "dificil",
       "q": "¿Qué giro dio España en 2022 para cerrar la crisis diplomática con Marruecos?",
-      "opts": ["Apoyar el plan de autonomía marroquí para el Sáhara Occidental", "Ceder la soberanía de los islotes del Estrecho", "Retirar al Ejército de Ceuta y Melilla", "Suprimir los visados para ciudadanos marroquíes"],
-      "ans": 0,
-      "hint": "Fue una carta de Sánchez a Mohamed VI que cambió cuarenta años de política exterior.",
+      "opts": ["Reconocer la soberanía marroquí sobre el Sáhara Occidental", "Apoyar el plan de autonomía marroquí para el Sáhara Occidental", "Abrir aduanas comerciales en Ceuta y Melilla", "Firmar un acuerdo migratorio pagado con fondos europeos"],
+      "ans": 1,
+      "hint": "Las cuatro cosas se han dicho o se han hecho. La clave está en qué se apoyó exactamente, no en si se reconoció.",
       "exp": "En marzo de 2022 el Gobierno pasó a considerar la propuesta marroquí de autonomía como la base más seria y realista para el Sáhara Occidental, abandonando la neutralidad que España mantenía desde 1975. La frontera se reabrió en mayo de ese año."
     },
     {
