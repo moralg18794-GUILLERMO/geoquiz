@@ -18,11 +18,15 @@ Las preguntas de los torneos viven en su propia tabla (`torneo_preguntas`), sepa
 
 Las semanas con ⭐ caen en un aniversario redondo, que es cuando el tema se vende solo.
 
+Los torneos van numerados en romanos y la descripción empieza dando la bienvenida
+("Bienvenidos al torneo semanal II..."). La Hispanidad fue el I y Ceuta el II, así que el
+siguiente es el III: mirar el historial antes de escribir la descripción.
+
 ## Propuesta
 
 | Semana | Cierra | Gancho | Tema |
 |---|---|---|---|
-| 14–18 oct | dom 18 | Actualidad: la entrada masiva de 2021 y el pulso con Marruecos | **Torneo de Ceuta** · publicado |
+| 14–18 oct | dom 18 | Actualidad: la entrada masiva de 2021 y el pulso con Marruecos | **Ceuta** · publicado · torneo II |
 | 19–25 oct | dom 25 | **24 oct 1929**: jueves negro en Wall Street | El crac del 29 y los felices años veinte |
 | 26 oct–1 nov | dom 1 | **28 oct 1886**: se inaugura la Estatua de la Libertad ⭐ **140 años** | La Estatua de la Libertad y la emigración a América |
 | 2–8 nov | dom 8 | **4 nov 1922**: Howard Carter encuentra el primer escalón | Tutankamón y los grandes hallazgos arqueológicos |
@@ -67,6 +71,7 @@ carpeta se ordene sola.
 
 ## Historial
 
-| Semana | Torneo | Jugaron | Ganó | Media |
-|---|---|---|---|---|
-| 12 oct (un día) | Torneo de la Hispanidad | 20 | Weedllermo, 8.635 | 8,3 de 15 |
+| Nº | Semana | Torneo | Jugaron | Ganó | Media |
+|---|---|---|---|---|---|
+| I | 12 oct (un día) | Torneo de la Hispanidad | 20 | Weedllermo, 8.635 | 8,3 de 15 |
+| II | 14–18 oct | Ceuta | — | — | — |
