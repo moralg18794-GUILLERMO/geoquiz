@@ -134,6 +134,9 @@ function renderQuestion(){
     document.getElementById('q-pts').textContent=`+${q.pts*mult} pts${mult>1?' (x'+mult+')':''}`;
     document.getElementById('explanation').innerHTML='';
     document.getElementById('next-btn').style.display='none';
+    // En el torneo no hay comodines: ni pista, ni 50:50, ni saltar. Todos juegan las
+    // mismas 15 preguntas con las mismas armas, que es lo que hace comparables las marcas.
+    document.getElementById('hint-btns').style.display=partida.modo==='torneo'?'none':'';
     const h50=document.getElementById('hint-5050');
     const hdt=document.getElementById('hint-dato');
     const hsk=document.getElementById('hint-skip');
