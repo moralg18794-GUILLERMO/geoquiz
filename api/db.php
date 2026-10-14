@@ -146,6 +146,14 @@ function gq_crear_tablas(PDO $pdo): void {
     // volver a entrar con el mismo nick. No lo decide el navegador, lo decide MySQL. Y como
     // la colación ignora mayúsculas y acentos, "Guille" y "guille" son la misma persona,
     // que aquí es justo lo que se busca.
+    //
+    // La fila se crea al EMPEZAR, no al terminar. Si se creara al final, se podría entrar,
+    // leer las quince preguntas, salir sin enviar y volver a jugarlas ya sabidas. Con la
+    // reserva, ese segundo intento tendría que ir con otro mote, y eso se ve.
+    //   empezado_en  cuándo arrancó: el reloj lo lleva el servidor, no el navegador
+    //   terminado    0 mientras está a medias, 1 cuando se ha enviado el resultado
+    // Una partida a medias se puede reanudar con el mismo mote —nadie pierde el torneo por
+    // quedarse sin batería—, pero el cronómetro sigue corriendo desde el primer arranque.
     $pdo->exec(
         'CREATE TABLE IF NOT EXISTS torneo_partidas (
             id        INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -155,6 +163,8 @@ function gq_crear_tablas(PDO $pdo): void {
             correctas TINYINT UNSIGNED NOT NULL DEFAULT 0,
             total     TINYINT UNSIGNED NOT NULL DEFAULT 0,
             segundos  SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            empezado_en DATETIME   NULL,
+            terminado TINYINT UNSIGNED NOT NULL DEFAULT 0,
             ip_hash   CHAR(64)     NOT NULL,
             creado_en DATETIME     NOT NULL,
             PRIMARY KEY (id),

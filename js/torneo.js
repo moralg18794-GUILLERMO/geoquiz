@@ -15,7 +15,6 @@ const GQ_TORNEO_API = GQ_API.replace('ranking.php', 'torneo.php');
 let torneo = null;              // el torneo vigente, tal como lo devuelve la API
 let torneoTabla = [];           // su clasificación
 let torneoNombre = '';          // el nick con el que se está jugando ahora
-let torneoInicio = 0;           // marca de tiempo para calcular cuánto se ha tardado
 let torneoCuentaInt = null;
 
 // ── MEMORIA DE ESTE DISPOSITIVO ───────────────────────────────────────────
@@ -56,6 +55,16 @@ function torneoPintarCuenta() {
   // botón que ya no lleva a ninguna parte.
   if (r === null) { clearInterval(torneoCuentaInt); cargarTorneo(); return; }
   el.textContent = `Quedan ${r}`;
+}
+
+// Segundos a "2:40". Se enseña en la clasificación a propósito: con un solo intento y las
+// mismas preguntas para todos, el tiempo es lo que delata al que ya las había visto. Un
+// 14 de 15 en cuarenta segundos canta al lado de un 14 de 15 en dos minutos y medio.
+function tiempoCorto(s) {
+  s = Math.max(0, Math.round(Number(s) || 0));
+  if (!s) return '—';
+  if (s >= 3600) return Math.floor(s / 3600) + ' h';
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 }
 
 // Cuándo cierra, escrito como lo diría una persona: "domingo, 18 de octubre, 22:00".
@@ -153,19 +162,36 @@ async function jugarTorneo() {
   if (!torneo.preguntas || !torneo.preguntas.length) { toast('El torneo no tiene preguntas'); return; }
 
   const previo = torneoJugadoAqui(torneo.slug);
-  const nombre = (prompt('¿Con qué nombre juegas el torneo?\nSolo se puede jugar UNA vez.', previo || '') || '').trim();
+  const nombre = (prompt('¿Con qué nombre juegas el torneo?\nSe reserva ahora y solo vale un intento.', previo || '') || '').trim();
   if (!nombre) return;
 
-  // Se comprueba contra el servidor ANTES de jugar: si ese nick ya gastó su intento, más
-  // vale saberlo ahora que después de responder las 15.
-  const comp = await gqFetch(`${GQ_TORNEO_API}?nombre=${encodeURIComponent(nombre)}`, { method: 'GET' });
-  if (comp.ok && comp.cuerpo && comp.cuerpo.jugado) {
+  // El mote se RESERVA antes de enseñar ninguna pregunta. Si se reservara al terminar, se
+  // podría entrar, leerlas las quince, salir sin enviar y volver a jugarlas ya sabidas.
+  const res = await gqFetch(GQ_TORNEO_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accion: 'empezar', slug: torneo.slug, nombre }),
+  });
+
+  if (res.estado === 409 && res.cuerpo) {
     torneoApuntarJugado(torneo.slug, nombre);
-    const yo = comp.cuerpo.yo;
+    const yo = res.cuerpo.yo;
     toast(yo ? `«${nombre}» ya jugó: ${yo.pos}º con ${Number(yo.puntos).toLocaleString()}` : `«${nombre}» ya jugó este torneo`);
-    torneoTabla = comp.cuerpo.clasificacion || torneoTabla;
+    torneoTabla = res.cuerpo.clasificacion || torneoTabla;
     showTab('torneo');
     return;
+  }
+  if (!res.ok) {
+    // Si no se ha podido reservar, no se empieza: jugar sin reserva acabaría en un envío
+    // que el servidor podría rechazar, y la partida se habría jugado para nada.
+    toast('No se pudo entrar en el torneo. Revisa la conexión.');
+    return;
+  }
+
+  if (res.cuerpo.reanudado) {
+    // Partida a medias que se retoma: nadie pierde el torneo por quedarse sin batería,
+    // pero el reloj no se ha parado y eso se verá en la clasificación.
+    toast('Retomas tu partida: el cronómetro no se ha parado.');
   }
 
   torneoNombre = nombre;
@@ -192,7 +218,6 @@ function arrancarTorneo() {
   // alguien se quedaría fuera en la séptima pregunta y su marca no sería comparable con
   // la de los demás, que es justo lo que el torneo viene a arreglar.
   lives = 9999;
-  torneoInicio = Date.now();
 
   showScreen('screen-game');
   setupHUD();
@@ -204,7 +229,6 @@ function arrancarTorneo() {
 async function mostrarResultadoTorneo() {
   const total = gameQ.length;
   const pct = Math.round((correct / Math.max(total, 1)) * 100);
-  const segundos = Math.max(0, Math.round((Date.now() - torneoInicio) / 1000));
   const slug = partida.torneo;
 
   document.getElementById('result-hero').innerHTML = `
@@ -218,7 +242,9 @@ async function mostrarResultadoTorneo() {
   const res = await gqFetch(GQ_TORNEO_API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ slug, nombre: torneoNombre, puntos: score, correctas: correct, segundos }),
+    // Sin `segundos`: el tiempo lo lleva el servidor desde que se reservó el mote, para que
+    // ni se pueda falsear ni salga gratis salirse a mirar las preguntas y volver.
+    body: JSON.stringify({ slug, nombre: torneoNombre, puntos: score, correctas: correct }),
   });
 
   const msg = document.getElementById('torneo-envio');
@@ -290,7 +316,7 @@ async function renderTorneo() {
     return;
   }
 
-  div.innerHTML = cab + `<div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Jugador</th><th>Puntos</th><th>Aciertos</th><th class="celda-fecha">Fecha</th></tr></thead><tbody>${torneoTabla.map(e => `<tr><td>${MEDALLAS[e.pos - 1] || e.pos}</td><td style="font-weight:600">${esc(e.nombre)}</td><td style="color:var(--accent);font-weight:600">${esc(Number(e.puntos).toLocaleString())}</td><td>${esc(e.correctas)}/${esc(e.total)}</td><td class="celda-fecha" style="font-size:11px;color:var(--muted)">${esc(fechaCorta(e.fecha))}</td></tr>`).join('')}</tbody></table></div>` + pie;
+  div.innerHTML = cab + `<div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Jugador</th><th>Puntos</th><th>Aciertos</th><th>Tiempo</th><th class="celda-fecha">Fecha</th></tr></thead><tbody>${torneoTabla.map(e => `<tr><td>${MEDALLAS[e.pos - 1] || e.pos}</td><td style="font-weight:600">${esc(e.nombre)}</td><td style="color:var(--accent);font-weight:600">${esc(Number(e.puntos).toLocaleString())}</td><td>${esc(e.correctas)}/${esc(e.total)}</td><td class="celda-dif">${esc(tiempoCorto(e.segundos))}</td><td class="celda-fecha" style="font-size:11px;color:var(--muted)">${esc(fechaCorta(e.fecha))}</td></tr>`).join('')}</tbody></table></div>` + pie;
 }
 
 // El final del torneo es lo que vende el siguiente, así que el podio sale listo para pegar.

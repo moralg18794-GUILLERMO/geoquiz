@@ -86,10 +86,12 @@ function gq_t_clasificacion(PDO $pdo, int $torneoId, int $limite = GQ_T_TOPE_LIS
     // La clave única ya garantiza una fila por jugador, así que no hace falta agrupar.
     // El límite va interpolado porque MySQL no admite marcadores en LIMIT; va a salvo
     // porque antes se fuerza a entero acotado.
+    // Solo las terminadas: una partida reservada y a medias no es una marca, y si saliera
+    // en la tabla el que está jugando aparecería el último con cero puntos.
     $filas = gq_consulta(
         $pdo,
         'SELECT nombre, puntos, correctas, total, segundos, creado_en
-         FROM torneo_partidas WHERE torneo_id = ?
+         FROM torneo_partidas WHERE torneo_id = ? AND terminado = 1
          ORDER BY puntos DESC, id ASC LIMIT ' . $limite,
         [$torneoId]
     )->fetchAll();
@@ -112,13 +114,19 @@ function gq_t_clasificacion(PDO $pdo, int $torneoId, int $limite = GQ_T_TOPE_LIS
 // ignora mayúsculas y acentos, así que 'Guille', 'guille' y 'GUILLE' son el mismo jugador.
 // Se le pregunta a la base de datos cuál tiene guardada, en vez de imitar su colación en
 // PHP, que ni sería exacto ni funcionaría sin mbstring.
-function gq_t_nombre_guardado(PDO $pdo, int $torneoId, string $nombre): ?string {
-    $v = gq_consulta(
+function gq_t_fila_jugador(PDO $pdo, int $torneoId, string $nombre): ?array {
+    $f = gq_consulta(
         $pdo,
-        'SELECT nombre FROM torneo_partidas WHERE torneo_id = ? AND nombre = ? LIMIT 1',
+        'SELECT nombre, terminado, empezado_en FROM torneo_partidas
+         WHERE torneo_id = ? AND nombre = ? LIMIT 1',
         [$torneoId, $nombre]
-    )->fetchColumn();
-    return $v === false ? null : (string) $v;
+    )->fetch();
+    return $f === false ? null : $f;
+}
+
+function gq_t_nombre_guardado(PDO $pdo, int $torneoId, string $nombre): ?string {
+    $f = gq_t_fila_jugador($pdo, $torneoId, $nombre);
+    return $f === null ? null : (string) $f['nombre'];
 }
 
 function gq_t_buscar(array $clasificacion, ?string $guardado): ?array {
@@ -186,9 +194,11 @@ if ($metodo === 'GET') {
         // viene recortada (50 filas por defecto) y un jugador que quedara por debajo del
         // corte parecería no haber jugado. Se le dejaría empezar y perdería su único
         // intento al enviar. `yo` sí puede venir vacío: es solo su fila si está a la vista.
-        $guardado = gq_t_nombre_guardado($pdo, $id, $nombre);
-        $respuesta['jugado'] = $guardado !== null;
-        $respuesta['yo'] = gq_t_buscar($respuesta['clasificacion'], $guardado);
+        $fila = gq_t_fila_jugador($pdo, $id, $nombre);
+        // libre: nunca ha empezado · enCurso: reservado y a medias · terminado: ya envió
+        $respuesta['estado_jugador'] = $fila === null ? 'libre' : ((int) $fila['terminado'] === 1 ? 'terminado' : 'enCurso');
+        $respuesta['jugado'] = $respuesta['estado_jugador'] === 'terminado';
+        $respuesta['yo'] = gq_t_buscar($respuesta['clasificacion'], $fila === null ? null : (string) $fila['nombre']);
     }
 
     gq_json(200, $respuesta);
@@ -225,13 +235,54 @@ if ($nombre === '') {
     gq_error(400, 'nombre_vacio', 'Ese nombre no tiene ningún carácter válido.');
 }
 
+$nPreguntas = (int) gq_consulta($pdo, 'SELECT COUNT(*) FROM torneo_preguntas WHERE torneo_id = ?', [$torneoId])->fetchColumn();
+$ipHash = gq_ip_hash();
+
+// ── EMPEZAR: se reserva el mote antes de enseñar ninguna pregunta ─────────
+// Sin esto se puede entrar, leer las quince, salir sin enviar y volver a jugarlas ya
+// sabidas. Reservando aquí, ese segundo intento tendría que ir con otro mote, y eso se ve
+// en la clasificación. No lo impide del todo —una ventana de incógnito sigue valiendo—,
+// pero obliga a quererlo de verdad.
+if (($datos['accion'] ?? '') === 'empezar') {
+    $fila = gq_t_fila_jugador($pdo, $torneoId, $nombre);
+    if ($fila !== null && (int) $fila['terminado'] === 1) {
+        $clasificacion = gq_t_clasificacion($pdo, $torneoId);
+        gq_json(409, [
+            'ok'            => false,
+            'error'         => 'ya_jugado',
+            'mensaje'       => 'Ese nombre ya ha jugado este torneo. Solo vale un intento.',
+            'yo'            => gq_t_buscar($clasificacion, (string) $fila['nombre']),
+            'clasificacion' => $clasificacion,
+        ]);
+    }
+    if ($fila === null) {
+        try {
+            gq_consulta(
+                $pdo,
+                'INSERT INTO torneo_partidas
+                   (torneo_id, nombre, puntos, correctas, total, segundos, empezado_en, terminado, ip_hash, creado_en)
+                 VALUES (?, ?, 0, 0, ?, 0, UTC_TIMESTAMP(), 0, ?, UTC_TIMESTAMP())',
+                [$torneoId, $nombre, $nPreguntas, $ipHash]
+            );
+        } catch (PDOException $e) {
+            // 23000: alguien reservó ese mismo mote entre la consulta y el INSERT. No es un
+            // error: es la carrera resuelta por MySQL, y el de abajo ya lo trata como reanudación.
+            if ($e->getCode() !== '23000') { throw $e; }
+        }
+    }
+    gq_json(200, [
+        'ok'        => true,
+        'reanudado' => $fila !== null,
+        'nombre'    => (string) (gq_t_fila_jugador($pdo, $torneoId, $nombre)['nombre'] ?? $nombre),
+    ]);
+}
+
 $techo  = gq_t_techo($pdo, $torneoId);
 $puntos = filter_var($datos['puntos'] ?? null, FILTER_VALIDATE_INT);
 if ($puntos === false || $puntos === null || $puntos < 0 || $puntos > $techo) {
     gq_error(400, 'puntos', 'Puntuación fuera de rango.');
 }
 
-$nPreguntas = (int) gq_consulta($pdo, 'SELECT COUNT(*) FROM torneo_preguntas WHERE torneo_id = ?', [$torneoId])->fetchColumn();
 $correctas = filter_var($datos['correctas'] ?? 0, FILTER_VALIDATE_INT);
 if ($correctas === false || $correctas === null || $correctas < 0 || $correctas > $nPreguntas) {
     $correctas = 0;
@@ -242,7 +293,6 @@ if ($segundos === false || $segundos === null || $segundos < 0 || $segundos > GQ
 }
 
 // Mismo límite por conexión que el ranking normal, con la misma tabla.
-$ipHash = gq_ip_hash();
 gq_consulta($pdo, 'DELETE FROM envios WHERE creado_en < (UTC_TIMESTAMP() - INTERVAL 1 HOUR)');
 $recientes = (int) gq_consulta(
     $pdo,
@@ -253,30 +303,43 @@ if ($recientes >= GQ_T_ENVIOS_HORA) {
     gq_error(429, 'demasiados', 'Demasiados envíos desde esta conexión. Prueba dentro de un rato.');
 }
 
-// El INSERT va ANTES de apuntar el envío: si el nick ya jugó, el intento no debe gastarle
-// cupo a nadie, porque no se ha guardado nada.
-try {
+$fila = gq_t_fila_jugador($pdo, $torneoId, $nombre);
+if ($fila !== null && (int) $fila['terminado'] === 1) {
+    // Ese mote ya envió su marca. No es un error del servidor: es la regla funcionando.
+    $clasificacion = gq_t_clasificacion($pdo, $torneoId);
+    gq_json(409, [
+        'ok'            => false,
+        'error'         => 'ya_jugado',
+        'mensaje'       => 'Ya has jugado este torneo. Solo vale un intento.',
+        'yo'            => gq_t_buscar($clasificacion, (string) $fila['nombre']),
+        'clasificacion' => $clasificacion,
+    ]);
+}
+
+if ($fila === null) {
+    // No hay reserva: es un navegador con el JavaScript viejo, que envía directamente al
+    // terminar. Se le acepta la partida y se le cree el tiempo que diga, porque no hay otro.
     gq_consulta(
         $pdo,
-        'INSERT INTO torneo_partidas (torneo_id, nombre, puntos, correctas, total, segundos, ip_hash, creado_en)
-         VALUES (?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())',
+        'INSERT INTO torneo_partidas
+           (torneo_id, nombre, puntos, correctas, total, segundos, empezado_en, terminado, ip_hash, creado_en)
+         VALUES (?, ?, ?, ?, ?, ?, NULL, 1, ?, UTC_TIMESTAMP())',
         [$torneoId, $nombre, $puntos, $correctas, $nPreguntas, $segundos, $ipHash]
     );
-} catch (PDOException $e) {
-    // 23000 es la violación de uq_jugador: ese nick ya gastó su intento. No es un error
-    // del servidor, es la regla del torneo funcionando.
-    if ($e->getCode() === '23000') {
-        $clasificacion = gq_t_clasificacion($pdo, $torneoId);
-        $yo = gq_t_buscar($clasificacion, gq_t_nombre_guardado($pdo, $torneoId, $nombre));
-        gq_json(409, [
-            'ok'            => false,
-            'error'         => 'ya_jugado',
-            'mensaje'       => 'Ya has jugado este torneo. Solo vale un intento.',
-            'yo'            => $yo,
-            'clasificacion' => $clasificacion,
-        ]);
-    }
-    throw $e;
+} else {
+    // Hay reserva: el tiempo lo calcula el SERVIDOR desde que se empezó, no el navegador.
+    // Así ni se puede falsear ni sale gratis salirse a mirar las preguntas y volver: el
+    // cronómetro ha seguido corriendo. El LEAST acota a lo que cabe en la columna, por si
+    // alguien deja la partida abierta un día entero.
+    gq_consulta(
+        $pdo,
+        'UPDATE torneo_partidas
+            SET puntos = ?, correctas = ?, total = ?,
+                segundos = LEAST(GREATEST(TIMESTAMPDIFF(SECOND, empezado_en, UTC_TIMESTAMP()), 0), 65535),
+                terminado = 1, creado_en = UTC_TIMESTAMP()
+          WHERE torneo_id = ? AND nombre = ? AND terminado = 0',
+        [$puntos, $correctas, $nPreguntas, $torneoId, $nombre]
+    );
 }
 gq_consulta($pdo, 'INSERT INTO envios (ip_hash, creado_en) VALUES (?, UTC_TIMESTAMP())', [$ipHash]);
 
