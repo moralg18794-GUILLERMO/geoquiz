@@ -22,7 +22,7 @@ Las semanas con ⭐ caen en un aniversario redondo, que es cuando el tema se ven
 
 | Semana | Cierra | Gancho | Tema |
 |---|---|---|---|
-| 13–18 oct | dom 18 | tres candidatos, ninguno elegido todavía | **Por decidir** |
+| 14–18 oct | dom 18 | Actualidad: la entrada masiva de 2021 y el pulso con Marruecos | **Torneo de Ceuta** · publicado |
 | 19–25 oct | dom 25 | **24 oct 1929**: jueves negro en Wall Street | El crac del 29 y los felices años veinte |
 | 26 oct–1 nov | dom 1 | **28 oct 1886**: se inaugura la Estatua de la Libertad ⭐ **140 años** | La Estatua de la Libertad y la emigración a América |
 | 2–8 nov | dom 8 | **4 nov 1922**: Howard Carter encuentra el primer escalón | Tutankamón y los grandes hallazgos arqueológicos |
@@ -34,15 +34,6 @@ Las semanas con ⭐ caen en un aniversario redondo, que es cuando el tema se ven
 | 14–20 dic | dom 20 | **14 dic 1911**: Amundsen llega al Polo Sur | La carrera al Polo Sur: Amundsen contra Scott |
 | 21–27 dic | dom 27 | **25 dic 800**: coronan a Carlomagno · **25 dic 1991**: se disuelve la URSS | Navidades que hicieron historia |
 | 28 dic–3 ene | dom 3 | **1 ene 1999**: nace el euro · **1 ene 1959**: triunfa la revolución cubana | Lo que empezó un 1 de enero |
-
-## Candidatos para esta semana (13–18 oct)
-
-- **17 oct 1931**: condenan a Al Capone por evasión de impuestos → *La ley seca y los años
-  veinte*. Todo el mundo ha visto las películas.
-- **13 oct 2010**: rescatan a los 33 mineros de Chile, 16 años → *Grandes rescates*. Lo
-  recuerda cualquiera que tuviera una tele encendida.
-- **14 oct 1947**: Chuck Yeager rompe la barrera del sonido, 79 años → *Volar más rápido que
-  el sonido*.
 
 ## Semanas con dos ganchos
 

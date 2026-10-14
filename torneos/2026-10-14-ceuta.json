@@ -1,0 +1,145 @@
+{
+  "slug": "2026-10-14-ceuta",
+  "titulo": "Torneo de Ceuta",
+  "tema": "Una ciudad española en África: su nombre, su bandera, su frontera y la crisis de 2021",
+  "empieza_en": "2026-10-14 00:00",
+  "acaba_en": "2026-10-18 22:00",
+  "borrador": false,
+  "preguntas": [
+    {
+      "cat": "África y Oriente Medio",
+      "diff": "facil",
+      "q": "¿En qué continente está Ceuta?",
+      "opts": ["Europa", "África", "Asia", "Está en una isla, en ninguno"],
+      "ans": 1,
+      "hint": "Se ve desde la costa de Cádiz, pero no está en ella.",
+      "exp": "Ceuta está en la costa norte de África, enfrente de la península y a unos 20 kilómetros por mar. Es territorio español y, por tanto, también de la Unión Europea."
+    },
+    {
+      "cat": "Geopolítica",
+      "diff": "facil",
+      "q": "¿Qué estrecho separa Ceuta de la península ibérica?",
+      "opts": ["El de Ormuz", "El de Mesina", "El de Gibraltar", "El de los Dardanelos"],
+      "ans": 2,
+      "hint": "Es el paso entre el Mediterráneo y el Atlántico.",
+      "exp": "Por ahí pasa buena parte del tráfico marítimo del mundo, y en su punto más angosto apenas mide 14 kilómetros. Ceuta vigila la orilla sur; Gibraltar, la norte."
+    },
+    {
+      "cat": "Geopolítica",
+      "diff": "facil",
+      "q": "¿Con qué país tiene Ceuta su única frontera terrestre?",
+      "opts": ["Marruecos", "Argelia", "Portugal", "Mauritania"],
+      "ans": 0,
+      "hint": "El mismo que rodea también a la otra ciudad española en África.",
+      "exp": "Son unos ocho kilómetros de frontera, con el paso principal en El Tarajal. Marruecos reclama la soberanía de Ceuta y Melilla desde su independencia en 1956, y España la rechaza."
+    },
+    {
+      "cat": "Conflictos Modernos",
+      "diff": "facil",
+      "q": "En mayo de 2021 miles de personas entraron en Ceuta en apenas dos días. ¿Cómo lo hizo la mayoría?",
+      "opts": ["Escondidas en camiones", "Saltando la valla con escaleras", "En pateras desde Tánger", "A nado y a pie, bordeando el espigón"],
+      "ans": 3,
+      "hint": "Las imágenes que dieron la vuelta al mundo eran de gente saliendo del agua.",
+      "exp": "Entraron unas 8.000 personas en cuarenta y ocho horas, muchas de ellas menores, rodeando los espigones de El Tarajal por la playa mientras la gendarmería marroquí se apartaba. España desplegó al Ejército y devolvió a la mayoría en los días siguientes."
+    },
+    {
+      "cat": "Antigüedad",
+      "diff": "medio",
+      "q": "¿De dónde viene el nombre de Ceuta?",
+      "opts": ["De una diosa fenicia", "Del árabe sabta, que significa puerta", "Del latín Septem Fratres, los siete hermanos", "Del nombre de su primer gobernador romano"],
+      "ans": 2,
+      "hint": "Cuenta las colinas que tiene la ciudad detrás.",
+      "exp": "Los romanos la llamaron Septem Fratres por las siete colinas que la rodean. De ahí salió el árabe Sebta y, de este, el Ceuta actual."
+    },
+    {
+      "cat": "Edad Media",
+      "diff": "medio",
+      "q": "¿Qué país conquistó Ceuta en 1415, antes de que fuera española?",
+      "opts": ["Portugal", "Inglaterra", "Génova", "Francia"],
+      "ans": 0,
+      "hint": "Con aquella conquista arrancó su imperio y su siglo de exploraciones.",
+      "exp": "La tomó Juan I de Portugal, acompañado de sus hijos, entre ellos el futuro Enrique el Navegante. Se considera el primer paso de la expansión portuguesa que acabaría dando la vuelta a África."
+    },
+    {
+      "cat": "S. XVI–XVIII",
+      "diff": "medio",
+      "q": "¿Qué tratado reconoció en 1668 la soberanía española sobre Ceuta?",
+      "opts": ["El Tratado de Tordesillas", "El Tratado de Lisboa", "La Paz de Westfalia", "El Tratado de los Pirineos"],
+      "ans": 1,
+      "hint": "Se firmó en la capital del país que la había conquistado.",
+      "exp": "Cuando Portugal se separó de España en 1640, Ceuta fue la única plaza portuguesa que decidió seguir fiel a la Corona española. El tratado de 1668, que reconoció la independencia portuguesa, dejó por escrito que Ceuta se quedaba."
+    },
+    {
+      "cat": "Geopolítica",
+      "diff": "medio",
+      "q": "¿Qué estatus tiene Ceuta dentro de España desde 1995?",
+      "opts": ["Provincia", "Comunidad autónoma", "Ciudad autónoma", "Municipio de la provincia de Cádiz"],
+      "ans": 2,
+      "hint": "No llega a comunidad, pero es mucho más que un ayuntamiento.",
+      "exp": "Ceuta y Melilla tienen desde 1995 un estatuto propio que las sitúa entre el municipio y la comunidad autónoma: tienen asamblea y presidente, pero no competencias legislativas."
+    },
+    {
+      "cat": "Edad Media",
+      "diff": "medio",
+      "q": "La bandera de Ceuta es casi idéntica a la de otra ciudad europea. ¿A cuál, y por qué?",
+      "opts": ["A la de Génova, por sus comerciantes", "A la de Venecia, por su puerto", "A la de Cádiz, por la cercanía", "A la de Lisboa, por su pasado portugués"],
+      "ans": 3,
+      "hint": "Mira quién mandaba allí entre 1415 y 1668.",
+      "exp": "Es el mismo girolado en blanco y negro que usa Lisboa, heredado de los dos siglos y medio de dominio portugués. En el centro lleva el escudo de España."
+    },
+    {
+      "cat": "Conflictos Modernos",
+      "diff": "medio",
+      "q": "¿Qué decisión española enfadó a Marruecos justo antes de la entrada masiva de 2021?",
+      "opts": ["Cerrar la aduana comercial de Melilla", "Acoger en un hospital al líder del Frente Polisario", "Reconocer la independencia del Sáhara Occidental", "Expulsar al embajador marroquí"],
+      "ans": 1,
+      "hint": "Era un enfermo de covid ingresado en Logroño con otro nombre.",
+      "exp": "España admitió a Brahim Ghali, líder del Frente Polisario, para tratarse de covid en un hospital de Logroño. Marruecos lo tomó como una afrenta, y semanas después relajó la vigilancia de su frontera con Ceuta."
+    },
+    {
+      "cat": "S. XVI–XVIII",
+      "diff": "medio",
+      "q": "¿Qué tiene de particular el foso de las Murallas Reales de Ceuta?",
+      "opts": ["Que nunca llegó a terminarse", "Que lo excavaron los romanos", "Que se rellenó y hoy es una avenida", "Que es el único foso navegable de España"],
+      "ans": 3,
+      "hint": "Todavía entra agua, y puede entrar algo más que agua.",
+      "exp": "El foso corta de lado a lado el istmo y comunica el Mediterráneo con el Atlántico, de modo que el casco antiguo queda convertido en una isla. Es el único de su clase que se conserva en España."
+    },
+    {
+      "cat": "S. XVI–XVIII",
+      "diff": "dificil",
+      "q": "Ceuta sufrió el asedio más largo de la historia, iniciado por el sultán Muley Ismail. ¿Cuánto duró?",
+      "opts": ["Tres años", "Once años", "Treinta y tres años", "Ciento dos años"],
+      "ans": 2,
+      "hint": "Empezó en 1694 y lo levantaron en 1727.",
+      "exp": "Treinta y tres años de bloqueo que la ciudad resistió abastecida por mar. Suele citarse como el asedio más largo registrado, muy por encima de los de Troya o Candía."
+    },
+    {
+      "cat": "Geopolítica",
+      "diff": "dificil",
+      "q": "¿Qué giro dio España en 2022 para cerrar la crisis diplomática con Marruecos?",
+      "opts": ["Apoyar el plan de autonomía marroquí para el Sáhara Occidental", "Ceder la soberanía de los islotes del Estrecho", "Retirar al Ejército de Ceuta y Melilla", "Suprimir los visados para ciudadanos marroquíes"],
+      "ans": 0,
+      "hint": "Fue una carta de Sánchez a Mohamed VI que cambió cuarenta años de política exterior.",
+      "exp": "En marzo de 2022 el Gobierno pasó a considerar la propuesta marroquí de autonomía como la base más seria y realista para el Sáhara Occidental, abandonando la neutralidad que España mantenía desde 1975. La frontera se reabrió en mayo de ese año."
+    },
+    {
+      "cat": "S. XIX",
+      "diff": "dificil",
+      "q": "¿Qué guerra enfrentó a España y Marruecos en 1859 a raíz de unos incidentes en la frontera de Ceuta?",
+      "opts": ["La Guerra de África", "La Guerra del Rif", "La Guerra de Ifni", "La Guerra de Melilla"],
+      "ans": 0,
+      "hint": "La dirigió O'Donnell y en ella se hizo famoso el general Prim.",
+      "exp": "Empezó con el ataque a unas obras en los límites de Ceuta. España venció en Tetuán y firmó la paz en Wad-Ras, pero el botín fue escaso: unas ampliaciones de terreno y una indemnización que Marruecos tardó décadas en pagar."
+    },
+    {
+      "cat": "Geopolítica",
+      "diff": "dificil",
+      "q": "¿Qué impuesto se paga en Ceuta en lugar del IVA?",
+      "opts": ["El IGIC", "El IPSI", "El IAE", "Ninguno, está exenta de todo impuesto indirecto"],
+      "ans": 1,
+      "hint": "Canarias tiene el suyo propio; Ceuta y Melilla tienen otro distinto.",
+      "exp": "Ceuta y Melilla quedan fuera de la unión aduanera de la Unión Europea y aplican el Impuesto sobre la Producción, los Servicios y la Importación, con tipos bastante más bajos que el IVA. Canarias, por su parte, tiene el IGIC."
+    }
+  ]
+}
