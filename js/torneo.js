@@ -15,6 +15,8 @@ const GQ_TORNEO_API = GQ_API.replace('ranking.php', 'torneo.php');
 let torneo = null;              // el torneo vigente, tal como lo devuelve la API
 let torneoTabla = [];           // su clasificación
 let torneoNombre = '';          // el nick con el que se está jugando ahora
+let torneoTotal = 0;            // cuántas preguntas tiene, según el servidor
+let torneoCierreDatos = null;   // lo que devolvió al contestar la última
 let torneoCuentaInt = null;
 
 // ── MEMORIA DE ESTE DISPOSITIVO ───────────────────────────────────────────
@@ -159,7 +161,9 @@ function cerrarAvisoTorneo() {
 // ── EMPEZAR ───────────────────────────────────────────────────────────────
 async function jugarTorneo() {
   if (!torneo || torneo.estado !== 'activo') { showTab('torneo'); return; }
-  if (!torneo.preguntas || !torneo.preguntas.length) { toast('El torneo no tiene preguntas'); return; }
+  // Las preguntas ya no vienen en este objeto: las sirve el servidor de una en una cuando
+  // la partida ha empezado. Aquí solo se sabe cuántas son.
+  if (!torneo.n_preguntas) { toast('El torneo no tiene preguntas'); return; }
 
   const previo = torneoJugadoAqui(torneo.slug);
   const nombre = (prompt('¿Con qué nombre juegas el torneo?\nSe reserva ahora y solo vale un intento.', previo || '') || '').trim();
@@ -198,90 +202,142 @@ async function jugarTorneo() {
   arrancarTorneo();
 }
 
-function arrancarTorneo() {
+async function arrancarTorneo() {
   playStart();
   pararCronometros();
   cerrarAvisoTorneo();
 
-  // Copia propia de las preguntas: renderQuestion() baraja las opciones in situ y no debe
-  // tocar lo que devolvió la API por si se vuelve a entrar.
-  gameQ = torneo.preguntas.map(q => ({ ...q, opts: [...q.opts] }));
-
   // El motor del juego se comporta como en modo solo (temporizador por pregunta,
-  // multiplicador, comodines), pero lo que se guarda es una partida de torneo.
+  // multiplicador), pero lo que se guarda es una partida de torneo.
   gameMode = 'solo';
   partida = { modo: 'torneo', dif: 'na', eje: 'n', nsel: 0, ntot: 0, cats: torneo.titulo, torneo: torneo.slug };
 
-  current = 0; score = 0; correct = 0; wrong = 0; maxStreak = 0; streak = 0; skipped = 0;
+  // gameQ empieza vacío y crece conforme el servidor va sirviendo preguntas. El navegador
+  // nunca llega a tener las quince: la última no existe para él hasta que contesta la 14ª.
+  gameQ = []; current = 0; score = 0; correct = 0; wrong = 0; maxStreak = 0; streak = 0; skipped = 0;
   hint5050 = true; hintSkip = true; hintDato = true; answered = false; timeLeft = 20; lastCat = '';
   // Sin vidas: en el torneo todos responden las 15. Con tres fallos y un único intento,
-  // alguien se quedaría fuera en la séptima pregunta y su marca no sería comparable con
-  // la de los demás, que es justo lo que el torneo viene a arreglar.
+  // alguien se quedaría fuera en la séptima pregunta y su marca no sería comparable.
   lives = 9999;
 
   showScreen('screen-game');
   setupHUD();
-  setHeaderStyle(gameQ[0].cat || 'Antigüedad');
+  await torneoSiguientePregunta();
+}
+
+// Pide al servidor la pregunta que toca. Él decide cuál es, en qué orden van sus opciones
+// y cuánto tiempo queda: si se recarga a media pregunta, vuelve la misma con el reloj donde
+// estaba, no reiniciado.
+async function torneoSiguientePregunta() {
+  document.getElementById('next-btn').style.display = 'none';
+  const res = await gqFetch(GQ_TORNEO_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accion: 'pregunta', slug: partida.torneo, nombre: torneoNombre }),
+  });
+
+  if (!res.ok || !res.cuerpo || !res.cuerpo.q) {
+    if (res.estado === 409 && res.cuerpo && res.cuerpo.error === 'terminada') { mostrarResultadoTorneo(); return; }
+    toast('Se perdió la conexión con el torneo. Vuelve a entrar con tu mismo nombre.');
+    goMenu();
+    return;
+  }
+
+  const c = res.cuerpo;
+  current = c.orden - 1;
+  gameQ[current] = { cat: c.cat, diff: c.diff, pts: c.pts, q: c.q, opts: c.opts, exp: '' };
+  score = c.puntos; streak = c.racha;
+  timeLeft = Math.max(1, c.quedan);
+  torneoTotal = c.total;
   renderQuestion();
 }
 
-// ── RESULTADO ─────────────────────────────────────────────────────────────
-async function mostrarResultadoTorneo() {
-  const total = gameQ.length;
-  const pct = Math.round((correct / Math.max(total, 1)) * 100);
-  const slug = partida.torneo;
-
-  document.getElementById('result-hero').innerHTML = `
-    <div style="font-size:40px;margin-bottom:0.5rem">🏆</div>
-    <div><span class="result-score-num">${score.toLocaleString()}</span></div>
-    <div style="font-size:13px;color:var(--muted);margin-top:4px">${correct} de ${total} correctas · ${pct}%</div>
-    <div class="result-rank">${esc(torneo ? torneo.titulo : 'Torneo')}</div>
-    <div class="result-msg" id="torneo-envio">Enviando tu marca…</div>`;
-  showScreen('screen-result');
+// Manda lo que se ha pulsado y pinta lo que conteste el servidor. -1 es tiempo agotado.
+async function pickTorneo(i) {
+  answered = true;
+  clearInterval(timerInt);
+  const btns = document.querySelectorAll('.opt-btn');
+  btns.forEach(b => b.disabled = true);
 
   const res = await gqFetch(GQ_TORNEO_API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    // Sin `segundos`: el tiempo lo lleva el servidor desde que se reservó el mote, para que
-    // ni se pueda falsear ni salga gratis salirse a mirar las preguntas y volver.
-    body: JSON.stringify({ slug, nombre: torneoNombre, puntos: score, correctas: correct }),
+    body: JSON.stringify({ accion: 'responder', slug: partida.torneo, nombre: torneoNombre, elegida: i }),
   });
 
-  const msg = document.getElementById('torneo-envio');
-
-  if (res.ok && res.cuerpo) {
-    // Solo se apunta como jugado cuando el servidor lo confirma. Apuntarlo siempre dejaba
-    // a alguien sin torneo por un corte de red: su marca no se había guardado en ninguna
-    // parte y aun así este navegador le habría dicho «ya jugaste» para el resto de la
-    // semana, sin manera de volver a intentarlo.
-    torneoApuntarJugado(slug, torneoNombre);
-    torneoTabla = res.cuerpo.clasificacion || [];
-    const pos = res.cuerpo.pos;
-    msg.innerHTML = pos
-      ? `Vas <strong>${pos}º</strong> de ${torneoTabla.length} en el torneo.`
-      : 'Marca guardada.';
-  } else if (res.estado === 409 && res.cuerpo) {
-    // Alguien ya había jugado con ese nick. No se guarda nada: es la regla, no un fallo.
-    torneoApuntarJugado(slug, torneoNombre);
-    torneoTabla = res.cuerpo.clasificacion || torneoTabla;
-    const yo = res.cuerpo.yo;
-    msg.innerHTML = yo
-      ? `Ese nombre ya había jugado este torneo, así que esta partida <strong>no cuenta</strong>. Su marca sigue siendo ${Number(yo.puntos).toLocaleString()} puntos (${yo.pos}º).`
-      : 'Ese nombre ya había jugado este torneo, así que esta partida <strong>no cuenta</strong>.';
-  } else {
-    msg.innerHTML = 'No se pudo enviar la marca al torneo. Revisa la conexión; esta partida <strong>no se ha guardado</strong>.';
+  if (!res.ok || !res.cuerpo) {
+    document.getElementById('explanation').innerHTML =
+      '<div class="explanation fail">No se pudo enviar la respuesta. Vuelve a entrar con tu mismo nombre: la partida sigue donde estaba.</div>';
+    document.getElementById('next-btn').style.display = 'block';
+    return;
   }
 
-  document.getElementById('result-hero').innerHTML += `
+  const c = res.cuerpo;
+  score = c.puntos; correct = c.aciertos; streak = c.racha;
+  if (streak > maxStreak) maxStreak = streak;
+  wrong = (c.ultima ? torneoTotal : current + 1) - correct;
+
+  if (i >= 0 && btns[i]) btns[i].classList.add(c.acerto ? 'correct' : 'wrong');
+  if (!c.acerto && btns[c.correcta]) btns[c.correcta].classList.add('show-correct');
+
+  const caja = document.getElementById('explanation');
+  if (c.acerto) {
+    playCorrect(); flashHeader('rgba(63,185,80,0.4)');
+    caja.innerHTML = `<div class="explanation ok">✓ Correcto · +${c.ganados} pts${c.mult > 1 ? ' (x' + c.mult + ')' : ''}. ${esc(c.exp)}</div>`;
+    if (streak === 3 || streak === 6 || streak === 9) showStreakBanner(streak);
+  } else if (i < 0) {
+    playTimeout();
+    caja.innerHTML = `<div class="explanation timeout">⏱ Tiempo agotado. ${esc(c.exp)}</div>`;
+  } else {
+    playWrong(); flashHeader('rgba(248,81,73,0.4)');
+    caja.innerHTML = `<div class="explanation fail">✗ Incorrecto. ${esc(c.exp)}</div>`;
+  }
+  document.getElementById('q-card').classList.add(c.acerto ? 'flash-correct' : 'flash-wrong');
+  setTimeout(() => document.getElementById('q-card').classList.remove('flash-correct', 'flash-wrong'), 400);
+  updateHUD();
+
+  if (c.ultima) {
+    torneoCierreDatos = c;
+    setTimeout(mostrarResultadoTorneo, 500);
+    return;
+  }
+  document.getElementById('next-btn').style.display = 'block';
+}
+
+// ── RESULTADO ─────────────────────────────────────────────────────────────
+// Ya no envía nada: el servidor cerró la partida al corregir la última pregunta y devolvió
+// la clasificación en esa misma respuesta. Aquí solo se pinta lo que él dijo.
+function mostrarResultadoTorneo() {
+  const c = torneoCierreDatos || {};
+  const total = torneoTotal || c.total || 0;
+  const aciertos = c.aciertos !== undefined ? c.aciertos : correct;
+  const puntos = c.puntos !== undefined ? c.puntos : score;
+  const pct = Math.round((aciertos / Math.max(total, 1)) * 100);
+
+  torneoApuntarJugado(partida.torneo, torneoNombre);
+  if (c.clasificacion) torneoTabla = c.clasificacion;
+
+  const puesto = c.pos
+    ? `Vas <strong>${c.pos}º</strong> de ${torneoTabla.length} en el torneo.`
+    : 'Marca guardada.';
+
+  document.getElementById('result-hero').innerHTML = `
+    <div style="font-size:40px;margin-bottom:0.5rem">🏆</div>
+    <div><span class="result-score-num">${puntos.toLocaleString()}</span></div>
+    <div style="font-size:13px;color:var(--muted);margin-top:4px">${aciertos} de ${total} correctas · ${pct}%</div>
+    <div class="result-rank">${esc(torneo ? torneo.titulo : 'Torneo')}</div>
+    <div class="result-msg">${puesto}</div>
     <div class="result-actions" style="margin-top:1.5rem">
       <button class="btn-whatsapp" onclick="compartirWhatsApp(textoTorneo())">💬 WhatsApp</button>
       <button class="btn-secondary" onclick="showTab('torneo')">🏆 Clasificación</button>
       <button class="btn-primary" onclick="goMenu()">Volver</button>
     </div>`;
+  showScreen('screen-result');
+  playFinish();
 }
 
 function textoTorneo() {
-  const total = gameQ.length;
+  const total = torneoTotal;
   const pct = Math.round((correct / Math.max(total, 1)) * 100);
   const url = window.location.href.split('?')[0];
   const t = torneo ? torneo.titulo : 'Torneo GeoQuiz';

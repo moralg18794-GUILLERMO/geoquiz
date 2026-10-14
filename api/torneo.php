@@ -57,29 +57,28 @@ function gq_iso(string $utc): string {
     return gmdate('c', (int) strtotime($utc . ' UTC'));
 }
 
-function gq_t_preguntas(PDO $pdo, int $torneoId): array {
-    $filas = gq_consulta(
-        $pdo,
-        'SELECT orden, cat, diff, pts, q, opts, ans, hint, exp
-         FROM torneo_preguntas WHERE torneo_id = ? ORDER BY orden ASC',
-        [$torneoId]
-    )->fetchAll();
-    $salida = [];
-    foreach ($filas as $f) {
-        $opts = json_decode((string) $f['opts'], true);
-        $salida[] = [
-            'cat'  => $f['cat'],
-            'diff' => $f['diff'],
-            'pts'  => (int) $f['pts'],
-            'q'    => $f['q'],
-            'opts' => is_array($opts) ? $opts : [],
-            'ans'  => (int) $f['ans'],
-            'hint' => $f['hint'],
-            'exp'  => $f['exp'],
-        ];
-    }
-    return $salida;
+// ── PUNTUACIÓN, EN EL SERVIDOR ────────────────────────────────────────────
+// Mismo baremo que el juego normal, pero calculado aquí: 100/200/300 por dificultad, un
+// bonus de hasta el 30% por contestar rápido y un multiplicador por racha (x2 desde la
+// tercera seguida, x3 desde la sexta). El multiplicador se mira ANTES de sumar esta
+// respuesta a la racha, igual que en js/game.js.
+const GQ_T_SEGUNDOS_PREGUNTA = 20;
+const GQ_T_GRACIA = 5;   // margen por la latencia de la red antes de darlo por agotado
+
+function gq_t_multiplicador(int $racha): int {
+    if ($racha >= 6) { return 3; }
+    if ($racha >= 3) { return 2; }
+    return 1;
 }
+
+// Permutación de las cuatro opciones para ESTE jugador y ESTA pregunta. Se guarda, porque
+// sin ella el índice que devuelve el navegador no significa nada.
+function gq_t_barajar(): string {
+    $o = [0, 1, 2, 3];
+    shuffle($o);
+    return implode(',', $o);
+}
+
 
 function gq_t_clasificacion(PDO $pdo, int $torneoId, int $limite = GQ_T_TOPE_LISTA): array {
     $limite = max(1, min($limite, GQ_T_TOPE_LISTA));
@@ -117,11 +116,30 @@ function gq_t_clasificacion(PDO $pdo, int $torneoId, int $limite = GQ_T_TOPE_LIS
 function gq_t_fila_jugador(PDO $pdo, int $torneoId, string $nombre): ?array {
     $f = gq_consulta(
         $pdo,
-        'SELECT nombre, terminado, empezado_en FROM torneo_partidas
+        'SELECT id, nombre, terminado, empezado_en FROM torneo_partidas
          WHERE torneo_id = ? AND nombre = ? LIMIT 1',
         [$torneoId, $nombre]
     )->fetch();
     return $f === false ? null : $f;
+}
+
+// Cómo va la partida: cuántas preguntas se han contestado ya, los puntos acumulados, los
+// aciertos y la racha viva. Todo sale de torneo_respuestas, que es la única fuente.
+function gq_t_progreso(PDO $pdo, int $partidaId): array {
+    $filas = gq_consulta(
+        $pdo,
+        'SELECT orden, acertada, puntos, respondida_en FROM torneo_respuestas
+         WHERE partida_id = ? ORDER BY orden ASC',
+        [$partidaId]
+    )->fetchAll();
+    $contestadas = 0; $puntos = 0; $aciertos = 0; $racha = 0;
+    foreach ($filas as $f) {
+        if ($f['respondida_en'] === null) { continue; }   // servida pero sin contestar
+        $contestadas++;
+        $puntos += (int) $f['puntos'];
+        if ((int) $f['acertada'] === 1) { $aciertos++; $racha++; } else { $racha = 0; }
+    }
+    return ['contestadas' => $contestadas, 'puntos' => $puntos, 'aciertos' => $aciertos, 'racha' => $racha];
 }
 
 function gq_t_nombre_guardado(PDO $pdo, int $torneoId, string $nombre): ?string {
@@ -139,15 +157,6 @@ function gq_t_buscar(array $clasificacion, ?string $guardado): ?array {
         }
     }
     return null;
-}
-
-// Techo de puntuación posible en ESTE torneo, para que nadie mande un número inventado.
-// Es generoso a propósito: la suma de los puntos base, con el bonus de tiempo máximo
-// (30%) y el multiplicador de racha más alto (x3) aplicados a todas las preguntas, cosa
-// que en la práctica es inalcanzable porque las tres primeras van siempre a x1.
-function gq_t_techo(PDO $pdo, int $torneoId): int {
-    $suma = (int) gq_consulta($pdo, 'SELECT COALESCE(SUM(pts),0) FROM torneo_preguntas WHERE torneo_id = ?', [$torneoId])->fetchColumn();
-    return (int) ceil($suma * 1.3 * 3) + 100;
 }
 
 // El método se comprueba antes de conectar: una petición con un verbo que no admitimos no
@@ -178,11 +187,13 @@ if ($metodo === 'GET') {
         'jugadores'  => (int) gq_consulta($pdo, 'SELECT COUNT(*) FROM torneo_partidas WHERE torneo_id = ?', [$id])->fetchColumn(),
     ];
 
-    // Las preguntas solo viajan mientras el torneo está abierto: cerrado no hay nada que
-    // jugar y no tiene sentido repartirlas.
-    if ($t['estado'] === 'activo' && ($_GET['clasificacion'] ?? '') !== '1') {
-        $torneo['preguntas'] = gq_t_preguntas($pdo, $id);
-    }
+    // Las preguntas NO viajan aquí. Antes se mandaban las quince de golpe, con su respuesta
+    // correcta y su explicación dentro, así que cualquiera con las herramientas del
+    // navegador las leía sin jugar. Ahora se sirven de una en una, ya empezada la partida y
+    // sin decir cuál es la buena: lo único que se adelanta es cuántas son.
+    $torneo['n_preguntas'] = (int) gq_consulta(
+        $pdo, 'SELECT COUNT(*) FROM torneo_preguntas WHERE torneo_id = ?', [$id]
+    )->fetchColumn();
 
     $respuesta = ['ok' => true, 'torneo' => $torneo, 'clasificacion' => gq_t_clasificacion($pdo, $id)];
 
@@ -270,87 +281,188 @@ if (($datos['accion'] ?? '') === 'empezar') {
             if ($e->getCode() !== '23000') { throw $e; }
         }
     }
+    $fila = gq_t_fila_jugador($pdo, $torneoId, $nombre);
+    $prog = $fila === null ? ['contestadas' => 0, 'puntos' => 0, 'aciertos' => 0, 'racha' => 0]
+                           : gq_t_progreso($pdo, (int) $fila['id']);
     gq_json(200, [
-        'ok'        => true,
-        'reanudado' => $fila !== null,
-        'nombre'    => (string) (gq_t_fila_jugador($pdo, $torneoId, $nombre)['nombre'] ?? $nombre),
+        'ok'          => true,
+        'reanudado'   => $prog['contestadas'] > 0,
+        'nombre'      => (string) ($fila['nombre'] ?? $nombre),
+        'siguiente'   => $prog['contestadas'] + 1,
+        'n_preguntas' => $nPreguntas,
+        'puntos'      => $prog['puntos'],
+        'aciertos'    => $prog['aciertos'],
     ]);
 }
 
-$techo  = gq_t_techo($pdo, $torneoId);
-$puntos = filter_var($datos['puntos'] ?? null, FILTER_VALIDATE_INT);
-if ($puntos === false || $puntos === null || $puntos < 0 || $puntos > $techo) {
-    gq_error(400, 'puntos', 'Puntuación fuera de rango.');
-}
+// ── PREGUNTA: se sirve de una en una y SIN la respuesta ───────────────────
+// Esto es lo que cierra la trampa de verdad. La pregunta 15 no existe para el navegador
+// hasta que se ha contestado la 14, y en ningún momento viaja cuál es la correcta ni la
+// explicación. Mirar la pestaña de red ya no adelanta nada.
+if (($datos['accion'] ?? '') === 'pregunta') {
+    $fila = gq_t_fila_jugador($pdo, $torneoId, $nombre);
+    if ($fila === null) { gq_error(409, 'sin_reserva', 'Esa partida no está empezada.'); }
+    if ((int) $fila['terminado'] === 1) { gq_error(409, 'ya_jugado', 'Ya has jugado este torneo.'); }
+    $partidaId = (int) $fila['id'];
 
-$correctas = filter_var($datos['correctas'] ?? 0, FILTER_VALIDATE_INT);
-if ($correctas === false || $correctas === null || $correctas < 0 || $correctas > $nPreguntas) {
-    $correctas = 0;
-}
-$segundos = filter_var($datos['segundos'] ?? 0, FILTER_VALIDATE_INT);
-if ($segundos === false || $segundos === null || $segundos < 0 || $segundos > GQ_T_MAX_SEGUNDOS) {
-    $segundos = 0;
-}
+    $prog = gq_t_progreso($pdo, $partidaId);
+    $orden = $prog['contestadas'] + 1;   // el servidor decide cuál toca, no el navegador
+    if ($orden > $nPreguntas) { gq_error(409, 'terminada', 'Ya has contestado todas.'); }
 
-// Mismo límite por conexión que el ranking normal, con la misma tabla.
-gq_consulta($pdo, 'DELETE FROM envios WHERE creado_en < (UTC_TIMESTAMP() - INTERVAL 1 HOUR)');
-$recientes = (int) gq_consulta(
-    $pdo,
-    'SELECT COUNT(*) FROM envios WHERE ip_hash = ? AND creado_en > (UTC_TIMESTAMP() - INTERVAL 1 HOUR)',
-    [$ipHash]
-)->fetchColumn();
-if ($recientes >= GQ_T_ENVIOS_HORA) {
-    gq_error(429, 'demasiados', 'Demasiados envíos desde esta conexión. Prueba dentro de un rato.');
-}
+    $p = gq_consulta(
+        $pdo,
+        'SELECT cat, diff, pts, q, opts FROM torneo_preguntas WHERE torneo_id = ? AND orden = ?',
+        [$torneoId, $orden]
+    )->fetch();
+    if ($p === false) { gq_error(500, 'sin_pregunta', 'Falta una pregunta del torneo.'); }
 
-$fila = gq_t_fila_jugador($pdo, $torneoId, $nombre);
-if ($fila !== null && (int) $fila['terminado'] === 1) {
-    // Ese mote ya envió su marca. No es un error del servidor: es la regla funcionando.
-    $clasificacion = gq_t_clasificacion($pdo, $torneoId);
-    gq_json(409, [
-        'ok'            => false,
-        'error'         => 'ya_jugado',
-        'mensaje'       => 'Ya has jugado este torneo. Solo vale un intento.',
-        'yo'            => gq_t_buscar($clasificacion, (string) $fila['nombre']),
-        'clasificacion' => $clasificacion,
+    // Si ya se había servido y no se contestó (una recarga a media pregunta), se repite con
+    // la MISMA baraja y sin reiniciar el reloj: recargar no regala tiempo.
+    $r = gq_consulta(
+        $pdo,
+        'SELECT opciones, servida_en FROM torneo_respuestas WHERE partida_id = ? AND orden = ?',
+        [$partidaId, $orden]
+    )->fetch();
+    if ($r === false) {
+        $baraja = gq_t_barajar();
+        gq_consulta(
+            $pdo,
+            'INSERT INTO torneo_respuestas (partida_id, orden, opciones, servida_en) VALUES (?, ?, ?, UTC_TIMESTAMP())',
+            [$partidaId, $orden, $baraja]
+        );
+        $transcurrido = 0;
+    } else {
+        $baraja = (string) $r['opciones'];
+        $transcurrido = (int) gq_consulta(
+            $pdo, 'SELECT TIMESTAMPDIFF(SECOND, ?, UTC_TIMESTAMP())', [$r['servida_en']]
+        )->fetchColumn();
+    }
+
+    $opts = json_decode((string) $p['opts'], true);
+    $orig = is_array($opts) ? $opts : [];
+    $perm = array_map('intval', explode(',', $baraja));
+    $servidas = [];
+    foreach ($perm as $i) { $servidas[] = $orig[$i] ?? ''; }
+
+    gq_json(200, [
+        'ok'       => true,
+        'orden'    => $orden,
+        'total'    => $nPreguntas,
+        'cat'      => $p['cat'],
+        'diff'     => $p['diff'],
+        'pts'      => (int) $p['pts'],
+        'q'        => $p['q'],
+        'opts'     => $servidas,
+        'quedan'   => max(0, GQ_T_SEGUNDOS_PREGUNTA - $transcurrido),
+        'puntos'   => $prog['puntos'],
+        'racha'    => $prog['racha'],
+        'mult'     => gq_t_multiplicador($prog['racha']),
     ]);
 }
 
-if ($fila === null) {
-    // No hay reserva: es un navegador con el JavaScript viejo, que envía directamente al
-    // terminar. Se le acepta la partida y se le cree el tiempo que diga, porque no hay otro.
+// ── RESPONDER: corrige el servidor ────────────────────────────────────────
+if (($datos['accion'] ?? '') === 'responder') {
+    $fila = gq_t_fila_jugador($pdo, $torneoId, $nombre);
+    if ($fila === null) { gq_error(409, 'sin_reserva', 'Esa partida no está empezada.'); }
+    if ((int) $fila['terminado'] === 1) { gq_error(409, 'ya_jugado', 'Ya has jugado este torneo.'); }
+    $partidaId = (int) $fila['id'];
+
+    $prog  = gq_t_progreso($pdo, $partidaId);
+    $orden = $prog['contestadas'] + 1;
+    $r = gq_consulta(
+        $pdo,
+        'SELECT opciones, servida_en, TIMESTAMPDIFF(SECOND, servida_en, UTC_TIMESTAMP()) AS tardado
+         FROM torneo_respuestas WHERE partida_id = ? AND orden = ? AND respondida_en IS NULL',
+        [$partidaId, $orden]
+    )->fetch();
+    if ($r === false) { gq_error(409, 'sin_pregunta', 'No hay ninguna pregunta pendiente.'); }
+
+    $p = gq_consulta(
+        $pdo,
+        'SELECT pts, ans, exp FROM torneo_preguntas WHERE torneo_id = ? AND orden = ?',
+        [$torneoId, $orden]
+    )->fetch();
+
+    $perm    = array_map('intval', explode(',', (string) $r['opciones']));
+    $tardado = max(0, (int) $r['tardado']);
+    $elegida = filter_var($datos['elegida'] ?? -1, FILTER_VALIDATE_INT);
+    if ($elegida === false || $elegida === null || $elegida < 0 || $elegida > 3) { $elegida = -1; }
+
+    // Se agotó el tiempo si lo dice el navegador o si el reloj del servidor se pasó del
+    // límite con su margen. Mandar una respuesta tardísima no cuela.
+    $aTiempo = $tardado <= (GQ_T_SEGUNDOS_PREGUNTA + GQ_T_GRACIA);
+    $real    = $elegida >= 0 ? ($perm[$elegida] ?? -1) : -1;
+    $acerto  = $aTiempo && $real === (int) $p['ans'];
+
+    // El multiplicador se mira con la racha que había ANTES de esta respuesta, igual que en
+    // js/game.js. Hay que guardarlo aquí porque abajo se recalcula el progreso.
+    $multAplicado = gq_t_multiplicador($prog['racha']);
+    $pts = 0;
+    if ($acerto) {
+        $quedan = max(0, GQ_T_SEGUNDOS_PREGUNTA - $tardado);
+        $bonus  = (int) floor($quedan / GQ_T_SEGUNDOS_PREGUNTA * (int) $p['pts'] * 0.3);
+        $pts    = ((int) $p['pts'] + $bonus) * $multAplicado;
+    }
+
     gq_consulta(
         $pdo,
-        'INSERT INTO torneo_partidas
-           (torneo_id, nombre, puntos, correctas, total, segundos, empezado_en, terminado, ip_hash, creado_en)
-         VALUES (?, ?, ?, ?, ?, ?, NULL, 1, ?, UTC_TIMESTAMP())',
-        [$torneoId, $nombre, $puntos, $correctas, $nPreguntas, $segundos, $ipHash]
+        'UPDATE torneo_respuestas SET elegida = ?, acertada = ?, puntos = ?, respondida_en = UTC_TIMESTAMP()
+          WHERE partida_id = ? AND orden = ?',
+        [$elegida, $acerto ? 1 : 0, $pts, $partidaId, $orden]
     );
-} else {
-    // Hay reserva: el tiempo lo calcula el SERVIDOR desde que se empezó, no el navegador.
-    // Así ni se puede falsear ni sale gratis salirse a mirar las preguntas y volver: el
-    // cronómetro ha seguido corriendo. El LEAST acota a lo que cabe en la columna, por si
-    // alguien deja la partida abierta un día entero.
-    gq_consulta(
-        $pdo,
-        'UPDATE torneo_partidas
-            SET puntos = ?, correctas = ?, total = ?,
-                segundos = LEAST(GREATEST(TIMESTAMPDIFF(SECOND, empezado_en, UTC_TIMESTAMP()), 0), 65535),
-                terminado = 1, creado_en = UTC_TIMESTAMP()
-          WHERE torneo_id = ? AND nombre = ? AND terminado = 0',
-        [$puntos, $correctas, $nPreguntas, $torneoId, $nombre]
-    );
+
+    $prog = gq_t_progreso($pdo, $partidaId);
+    $ultima = $orden >= $nPreguntas;
+
+    if ($ultima) {
+        // Se cierra la partida con los puntos que ha ido sumando el servidor. El navegador
+        // no ha llegado a tocar la puntuación en ningún momento.
+        gq_consulta(
+            $pdo,
+            'UPDATE torneo_partidas
+                SET puntos = ?, correctas = ?, total = ?,
+                    segundos = LEAST(GREATEST(TIMESTAMPDIFF(SECOND, empezado_en, UTC_TIMESTAMP()), 0), 65535),
+                    terminado = 1, creado_en = UTC_TIMESTAMP()
+              WHERE id = ? AND terminado = 0',
+            [$prog['puntos'], $prog['aciertos'], $nPreguntas, $partidaId]
+        );
+    }
+
+    // Qué casilla de las que ÉL vio era la buena: el navegador no conoce la permutación.
+    // Con ?: no valdría, porque el índice 0 es legítimo y se confundiría con no encontrado.
+    $idxCorrecta = array_search((int) $p['ans'], $perm, true);
+    $salida = [
+        'ok'       => true,
+        'acerto'   => $acerto,
+        'correcta' => $idxCorrecta === false ? 0 : (int) $idxCorrecta,
+        'exp'      => $p['exp'],
+        'ganados'  => $pts,
+        'mult'     => $multAplicado,
+        'puntos'   => $prog['puntos'],
+        'aciertos' => $prog['aciertos'],
+        'racha'    => $prog['racha'],
+        'tardado'  => $tardado,
+        'ultima'   => $ultima,
+    ];
+    if ($ultima) {
+        $clasificacion = gq_t_clasificacion($pdo, $torneoId);
+        $salida['clasificacion'] = $clasificacion;
+        $salida['yo'] = gq_t_buscar($clasificacion, (string) $fila['nombre']);
+        $salida['pos'] = $salida['yo']['pos'] ?? null;
+    }
+    gq_json(200, $salida);
 }
-gq_consulta($pdo, 'INSERT INTO envios (ip_hash, creado_en) VALUES (?, UTC_TIMESTAMP())', [$ipHash]);
 
-// El puesto se saca de la misma lista que se devuelve, para que el número que se anuncia
-// no pueda discrepar de la tabla que el jugador ve justo después.
-$clasificacion = gq_t_clasificacion($pdo, $torneoId);
-$yo = gq_t_buscar($clasificacion, gq_t_nombre_guardado($pdo, $torneoId, $nombre));
 
-gq_json(201, [
-    'ok'            => true,
-    'pos'           => $yo === null ? null : $yo['pos'],
-    'yo'            => $yo,
-    'clasificacion' => $clasificacion,
+// ── CUALQUIER OTRO POST ───────────────────────────────────────────────────
+// Antes se aceptaba un envío con la puntuación ya calculada por el navegador. Con el
+// servidor corrigiendo eso era un agujero de par en par: bastaba un curl con el máximo
+// para encabezar la clasificación sin contestar nada. Ya no existe esa puerta.
+//
+// Un navegador con el JavaScript viejo cae aquí. No pierde nada: como tampoco recibe las
+// preguntas, no ha llegado a jugar; solo tiene que recargar.
+gq_json(409, [
+    'ok'      => false,
+    'error'   => 'version',
+    'mensaje' => 'Esta versión del juego ya no vale para el torneo. Recarga la página.',
 ]);

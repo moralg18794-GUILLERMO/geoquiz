@@ -173,6 +173,33 @@ function gq_crear_tablas(PDO $pdo): void {
             CONSTRAINT fk_tpa_torneo FOREIGN KEY (torneo_id) REFERENCES torneos (id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
     );
+    // Una fila por pregunta servida. Aquí es donde el servidor lleva la partida: qué
+    // pregunta se ha enseñado, cuándo, en qué orden se barajaron sus opciones, qué se
+    // respondió y cuántos puntos valió. La puntuación deja de calcularla el navegador.
+    //
+    // `opciones` guarda la permutación con la que se enviaron las opciones a ESE jugador
+    // ("2,0,3,1"). Sin ella el servidor no sabría qué significa el índice que le devuelven,
+    // y con ella cada uno ve las opciones en un orden distinto: no se puede cantar «la
+    // tercera» por el grupo.
+    //
+    // `servida_en` es lo que permite calcular el bonus por rapidez en el servidor, que es
+    // el único sitio donde no se puede falsear.
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS torneo_respuestas (
+            id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            partida_id    INT UNSIGNED NOT NULL,
+            orden         TINYINT UNSIGNED NOT NULL,
+            opciones      VARCHAR(16)  NOT NULL DEFAULT "",
+            servida_en    DATETIME     NOT NULL,
+            elegida       TINYINT      NOT NULL DEFAULT -1,
+            acertada      TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            puntos        SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            respondida_en DATETIME     NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_pregunta (partida_id, orden),
+            CONSTRAINT fk_tr_partida FOREIGN KEY (partida_id) REFERENCES torneo_partidas (id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
 }
 
 // Se intenta la consulta y solo si MySQL responde "la tabla no existe"

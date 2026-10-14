@@ -64,7 +64,8 @@ function updateHUD(){
     document.getElementById('hud-mult').textContent='x'+mult;
     document.getElementById('hud-mult-wrap').style.color=mult>=3?'var(--orange)':mult>=2?'var(--accent)':'var(--text)';
     if(gameMode!=='survival'){
-      const total=gameQ.length;
+      // En torneo el total lo dice el servidor: gameQ solo tiene las preguntas ya servidas.
+      const total=partida.modo==='torneo'?torneoTotal:gameQ.length;
       document.getElementById('prog-label').textContent=`Pregunta ${current+1} de ${total}`;
       document.getElementById('prog-fill').style.width=`${(current/total)*100}%`;
     } else {
@@ -76,7 +77,11 @@ function updateHUD(){
 
 // ── TIMER ─────────────────────────────────────────────────────────────────
 function startTimer(){
-  clearInterval(timerInt);timeLeft=20;updateTimerUI();
+  clearInterval(timerInt);
+  // En torneo el reloj lo marca el servidor: si se recarga a media pregunta, se reanuda con
+  // el tiempo que de verdad quedaba. Reiniciarlo a 20 aquí regalaría segundos cada recarga.
+  if(partida.modo!=='torneo')timeLeft=20;
+  updateTimerUI();
   timerInt=setInterval(()=>{
     timeLeft--;updateTimerUI();
     if(timeLeft<=5)playTick();
@@ -100,7 +105,9 @@ function startBlitz(){
   },1000);
 }
 function timeOutAnswer(){
-  if(answered)return;answered=true;
+  if(answered)return;
+  if(partida.modo==='torneo'){pickTorneo(-1);return;}
+  answered=true;
   playTimeout();
   const q=gameQ[current];
   if(gameMode==='duel'){const p=duel.turn===1?duel.p1:duel.p2;p.lives--;}
@@ -120,8 +127,13 @@ function timeOutAnswer(){
 function renderQuestion(){
   answered=false;
   const q=gameQ[current];
-  shuffleOptions(q);
-  const catChanged=filterMode!=='tematicas'&&q.cat!==lastCat&&lastCat!=='';
+  // En torneo las opciones vienen ya barajadas por el servidor, con una baraja distinta
+  // para cada jugador, y aquí no se sabe cuál es la correcta: no hay nada que recolocar.
+  if(partida.modo!=='torneo')shuffleOptions(q);
+  // En torneo tampoco hay cortinilla: las quince preguntas saltan de época constantemente,
+  // así que saldría en casi todas y añadiría unos trece segundos muertos a una partida
+  // cronometrada. Es el mismo motivo por el que ya no sale jugando por temáticas.
+  const catChanged=filterMode!=='tematicas'&&partida.modo!=='torneo'&&q.cat!==lastCat&&lastCat!=='';
 
   const doRender=()=>{
     setHeaderStyle(q.cat);lastCat=q.cat;
@@ -205,7 +217,10 @@ function useHint(type){
 
 // ── PICK ANSWER ───────────────────────────────────────────────────────────
 function pick(i){
-  if(answered)return;answered=true;
+  if(answered)return;
+  // En torneo corrige el servidor: el navegador no sabe la respuesta.
+  if(partida.modo==='torneo'){pickTorneo(i);return;}
+  answered=true;
   clearInterval(timerInt);
   const q=gameQ[current];
   const btns=document.querySelectorAll('.opt-btn');
@@ -247,6 +262,9 @@ function pick(i){
 }
 
 document.getElementById('next-btn').addEventListener('click',()=>{
+  // En torneo la siguiente pregunta la decide y la sirve el servidor: el navegador no las
+  // tiene todas, solo la que está contestando.
+  if(partida.modo==='torneo'){torneoSiguientePregunta();return;}
   if(gameMode==='duel')duel.turn=duel.turn===1?2:1;
   current++;
   if(gameMode!=='survival'&&current>=gameQ.length){showResult();return;}
