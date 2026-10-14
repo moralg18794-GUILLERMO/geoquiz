@@ -112,7 +112,7 @@ function gq_crear_tablas(PDO $pdo): void {
             id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
             slug       VARCHAR(64)  NOT NULL,
             titulo     VARCHAR(80)  NOT NULL,
-            tema       VARCHAR(120) NOT NULL DEFAULT "",
+            tema       VARCHAR(400) NOT NULL DEFAULT "",
             empieza_en DATETIME     NOT NULL,
             acaba_en   DATETIME     NOT NULL,
             borrador   TINYINT UNSIGNED NOT NULL DEFAULT 0,

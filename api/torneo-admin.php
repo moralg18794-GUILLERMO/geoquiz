@@ -98,7 +98,7 @@ if (preg_match('/^[a-z0-9][a-z0-9-]{2,63}$/', $slug) !== 1) {
     gq_error(400, 'slug', 'El slug solo admite minúsculas, números y guiones (3-64).');
 }
 $titulo = gq_ta_texto($d['titulo'] ?? null, 'titulo', 80);
-$tema   = gq_ta_texto($d['tema'] ?? null, 'tema', 120, false);
+$tema   = gq_ta_texto($d['tema'] ?? null, 'tema', 400, false);
 
 $empieza = gq_ta_utc(gq_ta_texto($d['empieza_en'] ?? null, 'empieza_en', 16), 'empieza_en');
 $acaba   = gq_ta_utc(gq_ta_texto($d['acaba_en'] ?? null, 'acaba_en', 16), 'acaba_en');
