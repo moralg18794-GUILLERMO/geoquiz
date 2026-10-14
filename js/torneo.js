@@ -72,11 +72,19 @@ function torneoCierre() {
 
 // El reto para mandar por WhatsApp. Lleva el plazo y la regla del intento único, que es
 // lo que convierte el enlace en un reto y no en otro enlace más.
+// La regla del intento único se cuenta una sola vez. Si la descripción del torneo ya la
+// dice, no se repite: el mensaje la llevaba fija de antes y, en cuanto alguien la escribe
+// también en la descripción, el reto salía diciendo lo mismo dos veces seguidas.
+function torneoDiceLaRegla() {
+  return !!(torneo && torneo.tema && /sola partida/i.test(torneo.tema));
+}
+
 function textoRetoTorneo() {
   if (!torneo) return '';
   const url = window.location.href.split('?')[0];
   const r = torneoRestante(torneo.acaba_en);
-  return `🏆 ${torneo.titulo}\n${torneo.tema}\n\n15 preguntas, las mismas para todos. Una sola partida por cabeza: no hay segunda oportunidad.\n\nCierra el ${torneoCierre()}${r ? ` · quedan ${r}` : ''}.\n\n${url}`;
+  const regla = torneoDiceLaRegla() ? '' : '\n\n15 preguntas, las mismas para todos. Una sola partida por cabeza: no hay segunda oportunidad.';
+  return `🏆 ${torneo.titulo}\n${torneo.tema}${regla}\n\nCierra el ${torneoCierre()}${r ? ` · quedan ${r}` : ''}.\n\n${url}`;
 }
 
 function retarAlTorneo() {
@@ -108,6 +116,8 @@ function pintarAvisoTorneo() {
 
   // Retar a alguien a un torneo que ya ha cerrado no lleva a ninguna parte.
   document.getElementById('ta-retar').style.display = cerrado ? 'none' : '';
+  // La coletilla de debajo del botón sobra si la descripción ya cuenta la regla.
+  document.querySelector('.ta-nota').style.display = torneoDiceLaRegla() ? 'none' : '';
 
   if (cerrado) {
     document.getElementById('ta-eyebrow').textContent = '🏆 Torneo terminado';
