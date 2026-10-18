@@ -191,12 +191,13 @@ function renderEmpezarRonda() {
   document.getElementById('q-diff').style.display = 'none';
   document.getElementById('q-pts').style.display = 'none';
   document.getElementById('q-text').textContent = '';
-  document.getElementById('options').innerHTML = '';
-  document.getElementById('explanation').innerHTML = `
-    <div class="explanation ok" style="text-align:center">
-      <p style="margin-bottom:0.8rem">Te toca responder. En cuanto pulses empieza el cronómetro de 20s.</p>
-      <button class="btn-primary" onclick="pedirPreguntaDuelo()">▶ Empezar ronda</button>
-    </div>`;
+  // El botón vive en las opciones -no es #next-btn, que ya tiene su propio manejador
+  // fijo para "siguiente pregunta" y dispararía los dos a la vez-, pero con su misma
+  // clase para que se vea exactamente igual que el resto de botones del juego.
+  document.getElementById('options').innerHTML =
+    '<button class="next-btn" style="margin-top:0" onclick="pedirPreguntaDuelo()">▶ Empezar ronda</button>';
+  document.getElementById('explanation').innerHTML =
+    '<div class="explanation ok">Te toca responder. En cuanto pulses empieza el cronómetro de 20s.</div>';
 }
 
 async function pedirPreguntaDuelo() {

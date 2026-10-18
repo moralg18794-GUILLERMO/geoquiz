@@ -7,11 +7,13 @@
 //   POST /api/duelo.php   {accion:'responder',codigo, nombre, elegida}
 //   GET  /api/duelo.php   ?ranking=1                         clasificación de duelos
 //
-// 5 vidas por jugador, por rondas: en cada ronda responde primero J1 y después J2.
-// Si alguien se queda a 0 vidas a mitad de ronda no se corta ahí: el otro contesta
-// igual la pregunta de esa ronda, y solo entonces se decide. Eso puede dejar a los
-// dos a 0 en la misma ronda, así que el desempate es por aciertos (y si también
-// empatan, empate de verdad).
+// 5 vidas por jugador, por rondas: en cada ronda responde primero J1 y después J2,
+// y LOS DOS CONTESTAN LA MISMA PREGUNTA -con las opciones en un orden distinto cada
+// uno-, para que a ninguno le toquen más fáciles que al otro. Si alguien se queda a
+// 0 vidas a mitad de ronda no se corta ahí: el otro contesta igual la pregunta de
+// esa ronda, y solo entonces se decide. Eso puede dejar a los dos a 0 en la misma
+// ronda, así que el desempate es por aciertos (y si también empatan, empate de
+// verdad).
 //
 // El servidor corrige cada respuesta, igual que el torneo: la pregunta se sirve sin
 // decir cuál es la correcta, y lo que el navegador manda se compara aquí contra el
@@ -336,12 +338,29 @@ if ($accion === 'pregunta') {
             $pdo, 'SELECT TIMESTAMPDIFF(SECOND, ?, UTC_TIMESTAMP())', [$p['servida_en']]
         )->fetchColumn();
     } else {
-        $cats = json_decode((string) $d['cats'], true) ?: [];
-        $usadas = gq_consulta($pdo, 'SELECT q FROM duelo_respuestas WHERE duelo_id = ?', [$duId])->fetchAll(PDO::FETCH_COLUMN);
-        $q = gq_d_elegir_pregunta($cats, (string) $d['dif'], $usadas);
-        if ($q === null) { gq_error(500, 'sin_preguntas', 'Se acabaron las preguntas de estas categorías.'); }
+        $orden = (int) gq_consulta($pdo, 'SELECT COUNT(*) FROM duelo_respuestas WHERE duelo_id = ?', [$duId])->fetchColumn() + 1;
 
-        $orden  = (int) gq_consulta($pdo, 'SELECT COUNT(*) FROM duelo_respuestas WHERE duelo_id = ?', [$duId])->fetchColumn() + 1;
+        // Misma pregunta para los dos en cada ronda -que la comparación sea justa y a
+        // ninguno le toquen más fáciles que al otro-: J2 hereda la que acaba de
+        // contestar J1 en esta misma ronda (la fila anterior), en vez de que se le
+        // elija otra al azar. Cada uno sigue viendo sus opciones en un orden propio.
+        if ($lado === 2 && $orden > 1) {
+            $compa = gq_consulta(
+                $pdo, 'SELECT cat, diff, pts, q, opts, ans, exp FROM duelo_respuestas WHERE duelo_id = ? AND orden = ?',
+                [$duId, $orden - 1]
+            )->fetch();
+            $q = [
+                'cat' => $compa['cat'], 'diff' => $compa['diff'], 'pts' => (int) $compa['pts'],
+                'q' => $compa['q'], 'opts' => json_decode((string) $compa['opts'], true) ?: [],
+                'ans' => (int) $compa['ans'], 'exp' => $compa['exp'],
+            ];
+        } else {
+            $cats = json_decode((string) $d['cats'], true) ?: [];
+            $usadas = gq_consulta($pdo, 'SELECT q FROM duelo_respuestas WHERE duelo_id = ?', [$duId])->fetchAll(PDO::FETCH_COLUMN);
+            $q = gq_d_elegir_pregunta($cats, (string) $d['dif'], $usadas);
+            if ($q === null) { gq_error(500, 'sin_preguntas', 'Se acabaron las preguntas de estas categorías.'); }
+        }
+
         $baraja = gq_d_barajar();
         gq_consulta(
             $pdo,
