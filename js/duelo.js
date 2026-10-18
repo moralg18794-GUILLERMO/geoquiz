@@ -57,7 +57,7 @@ function duelEnlace() {
 }
 
 function textoInvitacionDuelo() {
-  return `⚔️ ¡Te reto a un duelo en GeoQuiz!\n\nEntra con este enlace y empezamos en cuanto aceptes:\n${duelEnlace()}\n\n(Código por si lo pide: ${duelCodigo})`;
+  return `¡Te reto a un duelo en GeoQuiz!\n\nEntra con este enlace y empezamos en cuanto aceptes:\n${duelEnlace()}\n\n(Código por si lo pide: ${duelCodigo})`;
 }
 
 function mostrarEsperaDuelo() {
@@ -294,7 +294,7 @@ function textoResultadoDuelo() {
   const miNombre = soyJ1 ? duelo.j1_nombre : (duelo.j2_nombre || 'Tú');
   const rivalNombre = soyJ1 ? (duelo.j2_nombre || 'Rival') : duelo.j1_nombre;
   const gano = duelo.ganador === duelMiLado;
-  return `⚔️ GeoQuiz — Duelo\n\n${miNombre}: ${miPuntos} puntos\n${rivalNombre}: ${rivalPuntos} puntos\n${gano ? '🏆 ¡He ganado!' : 'Ha ganado ' + rivalNombre}\n\n¿Te atreves con el siguiente?\n${url}`;
+  return `GeoQuiz — Duelo\n\n${miNombre}: ${miPuntos} puntos\n${rivalNombre}: ${rivalPuntos} puntos\n${gano ? '🏆 ¡He ganado!' : 'Ha ganado ' + rivalNombre}\n\n¿Te atreves con el siguiente?\n${url}`;
 }
 
 // ── CLASIFICACIÓN DE DUELOS ───────────────────────────────────────────────
