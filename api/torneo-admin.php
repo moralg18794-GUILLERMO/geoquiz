@@ -93,6 +93,51 @@ if (!is_array($d)) {
     gq_error(400, 'json', 'El cuerpo debe ser un objeto JSON.');
 }
 
+// ── Atajo: cambiar solo las fechas de un torneo ya publicado ───────────────
+// Republicar entero (abajo) borra y reinserta torneo_preguntas, y si ya ha jugado alguien
+// exige "forzar" — que de paso borra torneo_partidas. Para algo tan simple como alargar un
+// cierre eso es machacar un piano para tocar una tecla, así que este atajo solo toca
+// empieza_en/acaba_en de una fila que ya existe. empieza_en y acaba_en son opcionales: el
+// que no se mande se deja como está, para no tener que teclear el que no cambia.
+if (!empty($d['solo_fechas'])) {
+    $slug = gq_ta_texto($d['slug'] ?? null, 'slug', 64);
+    if (preg_match('/^[a-z0-9][a-z0-9-]{2,63}$/', $slug) !== 1) {
+        gq_error(400, 'slug', 'El slug solo admite minúsculas, números y guiones (3-64).');
+    }
+
+    $pdo = gq_db();
+    $existe = gq_consulta($pdo, 'SELECT id, empieza_en, acaba_en FROM torneos WHERE slug = ?', [$slug])->fetch();
+    if ($existe === false) {
+        gq_error(404, 'no_existe', "No hay ningún torneo con slug '$slug'. Este atajo solo cambia fechas de uno que ya existe.");
+    }
+
+    $empiezaTxt = $d['empieza_en'] ?? null;
+    $acabaTxt   = $d['acaba_en'] ?? null;
+    if ($empiezaTxt === null && $acabaTxt === null) {
+        gq_error(400, 'campo', "Manda empieza_en, acaba_en, o ambos ('AAAA-MM-DD HH:MM' en hora de Madrid).");
+    }
+    $empieza = $empiezaTxt !== null
+        ? gq_ta_utc(gq_ta_texto($empiezaTxt, 'empieza_en', 16), 'empieza_en')
+        : (string) $existe['empieza_en'];
+    $acaba = $acabaTxt !== null
+        ? gq_ta_utc(gq_ta_texto($acabaTxt, 'acaba_en', 16), 'acaba_en')
+        : (string) $existe['acaba_en'];
+    if ($acaba <= $empieza) {
+        gq_error(400, 'ventana', 'acaba_en tiene que ser posterior a empieza_en.');
+    }
+
+    gq_consulta($pdo, 'UPDATE torneos SET empieza_en = ?, acaba_en = ? WHERE id = ?', [$empieza, $acaba, (int) $existe['id']]);
+    gq_json(200, [
+        'ok'          => true,
+        'slug'        => $slug,
+        'id'          => (int) $existe['id'],
+        'empieza_utc' => $empieza,
+        'acaba_utc'   => $acaba,
+        'ahora_utc'   => gmdate('Y-m-d H:i:s'),
+        'nota'        => 'Solo se han cambiado las fechas: preguntas y partidas intactas.',
+    ]);
+}
+
 $slug = gq_ta_texto($d['slug'] ?? null, 'slug', 64);
 if (preg_match('/^[a-z0-9][a-z0-9-]{2,63}$/', $slug) !== 1) {
     gq_error(400, 'slug', 'El slug solo admite minúsculas, números y guiones (3-64).');
