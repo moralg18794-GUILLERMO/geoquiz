@@ -27,19 +27,26 @@ function startGame(){
 
 function setupHUD(){
   const isSolo=gameMode!=='duel';
-  document.getElementById('solo-hud').style.display=isSolo?'flex':'none';
+  // #solo-hud se queda visible siempre -es donde vive el temporizador, y el duelo
+  // también lo necesita-: lo que no aplica al duelo es la puntuación y la barra de
+  // progreso, que se esconden una a una en vez de taparlo todo con el contenedor.
+  document.getElementById('solo-hud').style.display='flex';
+  document.getElementById('hud-score').closest('.hud-stat').style.display=isSolo?'':'none';
+  document.getElementById('prog-label').closest('.hud-progress').style.display=isSolo?'':'none';
   document.getElementById('blitz-bar').style.display=gameMode==='blitz'?'block':'none';
   document.getElementById('survival-label').style.display=gameMode==='survival'?'block':'none';
   document.getElementById('duel-hud-wrap').style.display=gameMode==='duel'?'block':'none';
   document.getElementById('timer-wrap').style.display=gameMode==='blitz'?'none':'flex';
   document.getElementById('hud-mult-wrap').style.display=gameMode==='solo'||gameMode==='survival'?'flex':'none';
-  // En el torneo no hay vidas: todos responden las 15. Enseñar tres corazones que nunca
-  // bajan sería mentir, así que se esconden.
-  document.getElementById('lives-wrap').style.display=partida.modo==='torneo'?'none':'';
+  // En el torneo no hay vidas (todos responden las 15) y en el duelo las vidas de cada
+  // uno ya se ven en su propia tarjeta del HUD de duelo: aquí serían un tercer marcador
+  // redundante y, peor, mentiroso (lives vale 9999 en duelo).
+  document.getElementById('lives-wrap').style.display=(partida.modo==='torneo'||gameMode==='duel')?'none':'';
 }
 
 // ── HUD UPDATE ────────────────────────────────────────────────────────────
-function rl(n){return[0,1,2].map(i=>`<span class="life${i>=n?' lost':''}">❤️</span>`).join('');}
+// total=3 para el resto de modos; el duelo pasa 5 vidas explícitamente.
+function rl(n,total=3){return Array.from({length:total},(_,i)=>`<span class="life${i>=n?' lost':''}">❤️</span>`).join('');}
 function updateHUD(){
   if(gameMode==='duel'){
     pintarDuelHUD();
@@ -63,9 +70,10 @@ function updateHUD(){
 // ── TIMER ─────────────────────────────────────────────────────────────────
 function startTimer(){
   clearInterval(timerInt);
-  // En torneo el reloj lo marca el servidor: si se recarga a media pregunta, se reanuda con
-  // el tiempo que de verdad quedaba. Reiniciarlo a 20 aquí regalaría segundos cada recarga.
-  if(partida.modo!=='torneo')timeLeft=20;
+  // En torneo y en duelo el reloj lo marca el servidor: si se recarga a media pregunta,
+  // se reanuda con el tiempo que de verdad quedaba. Reiniciarlo a 20 aquí regalaría
+  // segundos cada recarga.
+  if(partida.modo!=='torneo'&&partida.modo!=='duel')timeLeft=20;
   updateTimerUI();
   timerInt=setInterval(()=>{
     timeLeft--;updateTimerUI();
@@ -128,6 +136,9 @@ function renderQuestion(){
     de.textContent=q.diff==='facil'?'Fácil':q.diff==='medio'?'Medio':'Difícil';
     de.className='q-diff-tag '+q.diff;
     const mult=getMultiplier();
+    // El duelo no tiene puntuación: solo cuentan los aciertos, así que el "+N pts" de
+    // debajo de la categoría sobra y confundiría.
+    document.getElementById('q-pts').style.display=partida.modo==='duel'?'none':'';
     document.getElementById('q-pts').textContent=`+${q.pts*mult} pts${mult>1?' (x'+mult+')':''}`;
     document.getElementById('explanation').innerHTML='';
     document.getElementById('next-btn').style.display='none';

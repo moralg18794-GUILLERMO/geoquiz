@@ -203,16 +203,22 @@ function gq_crear_tablas(PDO $pdo): void {
 
     // ── DUELO ONLINE ──────────────────────────────────────────────────────
     // Sustituye al duelo del mismo móvil: dos jugadores, cada uno en su dispositivo,
-    // conectados por un código de 6 caracteres. Turnos remotos (no simultáneos): se
-    // alternan, y el que se queda a 0 vidas pierde. Al ser por turnos, nunca pueden
-    // llegar los dos a 0 a la vez, así que no hace falta desempate por tiempo.
+    // conectados por un código de 6 caracteres. Va por RONDAS: en cada ronda responde
+    // primero J1 y después J2, y solo al cerrarse la ronda (cuando los dos han
+    // contestado) se mira si alguien se ha quedado sin vidas. Así, si J1 se queda a 0
+    // a mitad de ronda, J2 igualmente contesta la suya antes de que nadie pierda: no
+    // es justo cortarle la ronda a quien le tocaba después.
+    //
+    // Eso sí puede dejar a los dos a 0 vidas en la misma ronda (algo que con turnos
+    // sueltos no podía pasar), así que hace falta desempate: gana quien tenga más
+    // aciertos, y si también empatan ahí, es un empate de verdad.
     //
     // A diferencia del torneo, aquí SÍ se guardan los totales en la propia fila
-    // (vidas, puntos, turno): no hay que recalcularlos sumando duelo_respuestas en
+    // (vidas, aciertos, turno): no hay que recalcularlos sumando duelo_respuestas en
     // cada petición, porque un duelo se consulta mucho más seguido (sondeo cada
     // 2-3 segundos mientras dura la partida).
     //   estado    esperando (creado, sin rival) · jugando · terminado
-    //   ganador   1 o 2 cuando termina; null mientras no ha terminado
+    //   ganador   1 o 2 si gana alguien, 0 si es empate, null mientras no ha terminado
     //   ultimo_movimiento_en  se toca en cada acción; si pasan 5 min sin que el
     //     jugador en turno responda, pierde por abandono (lo mira gq_d_estado())
     $pdo->exec(
@@ -224,10 +230,10 @@ function gq_crear_tablas(PDO $pdo): void {
             cats          VARCHAR(400) NOT NULL,
             dif           VARCHAR(8)   NOT NULL DEFAULT "all",
             turno         TINYINT UNSIGNED NOT NULL DEFAULT 1,
-            j1_vidas      TINYINT UNSIGNED NOT NULL DEFAULT 3,
-            j2_vidas      TINYINT UNSIGNED NOT NULL DEFAULT 3,
-            j1_puntos     INT UNSIGNED NOT NULL DEFAULT 0,
-            j2_puntos     INT UNSIGNED NOT NULL DEFAULT 0,
+            j1_vidas      TINYINT UNSIGNED NOT NULL DEFAULT 5,
+            j2_vidas      TINYINT UNSIGNED NOT NULL DEFAULT 5,
+            j1_aciertos   INT UNSIGNED NOT NULL DEFAULT 0,
+            j2_aciertos   INT UNSIGNED NOT NULL DEFAULT 0,
             estado        VARCHAR(10)  NOT NULL DEFAULT "esperando",
             ganador       TINYINT UNSIGNED NULL,
             ultimo_movimiento_en DATETIME NOT NULL,
@@ -242,7 +248,8 @@ function gq_crear_tablas(PDO $pdo): void {
     // Una fila por pregunta servida, numerada de corrido para todo el duelo (1 la
     // primera de J1, 2 la primera de J2, 3 la segunda de J1...), igual que el
     // torneo guarda la permutación de opciones y la hora de servido para poder
-    // calcular el bonus por rapidez sin fiarse del navegador.
+    // saber cuánto ha tardado sin fiarse del navegador. `pts` es el valor informativo
+    // de la pregunta según su dificultad; ya no se suma a ningún marcador.
     $pdo->exec(
         'CREATE TABLE IF NOT EXISTS duelo_respuestas (
             id             INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -260,7 +267,6 @@ function gq_crear_tablas(PDO $pdo): void {
             servida_en     DATETIME     NOT NULL,
             elegida        TINYINT      NOT NULL DEFAULT -1,
             acertada       TINYINT UNSIGNED NOT NULL DEFAULT 0,
-            puntos_ganados SMALLINT UNSIGNED NOT NULL DEFAULT 0,
             respondida_en  DATETIME     NULL,
             PRIMARY KEY (id),
             UNIQUE KEY uq_orden (duelo_id, orden),

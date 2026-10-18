@@ -7,9 +7,11 @@
 //   POST /api/duelo.php   {accion:'responder',codigo, nombre, elegida}
 //   GET  /api/duelo.php   ?ranking=1                         clasificación de duelos
 //
-// 3 vidas por jugador; el primero que llega a 0 pierde. Como se juega por turnos
-// alternados (nunca a la vez), no hace falta desempate por tiempo ni por aciertos:
-// no pueden quedarse los dos a 0 vidas en el mismo instante.
+// 5 vidas por jugador, por rondas: en cada ronda responde primero J1 y después J2.
+// Si alguien se queda a 0 vidas a mitad de ronda no se corta ahí: el otro contesta
+// igual la pregunta de esa ronda, y solo entonces se decide. Eso puede dejar a los
+// dos a 0 en la misma ronda, así que el desempate es por aciertos (y si también
+// empatan, empate de verdad).
 //
 // El servidor corrige cada respuesta, igual que el torneo: la pregunta se sirve sin
 // decir cuál es la correcta, y lo que el navegador manda se compara aquí contra el
@@ -28,6 +30,7 @@ const GQ_D_CREACIONES_HORA   = 20;   // solo se cuenta "crear": lo demás ya lo 
 const GQ_D_SEGUNDOS_PREGUNTA = 20;
 const GQ_D_GRACIA            = 5;
 const GQ_D_ABANDONO_MIN      = 5;
+const GQ_D_VIDAS_INICIAL     = 5;
 const GQ_D_TOPE_LISTA        = 100;
 const GQ_D_DIFS              = ['all', 'facil', 'medio', 'dificil'];
 // Sin O/0/I/1: se leen en voz alta o se copian de un mensaje de WhatsApp, y esos
@@ -84,15 +87,6 @@ function gq_d_barajar(): string {
     return implode(',', $o);
 }
 
-// Puntos de una respuesta correcta: base según dificultad + hasta un 30% de bonus
-// por rapidez. Sin multiplicador de racha a propósito: un corte de conexión no debe
-// poder romper una racha que el jugador no ha perdido jugando.
-function gq_d_puntos(int $basePts, int $tardado): int {
-    $quedan = max(0, GQ_D_SEGUNDOS_PREGUNTA - $tardado);
-    $bonus  = (int) floor($quedan / GQ_D_SEGUNDOS_PREGUNTA * $basePts * 0.3);
-    return $basePts + $bonus;
-}
-
 // ── DUELO: CARGA Y PERTENENCIA ────────────────────────────────────────────
 function gq_d_por_codigo(PDO $pdo, string $codigo): ?array {
     $f = gq_consulta($pdo, 'SELECT * FROM duelos WHERE codigo = ? LIMIT 1', [$codigo])->fetch();
@@ -134,19 +128,19 @@ function gq_d_revisar_abandono(PDO $pdo, array $d): array {
 
 function gq_d_fila_publica(array $d, ?int $miLado): array {
     return [
-        'codigo'     => $d['codigo'],
-        'j1_nombre'  => $d['j1_nombre'],
-        'j2_nombre'  => $d['j2_nombre'],
-        'cats'       => json_decode((string) $d['cats'], true) ?: [],
-        'dif'        => $d['dif'],
-        'estado'     => $d['estado'],
-        'turno'      => (int) $d['turno'],
-        'j1_vidas'   => (int) $d['j1_vidas'],
-        'j2_vidas'   => (int) $d['j2_vidas'],
-        'j1_puntos'  => (int) $d['j1_puntos'],
-        'j2_puntos'  => (int) $d['j2_puntos'],
-        'ganador'    => $d['ganador'] === null ? null : (int) $d['ganador'],
-        'mi_lado'    => $miLado,
+        'codigo'      => $d['codigo'],
+        'j1_nombre'   => $d['j1_nombre'],
+        'j2_nombre'   => $d['j2_nombre'],
+        'cats'        => json_decode((string) $d['cats'], true) ?: [],
+        'dif'         => $d['dif'],
+        'estado'      => $d['estado'],
+        'turno'       => (int) $d['turno'],
+        'j1_vidas'    => (int) $d['j1_vidas'],
+        'j2_vidas'    => (int) $d['j2_vidas'],
+        'j1_aciertos' => (int) $d['j1_aciertos'],
+        'j2_aciertos' => (int) $d['j2_aciertos'],
+        'ganador'     => $d['ganador'] === null ? null : (int) $d['ganador'],
+        'mi_lado'     => $miLado,
     ];
 }
 
@@ -159,20 +153,20 @@ function gq_d_clasificacion(PDO $pdo, int $limite = GQ_D_TOPE_LISTA): array {
     $limite = max(1, min($limite, GQ_D_TOPE_LISTA));
     $filas = gq_consulta(
         $pdo,
-        'SELECT nombre, SUM(puntos) AS puntos, SUM(gano) AS ganados, COUNT(*) AS jugados FROM (
-            SELECT j1_nombre AS nombre, j1_puntos AS puntos, (ganador = 1) AS gano FROM duelos WHERE estado = "terminado"
+        'SELECT nombre, SUM(aciertos) AS aciertos, SUM(gano) AS ganados, COUNT(*) AS jugados FROM (
+            SELECT j1_nombre AS nombre, j1_aciertos AS aciertos, (ganador = 1) AS gano FROM duelos WHERE estado = "terminado"
             UNION ALL
-            SELECT j2_nombre AS nombre, j2_puntos AS puntos, (ganador = 2) AS gano FROM duelos WHERE estado = "terminado" AND j2_nombre IS NOT NULL
-         ) x GROUP BY nombre ORDER BY ganados DESC, puntos DESC LIMIT ' . $limite
+            SELECT j2_nombre AS nombre, j2_aciertos AS aciertos, (ganador = 2) AS gano FROM duelos WHERE estado = "terminado" AND j2_nombre IS NOT NULL
+         ) x GROUP BY nombre ORDER BY ganados DESC, aciertos DESC LIMIT ' . $limite
     )->fetchAll();
     $salida = [];
     foreach ($filas as $i => $f) {
         $salida[] = [
-            'pos'     => $i + 1,
-            'nombre'  => $f['nombre'],
-            'ganados' => (int) $f['ganados'],
-            'jugados' => (int) $f['jugados'],
-            'puntos'  => (int) $f['puntos'],
+            'pos'      => $i + 1,
+            'nombre'   => $f['nombre'],
+            'ganados'  => (int) $f['ganados'],
+            'jugados'  => (int) $f['jugados'],
+            'aciertos' => (int) $f['aciertos'],
         ];
     }
     return $salida;
@@ -264,9 +258,10 @@ if ($accion === 'crear') {
             gq_consulta(
                 $pdo,
                 'INSERT INTO duelos
-                   (codigo, j1_nombre, cats, dif, turno, j1_vidas, j2_vidas, j1_puntos, j2_puntos,
+                   (codigo, j1_nombre, cats, dif, turno, j1_vidas, j2_vidas, j1_aciertos, j2_aciertos,
                     estado, ultimo_movimiento_en, creado_en, ip_hash_creador)
-                 VALUES (?, ?, ?, ?, 1, 3, 3, 0, 0, "esperando", UTC_TIMESTAMP(), UTC_TIMESTAMP(), ?)',
+                 VALUES (?, ?, ?, ?, 1, ' . GQ_D_VIDAS_INICIAL . ', ' . GQ_D_VIDAS_INICIAL . ', 0, 0,
+                         "esperando", UTC_TIMESTAMP(), UTC_TIMESTAMP(), ?)',
                 [$intento, $nombre, json_encode($cats, JSON_UNESCAPED_UNICODE), $dif, $ipHash]
             );
             $codigo = $intento;
@@ -403,45 +398,59 @@ if ($accion === 'responder') {
     $aTiempo = $tardado <= (GQ_D_SEGUNDOS_PREGUNTA + GQ_D_GRACIA);
     $real    = $elegida >= 0 ? ($perm[$elegida] ?? -1) : -1;
     $acerto  = $aTiempo && $real === (int) $r['ans'];
-    $pts     = $acerto ? gq_d_puntos((int) $r['pts'], $tardado) : 0;
 
     // El WHERE respondida_en IS NULL es el candado: si esta respuesta ya se había
     // guardado -una red lenta que reintenta el mismo POST, dos toques seguidos-, aquí
-    // no afecta a ninguna fila y se corta antes de aplicar vidas o puntos dos veces.
+    // no afecta a ninguna fila y se corta antes de aplicar vidas o aciertos dos veces.
     $filas = gq_consulta(
         $pdo,
-        'UPDATE duelo_respuestas SET elegida = ?, acertada = ?, puntos_ganados = ?, respondida_en = UTC_TIMESTAMP()
+        'UPDATE duelo_respuestas SET elegida = ?, acertada = ?, respondida_en = UTC_TIMESTAMP()
           WHERE id = ? AND respondida_en IS NULL',
-        [$elegida, $acerto ? 1 : 0, $pts, $r['id']]
+        [$elegida, $acerto ? 1 : 0, $r['id']]
     )->rowCount();
     if ($filas === 0) {
         gq_error(409, 'ya_respondida', 'Esa pregunta ya se había contestado.');
     }
 
-    $colPuntos = $lado === 1 ? 'j1_puntos' : 'j2_puntos';
-    $colVidas  = $lado === 1 ? 'j1_vidas'  : 'j2_vidas';
-    $vidasAhora = (int) $d[$colVidas];
-
+    $colAciertos = $lado === 1 ? 'j1_aciertos' : 'j2_aciertos';
+    $colVidas    = $lado === 1 ? 'j1_vidas'    : 'j2_vidas';
     if ($acerto) {
-        gq_consulta($pdo, "UPDATE duelos SET $colPuntos = $colPuntos + ? WHERE id = ?", [$pts, $duId]);
+        gq_consulta($pdo, "UPDATE duelos SET $colAciertos = $colAciertos + 1 WHERE id = ?", [$duId]);
     } else {
-        $vidasAhora = max(0, $vidasAhora - 1);
-        gq_consulta($pdo, "UPDATE duelos SET $colVidas = ? WHERE id = ?", [$vidasAhora, $duId]);
+        gq_consulta($pdo, "UPDATE duelos SET $colVidas = GREATEST($colVidas - 1, 0) WHERE id = ?", [$duId]);
     }
 
-    $terminado = $vidasAhora <= 0;
-    if ($terminado) {
-        $ganador = $lado === 1 ? 2 : 1;
+    // Por rondas: primero responde J1, después J2. Si J1 se queda a 0 vidas a mitad de
+    // ronda NO se corta aquí -J2 tiene que contestar igualmente la suya-, así que solo
+    // se mira el final de la partida al cerrarse la ronda, cuando responde J2. Eso sí
+    // puede dejar a los dos a 0 en la misma ronda (con turnos sueltos no podía pasar),
+    // así que el desempate es por aciertos, y si también empatan, empate de verdad.
+    $finDeRonda = $lado === 2;
+    $terminado  = false;
+    if (!$finDeRonda) {
         gq_consulta(
-            $pdo, 'UPDATE duelos SET estado = "terminado", ganador = ?, ultimo_movimiento_en = UTC_TIMESTAMP() WHERE id = ?',
-            [$ganador, $duId]
+            $pdo, 'UPDATE duelos SET turno = 2, ultimo_movimiento_en = UTC_TIMESTAMP() WHERE id = ?', [$duId]
         );
     } else {
-        $siguienteTurno = $lado === 1 ? 2 : 1;
-        gq_consulta(
-            $pdo, 'UPDATE duelos SET turno = ?, ultimo_movimiento_en = UTC_TIMESTAMP() WHERE id = ?',
-            [$siguienteTurno, $duId]
-        );
+        $fresco = gq_d_por_codigo($pdo, $codigo) ?? $d;
+        $v1 = (int) $fresco['j1_vidas']; $v2 = (int) $fresco['j2_vidas'];
+        if ($v1 > 0 && $v2 > 0) {
+            gq_consulta(
+                $pdo, 'UPDATE duelos SET turno = 1, ultimo_movimiento_en = UTC_TIMESTAMP() WHERE id = ?', [$duId]
+            );
+        } else {
+            $terminado = true;
+            if ($v1 <= 0 && $v2 > 0) { $ganador = 2; }
+            elseif ($v2 <= 0 && $v1 > 0) { $ganador = 1; }
+            else {
+                $a1 = (int) $fresco['j1_aciertos']; $a2 = (int) $fresco['j2_aciertos'];
+                $ganador = $a1 === $a2 ? 0 : ($a1 > $a2 ? 1 : 2);
+            }
+            gq_consulta(
+                $pdo, 'UPDATE duelos SET estado = "terminado", ganador = ?, ultimo_movimiento_en = UTC_TIMESTAMP() WHERE id = ?',
+                [$ganador, $duId]
+            );
+        }
     }
 
     $d = gq_d_por_codigo($pdo, $codigo) ?? $d;
@@ -451,7 +460,6 @@ if ($accion === 'responder') {
         'acerto'    => $acerto,
         'correcta'  => $idxCorrecta === false ? 0 : (int) $idxCorrecta,
         'exp'       => $r['exp'],
-        'ganados'   => $pts,
         'tardado'   => $tardado,
         'terminado' => $terminado,
         'duelo'     => gq_d_fila_publica($d, $lado),

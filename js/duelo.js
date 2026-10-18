@@ -1,9 +1,15 @@
-// GeoQuiz — duelo online: 2 jugadores, cada uno en su dispositivo, turnos remotos.
+// GeoQuiz — duelo online: 2 jugadores, cada uno en su dispositivo, por rondas.
 //
 // Quien crea el duelo elige categorías y dificultad para los dos; el otro se une con
-// un código de 6 caracteres (o el enlace que lo lleva dentro). Se alternan turno a
-// turno -nunca a la vez-, así que no hace falta desempate: con 3 vidas por persona,
-// nunca pueden llegar los dos a 0 en el mismo instante.
+// un código de 6 caracteres (o el enlace que lo lleva dentro). Se juega por RONDAS:
+// en cada ronda responde primero J1 y después J2. No sale la pregunta sola en cuanto
+// te toca -eso ambusca-: aparece un botón para empezar tú cuando estés listo.
+//
+// Si alguien se queda a 0 vidas a mitad de ronda, el otro contesta igual la suya:
+// no se corta la ronda a quien le tocaba después. Eso puede dejar a los dos a 0 en
+// la misma ronda, así que desempata quien tenga más aciertos (y si también empatan,
+// es un empate de verdad). 5 vidas por persona, sin puntuación: solo cuentan los
+// aciertos.
 //
 // El servidor corrige cada respuesta, igual que el torneo: aquí nunca se sabe cuál es
 // la opción correcta hasta que él lo dice. Mientras no te toca, se sondea el estado
@@ -17,6 +23,7 @@ let duelNombre = '';
 let duelMiLado = null;         // 1 o 2
 let duelSondeoInt = null;
 let duelPreguntaActual = null; // true mientras hay una pregunta nuestra en pantalla sin contestar
+let duelEsperandoClic = false; // true mientras se enseña el botón "Empezar ronda" sin pulsar
 
 function pararSondeoDuelo() {
   clearInterval(duelSondeoInt);
@@ -135,6 +142,7 @@ function arrancarDuelo() {
   setupHUD();
   pintarDuelHUD();
   duelPreguntaActual = null;
+  duelEsperandoClic = false;
   duelSondeoInt = setInterval(sondearDueloJuego, 2000);
   sondearDueloJuego();
 }
@@ -143,18 +151,18 @@ function pintarDuelHUD() {
   if (!duelo) return;
   document.getElementById('dp1-name').textContent = duelo.j1_nombre;
   document.getElementById('dp2-name').textContent = duelo.j2_nombre || 'J2';
-  document.getElementById('dp1-score').textContent = duelo.j1_puntos;
-  document.getElementById('dp2-score').textContent = duelo.j2_puntos;
-  document.getElementById('dp1-lives').innerHTML = rl(duelo.j1_vidas);
-  document.getElementById('dp2-lives').innerHTML = rl(duelo.j2_vidas);
+  document.getElementById('dp1-score').textContent = duelo.j1_aciertos + ' aciertos';
+  document.getElementById('dp2-score').textContent = duelo.j2_aciertos + ' aciertos';
+  document.getElementById('dp1-lives').innerHTML = rl(duelo.j1_vidas, 5);
+  document.getElementById('dp2-lives').innerHTML = rl(duelo.j2_vidas, 5);
   document.getElementById('dp1').classList.toggle('active', duelo.turno === 1);
   document.getElementById('dp2').classList.toggle('active', duelo.turno === 2);
   document.getElementById('duel-turn').textContent = `Turno de ${duelo.turno === 1 ? duelo.j1_nombre : (duelo.j2_nombre || 'J2')}`;
 }
 
-// Sondea el estado mientras el duelo está en juego: decide si toca pedir pregunta,
-// esperar al rival, o si ya ha terminado (incluido por abandono, que lo marca el
-// propio servidor cuando alguien lleva 5 minutos sin mover).
+// Sondea el estado mientras el duelo está en juego: decide si toca ofrecer el botón
+// de empezar ronda, esperar al rival, o si ya ha terminado (incluido por abandono,
+// que lo marca el propio servidor cuando alguien lleva 5 minutos sin mover).
 async function sondearDueloJuego() {
   const res = await gqFetch(
     `${GQ_DUELO_API}?codigo=${encodeURIComponent(duelCodigo)}&nombre=${encodeURIComponent(duelNombre)}`,
@@ -168,8 +176,27 @@ async function sondearDueloJuego() {
   if (duelo.estado === 'terminado') { pararSondeoDuelo(); mostrarResultadoDuelo(); return; }
 
   const miTurno = duelo.turno === duelMiLado;
-  if (miTurno && !duelPreguntaActual) { await pedirPreguntaDuelo(); }
-  else if (!miTurno) { renderEsperaTurno(); }
+  if (miTurno && !duelPreguntaActual && !duelEsperandoClic) { renderEmpezarRonda(); }
+  else if (!miTurno) { duelEsperandoClic = false; renderEsperaTurno(); }
+}
+
+// En vez de servir la pregunta en cuanto te toca -que ambusca-, se enseña un botón y
+// se espera a que el jugador pulse cuando esté listo.
+function renderEmpezarRonda() {
+  duelEsperandoClic = true;
+  document.getElementById('next-btn').style.display = 'none';
+  document.getElementById('timer-wrap').style.display = 'none';
+  document.getElementById('hint-btns').style.display = 'none';
+  document.getElementById('q-cat').textContent = '⚔️ Tu turno';
+  document.getElementById('q-diff').style.display = 'none';
+  document.getElementById('q-pts').style.display = 'none';
+  document.getElementById('q-text').textContent = '';
+  document.getElementById('options').innerHTML = '';
+  document.getElementById('explanation').innerHTML = `
+    <div class="explanation ok" style="text-align:center">
+      <p style="margin-bottom:0.8rem">Te toca responder. En cuanto pulses empieza el cronómetro de 20s.</p>
+      <button class="btn-primary" onclick="pedirPreguntaDuelo()">▶ Empezar ronda</button>
+    </div>`;
 }
 
 async function pedirPreguntaDuelo() {
@@ -181,16 +208,16 @@ async function pedirPreguntaDuelo() {
   if (!res.ok || !res.cuerpo || !res.cuerpo.q) {
     // 409 no_es_tu_turno: el turno cambió entre el sondeo y esta petición; el próximo
     // sondeo ya lo verá. Cualquier otro fallo es puntual y se reintenta solo.
+    duelEsperandoClic = false;
     return;
   }
   const c = res.cuerpo;
   duelPreguntaActual = true;
+  duelEsperandoClic = false;
   current = c.orden - 1;
   gameQ[current] = { cat: c.cat, diff: c.diff, pts: c.pts, q: c.q, opts: c.opts, exp: '' };
   timeLeft = Math.max(1, c.quedan);
   document.getElementById('timer-wrap').style.display = 'flex';
-  document.getElementById('q-diff').style.display = '';
-  document.getElementById('q-pts').style.display = '';
   renderQuestion();
 }
 
@@ -238,7 +265,7 @@ async function pickDuelo(i) {
   const caja = document.getElementById('explanation');
   if (c.acerto) {
     playCorrect(); flashHeader('rgba(63,185,80,0.4)');
-    caja.innerHTML = `<div class="explanation ok">✓ Correcto · +${c.ganados} pts. ${esc(c.exp)}</div>`;
+    caja.innerHTML = `<div class="explanation ok">✓ Correcto. ${esc(c.exp)}</div>`;
   } else if (i < 0) {
     playTimeout();
     caja.innerHTML = `<div class="explanation timeout">⏱ Tiempo agotado. ${esc(c.exp)}</div>`;
@@ -258,24 +285,27 @@ function mostrarResultadoDuelo() {
   clearInterval(timerInt);
   playFinish();
   const soyJ1 = duelMiLado === 1;
-  const miPuntos = soyJ1 ? duelo.j1_puntos : duelo.j2_puntos;
-  const rivalPuntos = soyJ1 ? duelo.j2_puntos : duelo.j1_puntos;
+  const misAciertos = soyJ1 ? duelo.j1_aciertos : duelo.j2_aciertos;
+  const rivalAciertos = soyJ1 ? duelo.j2_aciertos : duelo.j1_aciertos;
   const miNombre = soyJ1 ? duelo.j1_nombre : (duelo.j2_nombre || 'Tú');
   const rivalNombre = soyJ1 ? (duelo.j2_nombre || 'Rival') : duelo.j1_nombre;
-  const gano = duelo.ganador === duelMiLado;
+  const empate = duelo.ganador === 0;
+  const gano = !empate && duelo.ganador === duelMiLado;
+
+  const titulo = empate ? '🤝 ¡Empate!' : (gano ? '🏆 ¡Ganas tú!' : '😔 Gana ' + esc(rivalNombre));
 
   document.getElementById('result-hero').innerHTML = `
     <div style="font-size:36px;margin-bottom:0.5rem">⚔️</div>
     <div class="result-rank">Duelo terminado</div>
-    <div class="duel-winner">${gano ? '🏆 ¡Ganas tú!' : '😔 Gana ' + esc(rivalNombre)}</div>
+    <div class="duel-winner">${titulo}</div>
     <div class="duel-scores">
-      <div class="duel-score-card${miPuntos >= rivalPuntos ? ' winner' : ''}">
+      <div class="duel-score-card${!empate && misAciertos>=rivalAciertos ? ' winner' : ''}">
         <div class="dsc-crown">${gano ? '👑' : ''}</div>
-        <div class="dsc-name">${esc(miNombre)}</div><div class="dsc-pts">${miPuntos}</div>
+        <div class="dsc-name">${esc(miNombre)}</div><div class="dsc-pts">${misAciertos} aciertos</div>
       </div>
-      <div class="duel-score-card${rivalPuntos >= miPuntos ? ' winner' : ''}">
-        <div class="dsc-crown">${!gano ? '👑' : ''}</div>
-        <div class="dsc-name">${esc(rivalNombre)}</div><div class="dsc-pts">${rivalPuntos}</div>
+      <div class="duel-score-card${!empate && rivalAciertos>=misAciertos ? ' winner' : ''}">
+        <div class="dsc-crown">${!empate && !gano ? '👑' : ''}</div>
+        <div class="dsc-name">${esc(rivalNombre)}</div><div class="dsc-pts">${rivalAciertos} aciertos</div>
       </div>
     </div>
     <div class="result-actions">
@@ -289,12 +319,14 @@ function mostrarResultadoDuelo() {
 function textoResultadoDuelo() {
   const url = window.location.href.split('?')[0];
   const soyJ1 = duelMiLado === 1;
-  const miPuntos = soyJ1 ? duelo.j1_puntos : duelo.j2_puntos;
-  const rivalPuntos = soyJ1 ? duelo.j2_puntos : duelo.j1_puntos;
+  const misAciertos = soyJ1 ? duelo.j1_aciertos : duelo.j2_aciertos;
+  const rivalAciertos = soyJ1 ? duelo.j2_aciertos : duelo.j1_aciertos;
   const miNombre = soyJ1 ? duelo.j1_nombre : (duelo.j2_nombre || 'Tú');
   const rivalNombre = soyJ1 ? (duelo.j2_nombre || 'Rival') : duelo.j1_nombre;
-  const gano = duelo.ganador === duelMiLado;
-  return `GeoQuiz — Duelo\n\n${miNombre}: ${miPuntos} puntos\n${rivalNombre}: ${rivalPuntos} puntos\n${gano ? '🏆 ¡He ganado!' : 'Ha ganado ' + rivalNombre}\n\n¿Te atreves con el siguiente?\n${url}`;
+  const empate = duelo.ganador === 0;
+  const gano = !empate && duelo.ganador === duelMiLado;
+  const resultado = empate ? 'Empate' : (gano ? '🏆 ¡He ganado!' : 'Ha ganado ' + rivalNombre);
+  return `GeoQuiz — Duelo\n\n${miNombre}: ${misAciertos} aciertos\n${rivalNombre}: ${rivalAciertos} aciertos\n${resultado}\n\n¿Te atreves con el siguiente?\n${url}`;
 }
 
 // ── CLASIFICACIÓN DE DUELOS ───────────────────────────────────────────────
@@ -308,5 +340,5 @@ async function renderDuelos() {
     div.innerHTML = cab + '<div class="no-records">Todavía no ha terminado ningún duelo.<br>¡Sé el primero!</div>';
     return;
   }
-  div.innerHTML = cab + `<div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Jugador</th><th>Ganados</th><th>Jugados</th><th>Puntos</th></tr></thead><tbody>${tabla.map(e => `<tr><td>${MEDALLAS[e.pos - 1] || e.pos}</td><td style="font-weight:600">${esc(e.nombre)}</td><td style="color:var(--accent);font-weight:600">${esc(e.ganados)}</td><td>${esc(e.jugados)}</td><td>${esc(Number(e.puntos).toLocaleString())}</td></tr>`).join('')}</tbody></table></div>`;
+  div.innerHTML = cab + `<div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Jugador</th><th>Ganados</th><th>Jugados</th><th>Aciertos</th></tr></thead><tbody>${tabla.map(e => `<tr><td>${MEDALLAS[e.pos - 1] || e.pos}</td><td style="font-weight:600">${esc(e.nombre)}</td><td style="color:var(--accent);font-weight:600">${esc(e.ganados)}</td><td>${esc(e.jugados)}</td><td>${esc(e.aciertos)}</td></tr>`).join('')}</tbody></table></div>`;
 }
