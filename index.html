@@ -48,6 +48,7 @@
       <button class="nav-btn" onclick="showTab('ranking')">Ranking</button>
       <!-- Solo aparece cuando hay torneo: el resto del tiempo sobra en la barra. -->
       <button class="nav-btn" id="nav-torneo" style="display:none" onclick="showTab('torneo')">🏆 Torneo</button>
+      <button class="nav-btn" onclick="showTab('duelos')">⚔️ Duelos</button>
     </div>
     <span class="era-label" id="era-label"></span>
   </header>
@@ -79,11 +80,7 @@
       <button class="mode-btn" data-mode="survival"><span class="mi">💀</span><span class="mn">Supervivencia</span><span class="md">Hasta morir</span></button>
       <button class="mode-btn" data-mode="crono"><span class="mi">📅</span><span class="mn">Cronológico</span><span class="md">Ordena eventos</span></button>
       <button class="mode-btn" data-mode="fechas"><span class="mi">🔗</span><span class="mn">Fechas</span><span class="md">Une evento y año</span></button>
-      <button class="mode-btn" data-mode="duel"><span class="mi">⚔️</span><span class="mn">Duelo</span><span class="md">2 jugadores</span></button>
-    </div>
-    <div id="duel-names" style="display:none;gap:10px;margin-bottom:1.25rem;">
-      <input id="p1name" placeholder="Jugador 1" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:0.6rem 0.9rem;font-size:13px;color:var(--text);font-family:'Inter',sans-serif;">
-      <input id="p2name" placeholder="Jugador 2" style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:0.6rem 0.9rem;font-size:13px;color:var(--text);font-family:'Inter',sans-serif;">
+      <button class="mode-btn" data-mode="duel"><span class="mi">⚔️</span><span class="mn">Duelo</span><span class="md">Online, 1 contra 1</span></button>
     </div>
     <div id="cat-diff-section">
     <div class="filter-switch" id="filter-switch">
@@ -106,8 +103,15 @@
     </div>
     <div id="crono-info" style="display:none;background:var(--accent-dim);border:1px solid rgba(201,168,76,0.3);border-radius:var(--radius);padding:0.9rem 1rem;margin-bottom:1.25rem;font-size:13px;color:var(--muted);line-height:1.5;">📅 En el modo <strong style="color:var(--accent)">Cronológico</strong> ordenarás eventos de <strong style="color:var(--text)">todas las épocas</strong> en la línea del tiempo, del más antiguo al más reciente. No hace falta elegir categorías.</div>
     <div id="fechas-info" style="display:none;background:var(--accent-dim);border:1px solid rgba(201,168,76,0.3);border-radius:var(--radius);padding:0.9rem 1rem;margin-bottom:1.25rem;font-size:13px;color:var(--muted);line-height:1.5;">🔗 En el modo <strong style="color:var(--accent)">Fechas</strong> emparejarás cada evento con su año. Los cinco de cada ronda son <strong style="color:var(--text)">cercanos en el tiempo</strong>, así que no vale con distinguir a ojo la Antigüedad del siglo XX. No hace falta elegir categorías.</div>
-    <button class="start-btn" id="start-btn" disabled>Selecciona al menos una categoría</button>
-    <button class="invitar-btn" onclick="compartirWhatsApp(textoInvitacion())">💬 Invitar por WhatsApp</button>
+    <div id="duelo-info" style="display:none;background:var(--accent-dim);border:1px solid rgba(201,168,76,0.3);border-radius:var(--radius);padding:0.9rem 1rem;margin-bottom:1.25rem;font-size:13px;color:var(--muted);line-height:1.5;">⚔️ En el modo <strong style="color:var(--accent)">Duelo</strong> juegas por turnos contra un rival, cada uno en su dispositivo: 3 vidas por persona y sin comodines. Quien crea el duelo elige las categorías y la dificultad para los dos.</div>
+    <div id="start-actions">
+      <button class="start-btn" id="start-btn" disabled>Selecciona al menos una categoría</button>
+      <button class="invitar-btn" onclick="compartirWhatsApp(textoInvitacion())">💬 Invitar por WhatsApp</button>
+    </div>
+    <div id="duelo-actions" style="display:none;gap:10px;">
+      <button class="start-btn" style="flex:1" onclick="crearDuelo()">⚔️ Crear duelo</button>
+      <button class="invitar-btn" style="flex:1;margin-top:0" onclick="pedirCodigoUnirse()">🔑 Tengo un código</button>
+    </div>
   </div>
 
   <!-- RECORDS -->
@@ -118,6 +122,12 @@
 
   <!-- TORNEO -->
   <div id="screen-torneo" class="screen"></div>
+
+  <!-- DUELO: crear/unirse/esperando rival -->
+  <div id="screen-duelo" class="screen"></div>
+
+  <!-- DUELOS: clasificación -->
+  <div id="screen-duelos" class="screen"></div>
 
   <!-- GAME -->
   <div id="screen-game" class="screen">
@@ -244,6 +254,7 @@
 <script src="js/fechas.js?v=20261014g"></script>
 <script src="js/game.js?v=20261014g"></script>
 <script src="js/torneo.js?v=20261014g"></script>
+<script src="js/duelo.js?v=20261014g"></script>
 <script src="js/menu.js?v=20261014g"></script>
 <script src="js/main.js?v=20261014g"></script>
 </body>

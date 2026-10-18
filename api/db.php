@@ -200,6 +200,73 @@ function gq_crear_tablas(PDO $pdo): void {
             CONSTRAINT fk_tr_partida FOREIGN KEY (partida_id) REFERENCES torneo_partidas (id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
     );
+
+    // ── DUELO ONLINE ──────────────────────────────────────────────────────
+    // Sustituye al duelo del mismo móvil: dos jugadores, cada uno en su dispositivo,
+    // conectados por un código de 6 caracteres. Turnos remotos (no simultáneos): se
+    // alternan, y el que se queda a 0 vidas pierde. Al ser por turnos, nunca pueden
+    // llegar los dos a 0 a la vez, así que no hace falta desempate por tiempo.
+    //
+    // A diferencia del torneo, aquí SÍ se guardan los totales en la propia fila
+    // (vidas, puntos, turno): no hay que recalcularlos sumando duelo_respuestas en
+    // cada petición, porque un duelo se consulta mucho más seguido (sondeo cada
+    // 2-3 segundos mientras dura la partida).
+    //   estado    esperando (creado, sin rival) · jugando · terminado
+    //   ganador   1 o 2 cuando termina; null mientras no ha terminado
+    //   ultimo_movimiento_en  se toca en cada acción; si pasan 5 min sin que el
+    //     jugador en turno responda, pierde por abandono (lo mira gq_d_estado())
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS duelos (
+            id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            codigo        CHAR(6)      NOT NULL,
+            j1_nombre     VARCHAR(24)  NOT NULL,
+            j2_nombre     VARCHAR(24)  NULL,
+            cats          VARCHAR(400) NOT NULL,
+            dif           VARCHAR(8)   NOT NULL DEFAULT "all",
+            turno         TINYINT UNSIGNED NOT NULL DEFAULT 1,
+            j1_vidas      TINYINT UNSIGNED NOT NULL DEFAULT 3,
+            j2_vidas      TINYINT UNSIGNED NOT NULL DEFAULT 3,
+            j1_puntos     INT UNSIGNED NOT NULL DEFAULT 0,
+            j2_puntos     INT UNSIGNED NOT NULL DEFAULT 0,
+            estado        VARCHAR(10)  NOT NULL DEFAULT "esperando",
+            ganador       TINYINT UNSIGNED NULL,
+            ultimo_movimiento_en DATETIME NOT NULL,
+            creado_en     DATETIME     NOT NULL,
+            ip_hash_creador CHAR(64)   NOT NULL,
+            ip_hash_rival   CHAR(64)   NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_codigo (codigo),
+            KEY idx_estado (estado, ultimo_movimiento_en)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
+    // Una fila por pregunta servida, numerada de corrido para todo el duelo (1 la
+    // primera de J1, 2 la primera de J2, 3 la segunda de J1...), igual que el
+    // torneo guarda la permutación de opciones y la hora de servido para poder
+    // calcular el bonus por rapidez sin fiarse del navegador.
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS duelo_respuestas (
+            id             INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            duelo_id       INT UNSIGNED NOT NULL,
+            orden          SMALLINT UNSIGNED NOT NULL,
+            turno_jugador  TINYINT UNSIGNED NOT NULL,
+            cat            VARCHAR(40)  NOT NULL DEFAULT "",
+            diff           VARCHAR(8)   NOT NULL DEFAULT "medio",
+            pts            SMALLINT UNSIGNED NOT NULL DEFAULT 200,
+            q              VARCHAR(400) NOT NULL,
+            opts           VARCHAR(800) NOT NULL,
+            ans            TINYINT UNSIGNED NOT NULL,
+            exp            VARCHAR(600) NOT NULL DEFAULT "",
+            opciones       VARCHAR(16)  NOT NULL DEFAULT "",
+            servida_en     DATETIME     NOT NULL,
+            elegida        TINYINT      NOT NULL DEFAULT -1,
+            acertada       TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            puntos_ganados SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+            respondida_en  DATETIME     NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_orden (duelo_id, orden),
+            CONSTRAINT fk_dr_duelo FOREIGN KEY (duelo_id) REFERENCES duelos (id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
 }
 
 // Se intenta la consulta y solo si MySQL responde "la tabla no existe"

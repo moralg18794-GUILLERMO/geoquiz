@@ -72,6 +72,7 @@ function showTab(tab){
   if(tab==='records')renderRecords();
   if(tab==='ranking')renderRanking();
   if(tab==='torneo')renderTorneo();
+  if(tab==='duelos')renderDuelos();
 }
 
 function tbl(headers,rows,emptyMsg){

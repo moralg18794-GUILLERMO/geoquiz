@@ -22,9 +22,9 @@ Se abre haciendo doble clic en `index.html` y se publica subiendo la carpeta tal
     Batallas y asedios, Líderes y estrategas, Tratados y diplomacia, Imperios y
     colonización, Revoluciones y golpes, Tecnología y armamento, Espionaje e
     inteligencia, Economía y recursos, y Crímenes y atrocidades.
-    Funcionan con Solo, Blitz, Supervivencia y Duelo, así que se puede jugar por
-    ejemplo una partida Blitz solo de espionaje, saltando de la Antigüedad a la
-    Guerra Fría.
+    Funcionan con Solo, Blitz y Supervivencia, así que se puede jugar por ejemplo una
+    partida Blitz solo de espionaje, saltando de la Antigüedad a la Guerra Fría. El
+    Duelo online se juega siempre por épocas, nunca por temáticas.
 - **Dificultad y puntos:** fácil = 100 pts, medio = 200 pts, difícil = 300 pts.
 - **102 eventos históricos** para el modo Cronológico.
 - **6 modos de juego:**
@@ -35,8 +35,8 @@ Se abre haciendo doble clic en `index.html` y se publica subiendo la carpeta tal
   | Supervivencia | Preguntas infinitas hasta perder las 3 vidas |
   | Cronológico | 5 rondas ordenando 5 eventos por fecha (arrastrando), 45 s por ronda |
   | Fechas | 5 rondas emparejando 5 eventos con su año, 45 s por ronda |
-  | Duelo | 2 jugadores en el mismo dispositivo, por turnos |
-- **Comodines** (uno de cada por partida, desactivados en Duelo): 50:50, Dato (pista) y
+  | Duelo | Online: 2 jugadores, cada uno en su dispositivo, por turnos remotos |
+- **Comodines** (uno de cada por partida, sin comodines en Duelo): 50:50, Dato (pista) y
   Saltar (añade una pregunta al final para mantener el total de 10).
 - **Multiplicador por racha:** x2 a partir de 3 aciertos seguidos, x3 a partir de 6.
 - **Récords**: tus diez mejores partidas, en `localStorage`, solo de ese dispositivo.
@@ -64,14 +64,23 @@ GEOQUIZ/
 │   ├── crono.js                Modo Cronológico
 │   ├── fechas.js               Modo Fechas
 │   ├── game.js                 Bucle de juego y pantalla de resultado
+│   ├── torneo.js                Modo Torneo (semanal, servidor)
+│   ├── duelo.js                 Modo Duelo online (servidor)
 │   ├── menu.js                 Pantalla de menú
 │   └── main.js                 Arranque (debe cargarse el último)
-├── api/                        Ranking global en PHP (solo se despliega en Hostinger)
+├── api/                        PHP del servidor (solo se despliega en Hostinger)
 │   ├── ranking.php             Endpoint: GET clasificación, POST puntuación
-│   ├── db.php                  Conexión PDO y esquema
+│   ├── torneo.php               Endpoint del torneo semanal
+│   ├── duelo.php                Endpoint del duelo online
+│   ├── preguntas.json            Banco de preguntas en JSON, que usa duelo.php. Se
+│   │                              regenera solo: nunca se edita a mano (ver tools/)
+│   ├── db.php                  Conexión PDO y esquema (incluye las tablas de duelo)
 │   ├── config.example.php      Plantilla; el config.php real solo vive en el servidor
 │   └── .htaccess               Impide servir config.php y db.php
-├── tools/version.sh            Sube la versión de caché de todas las rutas
+├── tools/
+│   ├── version.sh                Sube la versión de caché de todas las rutas (y
+│   │                              regenera api/preguntas.json antes de hacerlo)
+│   └── exportar-preguntas.php    Genera api/preguntas.json desde js/data/questions.js
 ├── docs/                       Notas de mantenimiento
 └── geopolitica-quiz.html       Original de un solo archivo, congelado como referencia
 ```
@@ -242,6 +251,46 @@ Si el torneo ya lo ha jugado alguien, republicarlo se rechaza con un 409: cambia
 preguntas dejaría sus puntuaciones sin significado. Hay que pedirlo a propósito con
 `"forzar": true`, y entonces se borran.
 
+## Duelo online
+
+Dos jugadores, cada uno en su propio dispositivo, por turnos remotos (nunca a la vez).
+3 vidas por persona; el primero que se queda a 0 pierde. Al ir por turnos nunca pueden
+llegar los dos a 0 vidas en el mismo instante, así que no hace falta desempate por
+tiempo ni por aciertos.
+
+**Cómo se juega.** Quien crea el duelo elige las categorías (siempre por épocas, nunca
+por temáticas) y la dificultad para los dos. El servidor devuelve un código de 6
+caracteres sin `O`/`0`/`I`/`1` (se confunden al leerlos o copiarlos de un mensaje), y el
+botón de WhatsApp manda un enlace que lo lleva dentro (`?duelo=CODIGO`): un toque y
+dentro. El servidor corrige cada respuesta, igual que el torneo: la pregunta se sirve
+sin decir cuál es la correcta, con las opciones barajadas distinto para cada jugador.
+
+**Puntuación:** 100/200/300 según dificultad + hasta un 30% de bonus por rapidez, igual
+fórmula que el resto del juego. Sin multiplicador de racha a propósito: un corte de
+conexión no debe poder romper una racha que el jugador no ha perdido jugando. Sin
+comodines: las mismas armas para los dos.
+
+**Abandono.** Si al jugador en turno no le llega ninguna acción en 5 minutos, pierde la
+partida sola: lo decide el servidor la próxima vez que cualquiera de los dos sondea el
+estado del duelo, no un proceso aparte.
+
+**El banco de preguntas, en JSON.** `api/duelo.php` necesita conocer la respuesta
+correcta para no fiarse del navegador, pero el banco de 521 preguntas solo existe como
+literal JavaScript para el cliente (`js/data/questions.js`). En vez de mantener una
+segunda copia a mano -que un día se olvida actualizar y el duelo se queda jugando con
+preguntas viejas sin que nadie lo note-, `tools/exportar-preguntas.php` la regenera
+siempre desde el mismo origen, y `tools/version.sh` la llama en cada despliegue. Por
+eso `api/preguntas.json` nunca se edita a mano: si hace falta regenerarla aparte,
+`php tools/exportar-preguntas.php`.
+
+**Clasificación propia**, aparte del ranking oficial: no toca `partidas` ni
+`api/ranking.php`, que son solo de Solo/Blitz/Supervivencia/Cronológico/Fechas. Cuenta
+duelos ganados y puntos totales en duelos, agrupados por nombre con la misma colación
+que el resto de tablas. Dos tablas nuevas: `duelos` (una fila por partida, con los
+totales de vidas/puntos/turno ya calculados, porque un duelo se sondea mucho más
+seguido que un torneo) y `duelo_respuestas` (una fila por pregunta servida, con la
+permutación de opciones y la hora de servido, para el bonus por rapidez).
+
 ## Problemas conocidos (pendientes de decidir)
 
 1. **`prompt()` para pedir el nombre** bloquea la página al terminar la partida y está
@@ -294,6 +343,12 @@ preguntas dejaría sus puntuaciones sin significado. Hay que pedirlo a propósit
   queda como historial local. Se arregla de paso el XSS que llevaba avisado desde la
   migración: los nombres ahora se escapan al pintarlos, que es obligatorio en cuanto los
   escribe cualquiera y acaban en el navegador de los demás.
+
+- **2026-10-18** — Nuevo modo **Duelo online**, que sustituye al Duelo del mismo
+  dispositivo: dos jugadores por turnos remotos, conectados por un código de 6
+  caracteres o un enlace de WhatsApp. El servidor corrige cada respuesta y conoce el
+  banco de preguntas a través de `api/preguntas.json`, que se regenera solo desde
+  `js/data/questions.js` en cada despliegue.
 
 ## Caché al actualizar
 

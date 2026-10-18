@@ -2,3 +2,4 @@
 setHeaderStyle('Antigüedad');
 checkChallenge();
 cargarTorneo();
+checkDuelInvite();

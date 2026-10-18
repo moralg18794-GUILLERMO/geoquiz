@@ -12,6 +12,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# api/preguntas.json es la copia del banco que usa el duelo online para elegir preguntas
+# y corregir en el servidor. Se regenera aquí, en cada despliegue, para que nunca quede
+# desincronizada de js/data/questions.js sin que nadie lo note.
+php tools/exportar-preguntas.php
+
 NUEVA="${1:-$(date +%Y%m%d)}"
 ACTUAL=$(grep -o 'styles\.css?v=[^"]*' index.html | head -1 | sed 's/.*v=//')
 

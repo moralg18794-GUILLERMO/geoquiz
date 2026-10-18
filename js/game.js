@@ -10,11 +10,6 @@ function startGame(){
   congelarPartida();
   gameQ=selected;current=0;score=0;correct=0;wrong=0;lives=3;maxStreak=0;streak=0;skipped=0;
   hint5050=true;hintSkip=true;hintDato=true;answered=false;blitzLeft=60;timeLeft=20;lastCat='';
-  if(gameMode==='duel'){
-    duel.p1.name=document.getElementById('p1name').value||'Jugador 1';
-    duel.p2.name=document.getElementById('p2name').value||'Jugador 2';
-    duel.p1.score=0;duel.p2.score=0;duel.p1.lives=3;duel.p2.lives=3;duel.turn=1;
-  }
 
   const firstCat=gameQ[0].cat;
   const arrancar=()=>{
@@ -41,23 +36,13 @@ function setupHUD(){
   // En el torneo no hay vidas: todos responden las 15. Enseñar tres corazones que nunca
   // bajan sería mentir, así que se esconden.
   document.getElementById('lives-wrap').style.display=partida.modo==='torneo'?'none':'';
-  if(gameMode==='duel'){
-    document.getElementById('dp1-name').textContent=duel.p1.name;
-    document.getElementById('dp2-name').textContent=duel.p2.name;
-  }
 }
 
 // ── HUD UPDATE ────────────────────────────────────────────────────────────
 function rl(n){return[0,1,2].map(i=>`<span class="life${i>=n?' lost':''}">❤️</span>`).join('');}
 function updateHUD(){
   if(gameMode==='duel'){
-    document.getElementById('dp1-score').textContent=duel.p1.score;
-    document.getElementById('dp2-score').textContent=duel.p2.score;
-    document.getElementById('dp1-lives').innerHTML=rl(duel.p1.lives);
-    document.getElementById('dp2-lives').innerHTML=rl(duel.p2.lives);
-    document.getElementById('dp1').classList.toggle('active',duel.turn===1);
-    document.getElementById('dp2').classList.toggle('active',duel.turn===2);
-    document.getElementById('duel-turn').textContent=`Turno de ${duel.turn===1?duel.p1.name:duel.p2.name}`;
+    pintarDuelHUD();
   } else {
     document.getElementById('hud-score').textContent=score;
     const mult=getMultiplier();
@@ -107,19 +92,18 @@ function startBlitz(){
 function timeOutAnswer(){
   if(answered)return;
   if(partida.modo==='torneo'){pickTorneo(-1);return;}
+  if(partida.modo==='duel'){pickDuelo(-1);return;}
   answered=true;
   playTimeout();
   const q=gameQ[current];
-  if(gameMode==='duel'){const p=duel.turn===1?duel.p1:duel.p2;p.lives--;}
-  else{lives--;wrong++;streak=0;}
+  lives--;wrong++;streak=0;
   updateHUD();
   document.querySelectorAll('.opt-btn').forEach(b=>b.disabled=true);
   document.querySelectorAll('.opt-btn')[q.ans].classList.add('show-correct');
   document.getElementById('explanation').innerHTML=`<div class="explanation timeout">⏱ Tiempo agotado. ${q.exp}</div>`;
   document.getElementById('q-card').classList.add('flash-wrong');
   setTimeout(()=>document.getElementById('q-card').classList.remove('flash-wrong'),400);
-  const dead=gameMode==='duel'?(duel.turn===1?duel.p1.lives:duel.p2.lives)<=0:lives<=0;
-  if(dead){setTimeout(showResult,400);return;}
+  if(lives<=0){setTimeout(showResult,400);return;}
   document.getElementById('next-btn').style.display='block';
 }
 
@@ -127,13 +111,14 @@ function timeOutAnswer(){
 function renderQuestion(){
   answered=false;
   const q=gameQ[current];
-  // En torneo las opciones vienen ya barajadas por el servidor, con una baraja distinta
-  // para cada jugador, y aquí no se sabe cuál es la correcta: no hay nada que recolocar.
-  if(partida.modo!=='torneo')shuffleOptions(q);
-  // En torneo tampoco hay cortinilla: las quince preguntas saltan de época constantemente,
-  // así que saldría en casi todas y añadiría unos trece segundos muertos a una partida
-  // cronometrada. Es el mismo motivo por el que ya no sale jugando por temáticas.
-  const catChanged=filterMode!=='tematicas'&&partida.modo!=='torneo'&&q.cat!==lastCat&&lastCat!=='';
+  // En torneo y en duelo las opciones vienen ya barajadas por el servidor -con una
+  // baraja distinta para cada jugador- y aquí no se sabe cuál es la correcta: no hay
+  // nada que recolocar.
+  if(partida.modo!=='torneo'&&partida.modo!=='duel')shuffleOptions(q);
+  // Tampoco hay cortinilla de época en ninguno de los dos: las preguntas saltan de
+  // época constantemente, así que saldría en casi todas y añadiría segundos muertos a
+  // una partida cronometrada. Es el mismo motivo por el que no sale jugando por temáticas.
+  const catChanged=filterMode!=='tematicas'&&partida.modo!=='torneo'&&partida.modo!=='duel'&&q.cat!==lastCat&&lastCat!=='';
 
   const doRender=()=>{
     setHeaderStyle(q.cat);lastCat=q.cat;
@@ -146,15 +131,16 @@ function renderQuestion(){
     document.getElementById('q-pts').textContent=`+${q.pts*mult} pts${mult>1?' (x'+mult+')':''}`;
     document.getElementById('explanation').innerHTML='';
     document.getElementById('next-btn').style.display='none';
-    // En el torneo no hay comodines: ni pista, ni 50:50, ni saltar. Todos juegan las
-    // mismas 15 preguntas con las mismas armas, que es lo que hace comparables las marcas.
-    document.getElementById('hint-btns').style.display=partida.modo==='torneo'?'none':'';
+    // Ni en el torneo ni en el duelo hay comodines: ni pista, ni 50:50, ni saltar. En
+    // el torneo porque todos juegan las mismas 15 preguntas con las mismas armas; en
+    // el duelo porque las dos vidas tienen que gastarse en lo mismo para los dos.
+    document.getElementById('hint-btns').style.display=(partida.modo==='torneo'||partida.modo==='duel')?'none':'';
     const h50=document.getElementById('hint-5050');
     const hdt=document.getElementById('hint-dato');
     const hsk=document.getElementById('hint-skip');
-    h50.disabled=!hint5050||gameMode==='duel';h50.textContent=hint5050?'50:50':'—';
-    hdt.disabled=!hintDato||gameMode==='duel';hdt.textContent=hintDato?'💬 Dato':'—';
-    hsk.disabled=!hintSkip||gameMode==='duel';hsk.textContent=hintSkip?'⏭ Saltar':'—';
+    h50.disabled=!hint5050;h50.textContent=hint5050?'50:50':'—';
+    hdt.disabled=!hintDato;hdt.textContent=hintDato?'💬 Dato':'—';
+    hsk.disabled=!hintSkip;hsk.textContent=hintSkip?'⏭ Saltar':'—';
     // Force question text update with a small delay to ensure DOM is ready
     setTimeout(()=>{
       const qtEl=document.getElementById('q-text');
@@ -218,8 +204,9 @@ function useHint(type){
 // ── PICK ANSWER ───────────────────────────────────────────────────────────
 function pick(i){
   if(answered)return;
-  // En torneo corrige el servidor: el navegador no sabe la respuesta.
+  // En torneo y en duelo corrige el servidor: el navegador no sabe la respuesta.
   if(partida.modo==='torneo'){pickTorneo(i);return;}
+  if(partida.modo==='duel'){pickDuelo(i);return;}
   answered=true;
   clearInterval(timerInt);
   const q=gameQ[current];
@@ -228,44 +215,36 @@ function pick(i){
   const ok=i===q.ans;
   const mult=getMultiplier();
 
-  if(gameMode==='duel'){
-    const p=duel.turn===1?duel.p1:duel.p2;
-    if(ok){p.score+=q.pts;playCorrect();flashHeader('rgba(63,185,80,0.4)');}
-    else{p.lives--;playWrong();flashHeader('rgba(248,81,73,0.4)');}
+  if(ok){
+    const bonus=Math.max(0,Math.floor(timeLeft/20*q.pts*0.3));
+    const pts=(q.pts+bonus)*mult;
+    score+=pts;correct++;streak++;
+    if(streak>maxStreak)maxStreak=streak;
+    playCorrect();flashHeader('rgba(63,185,80,0.4)');
+    document.getElementById('explanation').innerHTML=`<div class="explanation ok">✓ Correcto · +${pts} pts${mult>1?' (x'+mult+')':''}. ${q.exp}</div>`;
+    if(streak===3||streak===6||streak===9)showStreakBanner(streak);
   } else {
-    if(ok){
-      const bonus=Math.max(0,Math.floor(timeLeft/20*q.pts*0.3));
-      const pts=(q.pts+bonus)*mult;
-      score+=pts;correct++;streak++;
-      if(streak>maxStreak)maxStreak=streak;
-      playCorrect();flashHeader('rgba(63,185,80,0.4)');
-      document.getElementById('explanation').innerHTML=`<div class="explanation ok">✓ Correcto · +${pts} pts${mult>1?' (x'+mult+')':''}. ${q.exp}</div>`;
-      if(streak===3||streak===6||streak===9)showStreakBanner(streak);
-    } else {
-      lives--;wrong++;streak=0;
-      playWrong();flashHeader('rgba(248,81,73,0.4)');
-      document.getElementById('explanation').innerHTML=`<div class="explanation fail">✗ Incorrecto. ${q.exp}</div>`;
-    }
+    lives--;wrong++;streak=0;
+    playWrong();flashHeader('rgba(248,81,73,0.4)');
+    document.getElementById('explanation').innerHTML=`<div class="explanation fail">✗ Incorrecto. ${q.exp}</div>`;
   }
 
   btns[i].classList.add(ok?'correct':'wrong');
   if(!ok)btns[q.ans].classList.add('show-correct');
-  if(ok&&gameMode==='duel')document.getElementById('explanation').innerHTML=`<div class="explanation ok">✓ Correcto. ${q.exp}</div>`;
-  if(!ok&&gameMode==='duel')document.getElementById('explanation').innerHTML=`<div class="explanation fail">✗ Incorrecto. ${q.exp}</div>`;
   document.getElementById('q-card').classList.add(ok?'flash-correct':'flash-wrong');
   setTimeout(()=>document.getElementById('q-card').classList.remove('flash-correct','flash-wrong'),400);
   updateHUD();
 
-  const dead=gameMode==='duel'?(duel.turn===1?duel.p1.lives:duel.p2.lives)<=0:lives<=0;
-  if(dead){setTimeout(showResult,400);return;}
+  if(lives<=0){setTimeout(showResult,400);return;}
   document.getElementById('next-btn').style.display='block';
 }
 
 document.getElementById('next-btn').addEventListener('click',()=>{
   // En torneo la siguiente pregunta la decide y la sirve el servidor: el navegador no las
-  // tiene todas, solo la que está contestando.
+  // tiene todas, solo la que está contestando. En duelo, además, puede tocarle al rival:
+  // el siguiente sondeo es quien decide si hay que pedir otra o esperar.
   if(partida.modo==='torneo'){torneoSiguientePregunta();return;}
-  if(gameMode==='duel')duel.turn=duel.turn===1?2:1;
+  if(partida.modo==='duel'){duelPreguntaActual=null;document.getElementById('next-btn').style.display='none';sondearDueloJuego();return;}
   current++;
   if(gameMode!=='survival'&&current>=gameQ.length){showResult();return;}
   if(gameMode==='survival'&&current>=gameQ.length){
@@ -289,34 +268,6 @@ function showResult(){
   // El torneo tiene su propia tabla y su propia pantalla: no entra en el ranking global ni
   // en los récords, porque se jugó con otro examen y mezclarlo falsearía las dos listas.
   if(partida.modo==='torneo'){mostrarResultadoTorneo();return;}
-
-  // Por partida.modo y no por gameMode: gameMode es la variable del MENÚ, y esta rama sale
-  // con return antes del prompt, de saveRanking y de saveRecord. Si alguien dejaba marcado
-  // Duelo en el menú mientras terminaba una partida de Blitz, se pintaba un duelo falso y la
-  // partida se tiraba a la basura sin avisar.
-  if(partida.modo==='duel'){
-    const w=duel.p1.score>duel.p2.score?duel.p1:duel.p2.score>duel.p1.score?duel.p2:null;
-    document.getElementById('result-hero').innerHTML=`
-      <div style="font-size:36px;margin-bottom:0.5rem">⚔️</div>
-      <div class="result-rank">Duelo finalizado</div>
-      <div class="duel-winner">${w?'🏆 '+esc(w.name)+' gana':'¡Empate!'}</div>
-      <div class="duel-scores">
-        <div class="duel-score-card${duel.p1.score>=duel.p2.score?' winner':''}">
-          <div class="dsc-crown">${duel.p1.score>duel.p2.score?'👑':''}</div>
-          <div class="dsc-name">${esc(duel.p1.name)}</div><div class="dsc-pts">${duel.p1.score}</div>
-        </div>
-        <div class="duel-score-card${duel.p2.score>=duel.p1.score?' winner':''}">
-          <div class="dsc-crown">${duel.p2.score>duel.p1.score?'👑':''}</div>
-          <div class="dsc-name">${esc(duel.p2.name)}</div><div class="dsc-pts">${duel.p2.score}</div>
-        </div>
-      </div>
-      <div class="result-actions">
-        <button class="btn-whatsapp" onclick="compartirWhatsApp(textoDuelo())">💬 WhatsApp</button>
-        <button class="btn-secondary" onclick="copyResult()">📋 Copiar</button>
-        <button class="btn-primary" onclick="goMenu()">Jugar de nuevo</button>
-      </div>`;
-    showScreen('screen-result');return;
-  }
 
   const pct=Math.round((correct/Math.max(correct+wrong,1))*100);
   let rank,msg;
@@ -371,13 +322,6 @@ function showScreen(id){
 }
 
 function copyResult(){
-  // En Duelo los puntos y las vidas viven en duel.p1 y duel.p2: score, correct, wrong y
-  // maxStreak no se tocan nunca, así que el texto de abajo saldría con ceros y con pinta de
-  // ser verdad. El botón de WhatsApp de esa misma pantalla ya usa textoDuelo().
-  if(partida.modo==='duel'){
-    navigator.clipboard.writeText(textoDuelo()).then(()=>toast('¡Resultado copiado!')).catch(()=>toast('No se pudo copiar'));
-    return;
-  }
   const pct=Math.round((correct/Math.max(correct+wrong,1))*100);
   const dif=partida.modo==='crono'?'':`\nDificultad: ${diffLabel(partida.dif)}`;
   const cats=partida.cats;
@@ -402,10 +346,3 @@ function copyChallenge(){
 }
 
 function retarPorWhatsApp(){compartirWhatsApp(textoReto());}
-
-// El duelo no tiene una puntuación propia que retar: se comparte el marcador.
-function textoDuelo(){
-  const url=window.location.href.split('?')[0];
-  const gana=duel.p1.score>duel.p2.score?duel.p1:duel.p2.score>duel.p1.score?duel.p2:null;
-  return `⚔️ GeoQuiz — Duelo\n\n${duel.p1.name}: ${duel.p1.score} puntos\n${duel.p2.name}: ${duel.p2.score} puntos\n${gana?'🏆 Gana '+gana.name:'🤝 ¡Empate!'}\n\n¿Os atrevéis? Juega aquí:\n${url}`;
-}

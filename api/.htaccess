@@ -4,4 +4,11 @@
 <FilesMatch "^(config|config\.example|db)\.php$">
   Require all denied
 </FilesMatch>
+# preguntas.json lleva la respuesta correcta de las 521 preguntas (ans): es lo que
+# necesita duelo.php para no fiarse del navegador, pero si se sirviera tal cual por
+# HTTP cualquiera podría pedirla con curl y tener las respuestas de antemano, igual
+# que pasó con los JSON de los torneos en GitHub Pages. Solo la lee PHP por dentro.
+<Files "preguntas.json">
+  Require all denied
+</Files>
 Options -Indexes

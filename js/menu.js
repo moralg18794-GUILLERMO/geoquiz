@@ -123,13 +123,15 @@ document.getElementById('mode-row').addEventListener('click',e=>{
   const b=e.target.closest('.mode-btn');if(!b)return;
   document.querySelectorAll('.mode-btn').forEach(x=>x.classList.remove('active'));
   b.classList.add('active');gameMode=b.dataset.mode;
-  document.getElementById('duel-names').style.display=gameMode==='duel'?'flex':'none';
   // Cronológico y Fechas juegan con los eventos, no con el banco de preguntas: ahí no
   // aplican ni las épocas ni las temáticas ni la dificultad.
-  const isCrono=gameMode==='crono', isFechas=gameMode==='fechas';
+  const isCrono=gameMode==='crono', isFechas=gameMode==='fechas', isDuel=gameMode==='duel';
   document.getElementById('cat-diff-section').style.display=isCrono||isFechas?'none':'block';
   document.getElementById('crono-info').style.display=isCrono?'block':'none';
   document.getElementById('fechas-info').style.display=isFechas?'block':'none';
+  document.getElementById('duelo-info').style.display=isDuel?'block':'none';
+  document.getElementById('start-actions').style.display=isDuel?'none':'block';
+  document.getElementById('duelo-actions').style.display=isDuel?'flex':'none';
   updateStartBtn();
 });
 
