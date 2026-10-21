@@ -73,19 +73,41 @@ function startTimer(){
   // En torneo y en duelo el reloj lo marca el servidor: si se recarga a media pregunta,
   // se reanuda con el tiempo que de verdad quedaba. Reiniciarlo a 20 aquí regalaría
   // segundos cada recarga.
-  if(partida.modo!=='torneo'&&partida.modo!=='duel')timeLeft=20;
+  //
+  // Y en esos dos modos NO se puede ir restando un segundo por tic. Los navegadores
+  // estrangulan setInterval cuando la pestaña no está delante (Chrome lo baja a un tic por
+  // minuto) e iOS lo suspende del todo al bloquear el móvil, mientras el reloj del servidor
+  // sigue corriendo. Quien contestaba un WhatsApp a media pregunta volvía con el aro
+  // marcando 19 segundos, pulsaba la opción correcta y el servidor se la daba por tardía:
+  // acierto convertido en fallo, cero puntos y racha rota. Por eso se guarda el instante
+  // límite y cada tic se calcula contra la hora del dispositivo, que sí avanza.
+  if(partida.modo!=='torneo'&&partida.modo!=='duel'){timeLeft=20;limiteServidor=null;}
+  else limiteServidor=Date.now()+timeLeft*1000;
   updateTimerUI();
-  timerInt=setInterval(()=>{
-    timeLeft--;updateTimerUI();
-    if(timeLeft<=5)playTick();
-    if(timeLeft<=0){clearInterval(timerInt);timeOutAnswer();}
-  },1000);
+  timerInt=setInterval(ticTimer,1000);
 }
+function ticTimer(){
+  if(limiteServidor!==null)timeLeft=Math.ceil((limiteServidor-Date.now())/1000);
+  else timeLeft--;
+  updateTimerUI();
+  if(timeLeft<=5&&timeLeft>0)playTick();
+  if(timeLeft<=0){clearInterval(timerInt);timeOutAnswer();}
+}
+// Volver a la app no espera al siguiente tic: si el tiempo ya se agotó mientras el móvil
+// estaba bloqueado, se cierra la pregunta en el acto en vez de dejar pulsar una respuesta
+// que el servidor va a rechazar por tardía.
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden||limiteServidor===null||answered)return;
+  ticTimer();
+});
 function updateTimerUI(){
   const arc=document.getElementById('timer-arc'),num=document.getElementById('timer-num');
-  arc.style.strokeDashoffset=113.1*(1-timeLeft/20);
-  arc.style.stroke=timeLeft<=5?'#f85149':timeLeft<=10?'#e8a020':'#c9a84c';
-  num.textContent=timeLeft;
+  // Con el reloj del servidor, timeLeft puede llegar a negativo si el móvil estuvo un rato
+  // bloqueado: se pinta como 0 y no como "-21".
+  const v=Math.max(0,timeLeft);
+  arc.style.strokeDashoffset=113.1*(1-v/20);
+  arc.style.stroke=v<=5?'#f85149':v<=10?'#e8a020':'#c9a84c';
+  num.textContent=v;
 }
 function startBlitz(){
   clearInterval(blitzInt);blitzLeft=60;

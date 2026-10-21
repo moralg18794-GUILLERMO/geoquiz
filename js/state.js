@@ -19,6 +19,11 @@ let partida={modo:'solo',dif:'all',eje:'e',nsel:0,ntot:0,cats:'',torneo:''};
 let gameQ=[],current=0,score=0,correct=0,wrong=0,lives=3,maxStreak=0,streak=0;
 let hint5050=true,hintSkip=true,hintDato=true;
 let timerInt=null,blitzInt=null,timeLeft=20,blitzLeft=60;
+// Instante (en hora del dispositivo) en que se agota la pregunta, SOLO en torneo y duelo,
+// donde el reloj lo lleva el servidor. Null en los demás modos, que cuentan restando.
+// Ver startTimer() en js/game.js: existe porque restar un segundo por tic no sirve cuando
+// el navegador deja de dar tics y el servidor sigue contando.
+let limiteServidor=null;
 let answered=false,skipped=0;
 let seenQ=new Set();
 let lastCat='';
@@ -30,6 +35,9 @@ let lastCat='';
 function pararCronometros(){
   clearInterval(timerInt); clearInterval(blitzInt);
   clearInterval(cronoTimerInt); clearInterval(fechasTimerInt);
+  // Se borra el límite para que una pregunta de torneo abandonada a medias no deje su
+  // instante de caducidad puesto y le agote el reloj a la primera pregunta de la siguiente.
+  limiteServidor=null;
 }
 
 // ── MULTIPLIER ────────────────────────────────────────────────────────────
