@@ -4,13 +4,16 @@
 // pregunta). La variable global filterMode dice cuál está activa.
 
 // ── REJILLA DE ÉPOCAS ─────────────────────────────────────────────────────
-// El recuento por categoría se sigue calculando aunque ya no se enseñe en la ficha: de
-// aquí salen las claves de la rejilla y el total de épocas que decide si una partida es
-// oficial (selectionCode más abajo). No borrar el contador por quitar el número.
-const CATEGORIES={};
-ALL_Q.forEach(q=>{CATEGORIES[q.cat]=(CATEGORIES[q.cat]||0)+1;});
+// Las claves salen de CAT_STYLES (js/theme.js) y NO de recorrer las 521 preguntas.
+// Dibujar el menú obligaba antes a tener el banco entero descargado y parseado: 67 KB,
+// el 59% del JavaScript, de los que aquí solo se leían `cat` y `t` —el 7%— y todo ello
+// antes de que el jugador pudiera pulsar nada. Son las mismas 13 claves, en el mismo
+// orden, y cada una tiene su color y su icono declarados en ese archivo: una categoría
+// nueva en el banco sin entrada allí saldría igualmente sin estilo, así que la lista
+// buena es esa.
+const CAT_KEYS=Object.keys(CAT_STYLES);
 const catGrid=document.getElementById('cat-grid');
-Object.keys(CATEGORIES).forEach(cat=>{
+CAT_KEYS.forEach(cat=>{
   const card=document.createElement('div');
   card.className='cat-card';card.dataset.cat=cat;
   card.innerHTML=`<div class="cat-check">✓</div><div class="cat-icon">${CAT_ICONS[cat]||'📌'}</div><div class="cat-name">${cat}</div>`;
@@ -19,12 +22,10 @@ Object.keys(CATEGORIES).forEach(cat=>{
 });
 
 // ── REJILLA DE TEMÁTICAS ──────────────────────────────────────────────────
-// Igual que arriba: el recuento tampoco se pinta, pero THEME_KEYS lo necesita para dejar
-// fuera de la rejilla cualquier temática que se quede sin preguntas.
-const THEME_COUNTS={};
-Object.keys(THEMES).forEach(t=>{THEME_COUNTS[t]=0;});
-ALL_Q.forEach(q=>{(q.t||[]).forEach(t=>{if(t in THEME_COUNTS)THEME_COUNTS[t]++;});});
-const THEME_KEYS=Object.keys(THEMES).filter(t=>THEME_COUNTS[t]>0);
+// Igual que arriba: las nueve salen de THEMES, sin recorrer el banco. La red de
+// seguridad que dejaba fuera una temática sin preguntas se mantiene, pero se pasa más
+// abajo (torneoTematicasVacias), ya con el banco cargado y sin bloquear el menú.
+const THEME_KEYS=Object.keys(THEMES);
 const themeGrid=document.getElementById('theme-grid');
 THEME_KEYS.forEach(code=>{
   const card=document.createElement('div');
@@ -35,6 +36,22 @@ THEME_KEYS.forEach(code=>{
 });
 // Si todavía no hay ninguna pregunta etiquetada, el selector no tendría sentido.
 if(!THEME_KEYS.length)document.getElementById('filter-switch').style.display='none';
+
+// El banco llega después de pintar el menú (va con defer, al final de index.html). Cuando
+// está, se repasa que cada temática tenga preguntas de verdad y se esconde la que no: es
+// la red que antes daba el recuento, ahora sin bloquear nada. Y se refresca el botón de
+// Empezar por si alguien llegó a tocar una categoría en ese parpadeo.
+document.addEventListener('DOMContentLoaded',()=>{
+  if(typeof ALL_Q==='undefined')return;
+  const vistas=new Set();
+  ALL_Q.forEach(q=>(q.t||[]).forEach(t=>vistas.add(t)));
+  THEME_KEYS.forEach(code=>{
+    if(vistas.has(code))return;
+    const card=themeGrid.querySelector(`[data-theme="${code}"]`);
+    if(card)card.style.display='none';
+  });
+  updateStartBtn();
+});
 
 // ── SELECTOR ÉPOCAS / TEMÁTICAS ───────────────────────────────────────────
 document.getElementById('filter-switch').addEventListener('click',e=>{
@@ -49,7 +66,7 @@ document.getElementById('filter-switch').addEventListener('click',e=>{
 });
 
 // ── SELECCIÓN ─────────────────────────────────────────────────────────────
-function currentKeys(){return filterMode==='tematicas'?THEME_KEYS:Object.keys(CATEGORIES);}
+function currentKeys(){return filterMode==='tematicas'?THEME_KEYS:CAT_KEYS;}
 function currentSelection(){return filterMode==='tematicas'?selectedThemes:selectedCats;}
 function currentCards(){return document.querySelectorAll(filterMode==='tematicas'?'#theme-grid .cat-card':'#cat-grid .cat-card');}
 
@@ -95,7 +112,7 @@ function selectionCode(){
   if(gameMode==='crono'||gameMode==='fechas')return{eje:'n',nsel:0,ntot:0};
   return filterMode==='tematicas'
     ?{eje:'t',nsel:selectedThemes.size,ntot:THEME_KEYS.length}
-    :{eje:'e',nsel:selectedCats.size,ntot:Object.keys(CATEGORIES).length};
+    :{eje:'e',nsel:selectedCats.size,ntot:CAT_KEYS.length};
 }
 
 // Congela en `partida` lo que se ha elegido en el menú. Lo llaman los tres arranques
@@ -158,6 +175,13 @@ function updateStartBtn(){
   if(!currentSelection().size){
     btn.disabled=true;
     btn.textContent=filterMode==='tematicas'?'Selecciona al menos una temática':'Selecciona al menos una categoría';
+    return;
+  }
+  // El banco ya no bloquea el menú, así que en el instante entre que se pinta y que
+  // termina de llegar podría pulsarse algo. Dura un parpadeo, pero sin esto reventaría.
+  if(typeof ALL_Q==='undefined'){
+    btn.disabled=true;
+    btn.textContent='Cargando preguntas…';
     return;
   }
   const pool=buildPool();

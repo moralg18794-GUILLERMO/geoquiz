@@ -201,6 +201,27 @@ function gq_crear_tablas(PDO $pdo): void {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
     );
 
+    // El testigo que demuestra que esta partida es TUYA. Hasta ahora la identidad del
+    // jugador era la cadena del mote y nada más, así que cualquiera que escribiera el
+    // mote de otro jugaba su partida y le dejaba sin intento para toda la semana: basta
+    // con mirar la clasificación para saber a quién fastidiar. El servidor genera el
+    // testigo al reservar, lo devuelve UNA sola vez y lo exige para servir preguntas,
+    // para corregir y para reanudar.
+    //
+    // Va en su propia tabla y no en una columna de torneo_partidas a propósito:
+    // gq_consulta() solo crea tablas que faltan (42S02), nunca columnas (42S22), así que
+    // una tabla nueva se crea sola en el primer uso y una columna habría exigido un ALTER
+    // a mano en producción.
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS torneo_sesiones (
+            partida_id INT UNSIGNED NOT NULL,
+            token      CHAR(32)     NOT NULL,
+            creado_en  DATETIME     NOT NULL,
+            PRIMARY KEY (partida_id),
+            CONSTRAINT fk_ts_partida FOREIGN KEY (partida_id) REFERENCES torneo_partidas (id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
+
     // ── DUELO ONLINE ──────────────────────────────────────────────────────
     // Sustituye al duelo del mismo móvil: dos jugadores, cada uno en su dispositivo,
     // conectados por un código de 6 caracteres. Va por RONDAS: en cada ronda responde
@@ -299,6 +320,14 @@ function gq_consulta(PDO $pdo, string $sql, array $params = []): PDOStatement {
 // copias del saneado de nombres o dos listas de orígenes es cómo una de ellas se queda
 // atrás: se añade un dominio en un sitio y no en el otro, o se tapa un agujero a medias.
 const GQ_MAX_NOMBRE = 24;
+
+// Motes que juegan FUERA DE CONCURSO en los torneos. Quien escribe las quince preguntas
+// se las sabe, así que su marca sale en la tabla pero aparte y sin ocupar el podio: de
+// lo contrario el torneo lo gana siempre el que lo redacta, y para los demás eso quita
+// la gracia. No es un secreto y por eso vive aquí y no en config.php. La comparación la
+// hace MySQL con la colación de la columna, así que da igual cómo se escriba.
+const GQ_AUTORES = ['Weedllermo'];
+
 const GQ_ORIGENES = [
     'https://mediumturquoise-dugong-529601.hostingersite.com',
     'https://moralg18794-guillermo.github.io',
@@ -358,8 +387,24 @@ function gq_limpiar_nombre(string $bruto): string {
     // Fuera caracteres de formato invisibles y de control bidireccional: si no,
     // alguien puede colarse en cabeza con una celda aparentemente vacía o dar la
     // vuelta al texto de la fila.
-    $n = preg_replace('/[\x{200B}-\x{200F}\x{202A}-\x{202E}\x{2060}-\x{2064}\x{2066}-\x{206F}\x{FEFF}]/u', '', $n) ?? '';
-    $n = preg_replace('/\s+/u', ' ', $n) ?? '';
+    //
+    // \p{Cf} cubre de una vez todos los de formato (el guion blando U+00AD, los de
+    // anchura cero, los de control bidi, el BOM...). Lo que va detrás son invisibles que
+    // NO son \p{Cf} y que la colación de MySQL tampoco colapsa: el CGJ, los rellenos
+    // Hangul, el braille en blanco y los selectores de variación. Importan porque en un
+    // torneo de un intento por cabeza, "Guiller" con uno de ellos pegado es OTRO jugador
+    // para la clave única: sirve para jugar dos veces, y para suplantar a alguien en la
+    // tabla con un nombre que se lee idéntico.
+    //
+    // No se filtran todos los \p{Mn}: ahí viven también las tildes combinantes de los
+    // nombres legítimos escritos en forma descompuesta.
+    $n = preg_replace(
+        '/[\p{Cf}\x{034F}\x{115F}\x{1160}\x{17B4}\x{17B5}\x{2800}\x{3164}\x{FFA0}\x{FE00}-\x{FE0F}\x{E0100}-\x{E01EF}]/u',
+        '', $n
+    ) ?? '';
+    // Los espacios raros se colapsan explícitamente: \s no siempre incluye los Unicode
+    // según cómo esté compilado PCRE, y un nombre con espacio fino no debe ser otro.
+    $n = preg_replace('/[\s\x{00A0}\x{1680}\x{2000}-\x{200A}\x{202F}\x{205F}\x{3000}]+/u', ' ', $n) ?? '';
     $n = trim($n);
     $n = gq_recortar($n, GQ_MAX_NOMBRE);
     // Tiene que quedar algo visible de verdad.

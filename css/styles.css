@@ -1,5 +1,7 @@
 /* GeoQuiz — hoja de estilos. Extraída de geopolitica-quiz.html (líneas 8-246). */
-@import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600&display=swap');
+/* Las fuentes se piden con un <link> en index.html, no con @import aquí: el @import las
+   escondía detrás de este archivo y retrasaba el primer pintado. Si algún día se cambia
+   la tipografía, el sitio es la cabecera del HTML. */
 :root{
   --bg:#0d1117;--surface:#161b22;--surface2:#1e2530;
   --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.15);

@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>GeoQuiz — Guerras & Conflictos</title>
 <meta name="description" content="Trivia de geopolítica, guerras y conflictos: 521 preguntas en 13 categorías, seis modos de juego y ranking global.">
-<link rel="icon" href="img/icono.png">
-<link rel="apple-touch-icon" href="img/icono.png">
+<link rel="icon" href="img/icono.png?v=20261021b">
+<link rel="apple-touch-icon" href="img/icono.png?v=20261021b">
 <!-- Vista previa al compartir el enlace (WhatsApp, Telegram, redes). La imagen tiene
      que ir con URL absoluta: los rastreadores no resuelven rutas relativas. -->
 <meta property="og:type" content="website">
@@ -21,7 +21,22 @@
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="GeoQuiz — Guerras, conflictos y poder global a través de los siglos">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="stylesheet" href="css/styles.css?v=20261021">
+<!-- Las fuentes se piden AQUÍ y no con un @import dentro del CSS. Con el @import, el
+     navegador no sabía que existía fonts.googleapis.com hasta haber descargado y leído
+     styles.css, y una hoja importada bloquea el pintado igual que la que la importa: era
+     una cadena de cuatro saltos (HTML → CSS → Google → Google) y unos 400-600 ms de
+     pantalla en blanco en 4G. Así las descubre el preescáner en el primer byte del HTML,
+     y los dos preconnect adelantan el saludo a los dos dominios.
+     El de gstatic lleva crossorigin porque las fuentes se piden en modo anónimo: sin él
+     se abriría una segunda conexión y el preconnect no serviría de nada. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Inter:wght@400;500;600&display=swap">
+<!-- La API vive en Hostinger y el aviso del torneo no se puede pintar hasta que contesta.
+     Desde GitHub Pages es un dominio distinto y esta es la primera petición que va allí;
+     desde Hostinger es el propio origen y no estorba. -->
+<link rel="preconnect" href="https://mediumturquoise-dugong-529601.hostingersite.com" crossorigin>
+<link rel="stylesheet" href="css/styles.css?v=20261021b">
 </head>
 <body>
 <div class="app">
@@ -242,20 +257,24 @@
 <div class="share-toast" id="share-toast">¡Copiado!</div>
 
 <!-- El orden de carga importa: datos → estado → utilidades → pantallas → arranque. -->
-<script src="js/data/questions.js?v=20261021"></script>
-<script src="js/data/events.js?v=20261021"></script>
-<script src="js/state.js?v=20261021"></script>
-<script src="js/audio.js?v=20261021"></script>
-<script src="js/utils.js?v=20261021"></script>
-<script src="js/nube.js?v=20261021"></script>
-<script src="js/theme.js?v=20261021"></script>
-<script src="js/storage.js?v=20261021"></script>
-<script src="js/crono.js?v=20261021"></script>
-<script src="js/fechas.js?v=20261021"></script>
-<script src="js/game.js?v=20261021"></script>
-<script src="js/torneo.js?v=20261021"></script>
-<script src="js/duelo.js?v=20261021"></script>
-<script src="js/menu.js?v=20261021"></script>
-<script src="js/main.js?v=20261021"></script>
+<script src="js/data/events.js?v=20261021b"></script>
+<script src="js/state.js?v=20261021b"></script>
+<script src="js/audio.js?v=20261021b"></script>
+<script src="js/utils.js?v=20261021b"></script>
+<script src="js/nube.js?v=20261021b"></script>
+<script src="js/theme.js?v=20261021b"></script>
+<script src="js/storage.js?v=20261021b"></script>
+<script src="js/crono.js?v=20261021b"></script>
+<script src="js/fechas.js?v=20261021b"></script>
+<script src="js/game.js?v=20261021b"></script>
+<script src="js/torneo.js?v=20261021b"></script>
+<script src="js/duelo.js?v=20261021b"></script>
+<script src="js/menu.js?v=20261021b"></script>
+<script src="js/main.js?v=20261021b"></script>
+<!-- El banco va el ÚLTIMO y con defer: son 67 KB, el 59% del JavaScript, y el menú ya
+     no lo necesita para dibujarse (sus claves salen de js/theme.js). Así la primera
+     pantalla se pinta sin esperarlo. Nada de lo que corre al arrancar usa ALL_Q; quien
+     lo usa es buildPool(), y eso no pasa hasta que alguien toca una categoría. -->
+<script defer src="js/data/questions.js?v=20261021b"></script>
 </body>
 </html>

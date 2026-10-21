@@ -40,8 +40,14 @@ function gq_ta_autorizar(): void {
 // que hace que el cambio de hora de octubre no mueva el cierre.
 function gq_ta_utc(string $local, string $campo): string {
     $dt = DateTime::createFromFormat('Y-m-d H:i', $local, new DateTimeZone(GQ_TA_ZONA));
-    if ($dt === false) {
-        gq_error(400, 'fecha', "El campo $campo tiene que ser 'AAAA-MM-DD HH:MM' en hora de Madrid.");
+    // createFromFormat NO devuelve false con una fecha imposible: la desborda en silencio
+    // y solo deja un aviso. "2026-11-31" (noviembre tiene 30 días) se convierte en el 1 de
+    // diciembre, así que el torneo se publicaba sin una queja y cerraba un día más tarde de
+    // lo que se había anunciado por WhatsApp. Los dos números son plausibles y nadie lo ve.
+    $errores = DateTime::getLastErrors();
+    $desbordada = $errores !== false && ($errores['warning_count'] + $errores['error_count']) > 0;
+    if ($dt === false || $desbordada) {
+        gq_error(400, 'fecha', "El campo $campo tiene que ser 'AAAA-MM-DD HH:MM' en hora de Madrid, con un día que exista.");
     }
     $dt->setTimezone(new DateTimeZone('UTC'));
     return $dt->format('Y-m-d H:i:s');

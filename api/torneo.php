@@ -22,8 +22,13 @@ gq_cors();
 
 // ── LÍMITES ───────────────────────────────────────────────────────────────
 const GQ_T_TOPE_LISTA   = 100;
-const GQ_T_ENVIOS_HORA  = 20;     // por conexión, compartido con el ranking normal
-const GQ_T_MAX_SEGUNDOS = 7200;
+// Topes por conexión y hora. Una partida entera son 31 peticiones (1 de empezar + 15 de
+// pregunta + 15 de responder), así que el tope general tiene que dejar sitio de sobra a
+// una casa con varios jugadores en el mismo wifi; lo que corta de verdad es el de
+// `empezar`, que es la única acción que crea filas y por tanto la que sirve para llenar
+// la clasificación de motes inventados o quemarle el intento a los veinte de golpe.
+const GQ_T_PETICIONES_HORA = 500;
+const GQ_T_PARTIDAS_HORA   = 12;
 
 // El torneo vigente es el único que está dentro de su ventana y no es borrador. Si no hay
 // ninguno abierto se devuelve el último que cerró, para poder seguir enseñando el podio
@@ -82,6 +87,23 @@ function gq_t_barajar(): string {
 
 function gq_t_clasificacion(PDO $pdo, int $torneoId, int $limite = GQ_T_TOPE_LISTA): array {
     $limite = max(1, min($limite, GQ_T_TOPE_LISTA));
+
+    // Quien escribe las preguntas juega fuera de concurso: su marca se ve, pero va aparte
+    // y no numera. La comparación se hace en SQL para que la resuelva la colación de la
+    // columna, que ignora mayúsculas y acentos igual que la clave única; imitarla en PHP
+    // no sería exacto y encima no funcionaría sin mbstring.
+    $autores = [];
+    foreach (GQ_AUTORES as $a) {
+        if (is_string($a) && trim($a) !== '') { $autores[] = trim($a); }
+    }
+    $marca  = '0';
+    $params = [$torneoId];
+    if ($autores !== []) {
+        $marca  = 'nombre IN (' . implode(',', array_fill(0, count($autores), '?')) . ')';
+        // Los marcadores del SELECT van antes que el del WHERE, en el orden del texto.
+        $params = array_merge($autores, [$torneoId]);
+    }
+
     // La clave única ya garantiza una fila por jugador, así que no hace falta agrupar.
     // El límite va interpolado porque MySQL no admite marcadores en LIMIT; va a salvo
     // porque antes se fuerza a entero acotado.
@@ -89,15 +111,20 @@ function gq_t_clasificacion(PDO $pdo, int $torneoId, int $limite = GQ_T_TOPE_LIS
     // en la tabla el que está jugando aparecería el último con cero puntos.
     $filas = gq_consulta(
         $pdo,
-        'SELECT nombre, puntos, correctas, total, segundos, creado_en
+        "SELECT nombre, puntos, correctas, total, segundos, creado_en, ($marca) AS autor
          FROM torneo_partidas WHERE torneo_id = ? AND terminado = 1
-         ORDER BY puntos DESC, id ASC LIMIT ' . $limite,
-        [$torneoId]
+         ORDER BY autor ASC, puntos DESC, id ASC LIMIT " . $limite,
+        $params
     )->fetchAll();
+
     $salida = [];
-    foreach ($filas as $i => $f) {
+    $pos = 0;
+    foreach ($filas as $f) {
+        $esAutor = (int) $f['autor'] === 1;
+        if (!$esAutor) { $pos++; }
         $salida[] = [
-            'pos'       => $i + 1,
+            'pos'       => $esAutor ? null : $pos,
+            'autor'     => $esAutor,
             'nombre'    => $f['nombre'],
             'puntos'    => (int) $f['puntos'],
             'correctas' => (int) $f['correctas'],
@@ -107,6 +134,53 @@ function gq_t_clasificacion(PDO $pdo, int $torneoId, int $limite = GQ_T_TOPE_LIS
         ];
     }
     return $salida;
+}
+
+// ── TESTIGO DE PARTIDA ────────────────────────────────────────────────────
+// El mote por sí solo no prueba nada: cualquiera puede escribir el de otro, y los motes
+// están a la vista en la clasificación. El servidor entrega un testigo al reservar y lo
+// exige para todo lo demás, así que jugar en nombre ajeno deja de ser posible.
+function gq_t_token_guardado(PDO $pdo, int $partidaId): ?string {
+    $f = gq_consulta($pdo, 'SELECT token FROM torneo_sesiones WHERE partida_id = ?', [$partidaId])->fetch();
+    return $f === false ? null : (string) $f['token'];
+}
+
+function gq_t_token_emitir(PDO $pdo, int $partidaId): string {
+    $token = bin2hex(random_bytes(16));
+    gq_consulta(
+        $pdo,
+        'INSERT INTO torneo_sesiones (partida_id, token, creado_en) VALUES (?, ?, UTC_TIMESTAMP())',
+        [$partidaId, $token]
+    );
+    return $token;
+}
+
+// hash_equals y no ===: con una comparación normal, lo que tarda en fallar delata cuántos
+// caracteres iniciales se han acertado.
+function gq_t_exigir_token(PDO $pdo, int $partidaId, $dado): void {
+    $guardado = gq_t_token_guardado($pdo, $partidaId);
+    $dado = is_string($dado) ? $dado : '';
+    if ($guardado === null || $dado === '' || !hash_equals($guardado, $dado)) {
+        gq_error(403, 'no_es_tuya', 'Esa partida se empezó en otro dispositivo. Vuelve a entrar desde allí.');
+    }
+}
+
+// Freno por conexión. Se reaprovecha la tabla `envios` del ranking metiendo el hash de IP
+// en un cajón distinto por tipo de acción: así el contador del torneo no se mezcla con el
+// de las partidas normales sin tener que añadir una columna (y gq_consulta no crea
+// columnas que falten, solo tablas).
+function gq_t_frenar(PDO $pdo, string $cajon, int $tope, string $ipHash): void {
+    $clave = hash('sha256', $cajon . '|' . $ipHash);
+    gq_consulta($pdo, 'DELETE FROM envios WHERE creado_en < (UTC_TIMESTAMP() - INTERVAL 1 HOUR)');
+    $recientes = (int) gq_consulta(
+        $pdo,
+        'SELECT COUNT(*) FROM envios WHERE ip_hash = ? AND creado_en > (UTC_TIMESTAMP() - INTERVAL 1 HOUR)',
+        [$clave]
+    )->fetchColumn();
+    if ($recientes >= $tope) {
+        gq_error(429, 'demasiados', 'Demasiadas peticiones desde esta conexión. Prueba dentro de un rato.');
+    }
+    gq_consulta($pdo, 'INSERT INTO envios (ip_hash, creado_en) VALUES (?, UTC_TIMESTAMP())', [$clave]);
 }
 
 // La grafía guardada puede no ser la que el jugador acaba de teclear: la colación de MySQL
@@ -140,6 +214,22 @@ function gq_t_progreso(PDO $pdo, int $partidaId): array {
         if ((int) $f['acertada'] === 1) { $aciertos++; $racha++; } else { $racha = 0; }
     }
     return ['contestadas' => $contestadas, 'puntos' => $puntos, 'aciertos' => $aciertos, 'racha' => $racha];
+}
+
+// Cierra la partida con los puntos que ha ido sumando el servidor. El navegador no toca
+// la puntuación en ningún momento. El `terminado = 0` del WHERE hace que llamarla dos
+// veces sea inofensivo, así que la reconciliación de una partida que se quedó a medio
+// cerrar puede usar exactamente la misma función.
+function gq_t_cerrar_partida(PDO $pdo, int $partidaId, array $prog, int $nPreguntas): void {
+    gq_consulta(
+        $pdo,
+        'UPDATE torneo_partidas
+            SET puntos = ?, correctas = ?, total = ?,
+                segundos = LEAST(GREATEST(TIMESTAMPDIFF(SECOND, empezado_en, UTC_TIMESTAMP()), 0), 65535),
+                terminado = 1, creado_en = UTC_TIMESTAMP()
+          WHERE id = ? AND terminado = 0',
+        [$prog['puntos'], $prog['aciertos'], $nPreguntas, $partidaId]
+    );
 }
 
 function gq_t_nombre_guardado(PDO $pdo, int $torneoId, string $nombre): ?string {
@@ -248,13 +338,19 @@ if ($nombre === '') {
 
 $nPreguntas = (int) gq_consulta($pdo, 'SELECT COUNT(*) FROM torneo_preguntas WHERE torneo_id = ?', [$torneoId])->fetchColumn();
 $ipHash = gq_ip_hash();
+$accion = $datos['accion'] ?? '';
+$token  = $datos['token'] ?? '';
+
+// El freno general va aquí, antes de cualquier acción: sin él, un bucle podía crear filas
+// sin coste y martillear la base de datos de un hosting compartido.
+gq_t_frenar($pdo, 'torneo-post', GQ_T_PETICIONES_HORA, $ipHash);
 
 // ── EMPEZAR: se reserva el mote antes de enseñar ninguna pregunta ─────────
 // Sin esto se puede entrar, leer las quince, salir sin enviar y volver a jugarlas ya
 // sabidas. Reservando aquí, ese segundo intento tendría que ir con otro mote, y eso se ve
 // en la clasificación. No lo impide del todo —una ventana de incógnito sigue valiendo—,
 // pero obliga a quererlo de verdad.
-if (($datos['accion'] ?? '') === 'empezar') {
+if ($accion === 'empezar') {
     $fila = gq_t_fila_jugador($pdo, $torneoId, $nombre);
     if ($fila !== null && (int) $fila['terminado'] === 1) {
         $clasificacion = gq_t_clasificacion($pdo, $torneoId);
@@ -267,6 +363,9 @@ if (($datos['accion'] ?? '') === 'empezar') {
         ]);
     }
     if ($fila === null) {
+        // Solo se frena cuando de verdad va a crearse una partida nueva: reanudar la
+        // propia no debe gastar cupo.
+        gq_t_frenar($pdo, 'torneo-empezar', GQ_T_PARTIDAS_HORA, $ipHash);
         try {
             gq_consulta(
                 $pdo,
@@ -280,14 +379,35 @@ if (($datos['accion'] ?? '') === 'empezar') {
             // error: es la carrera resuelta por MySQL, y el de abajo ya lo trata como reanudación.
             if ($e->getCode() !== '23000') { throw $e; }
         }
+        $fila = gq_t_fila_jugador($pdo, $torneoId, $nombre);
     }
-    $fila = gq_t_fila_jugador($pdo, $torneoId, $nombre);
-    $prog = $fila === null ? ['contestadas' => 0, 'puntos' => 0, 'aciertos' => 0, 'racha' => 0]
-                           : gq_t_progreso($pdo, (int) $fila['id']);
+    if ($fila === null) { gq_error(500, 'sin_reserva', 'No se ha podido reservar el nombre.'); }
+    $partidaId = (int) $fila['id'];
+
+    // El testigo demuestra de quién es la partida. Se entrega al crearla y, al reanudar,
+    // hay que presentarlo: si no, bastaría con escribir el mote de otro para continuar (o
+    // arruinar) su partida. Quien borre los datos del navegador pierde la reanudación,
+    // que es el precio de que el mote por sí solo no abra la puerta.
+    $guardado = gq_t_token_guardado($pdo, $partidaId);
+    if ($guardado === null) {
+        try {
+            $token = gq_t_token_emitir($pdo, $partidaId);
+        } catch (PDOException $e) {
+            // Dos pestañas reservando a la vez: gana la primera y la segunda lee el suyo.
+            if ($e->getCode() !== '23000') { throw $e; }
+            $token = (string) gq_t_token_guardado($pdo, $partidaId);
+        }
+    } else {
+        gq_t_exigir_token($pdo, $partidaId, $token);
+        $token = $guardado;
+    }
+
+    $prog = gq_t_progreso($pdo, $partidaId);
     gq_json(200, [
         'ok'          => true,
         'reanudado'   => $prog['contestadas'] > 0,
-        'nombre'      => (string) ($fila['nombre'] ?? $nombre),
+        'nombre'      => (string) $fila['nombre'],
+        'token'       => $token,
         'siguiente'   => $prog['contestadas'] + 1,
         'n_preguntas' => $nPreguntas,
         'puntos'      => $prog['puntos'],
@@ -299,15 +419,23 @@ if (($datos['accion'] ?? '') === 'empezar') {
 // Esto es lo que cierra la trampa de verdad. La pregunta 15 no existe para el navegador
 // hasta que se ha contestado la 14, y en ningún momento viaja cuál es la correcta ni la
 // explicación. Mirar la pestaña de red ya no adelanta nada.
-if (($datos['accion'] ?? '') === 'pregunta') {
+if ($accion === 'pregunta') {
     $fila = gq_t_fila_jugador($pdo, $torneoId, $nombre);
     if ($fila === null) { gq_error(409, 'sin_reserva', 'Esa partida no está empezada.'); }
-    if ((int) $fila['terminado'] === 1) { gq_error(409, 'ya_jugado', 'Ya has jugado este torneo.'); }
     $partidaId = (int) $fila['id'];
+    gq_t_exigir_token($pdo, $partidaId, $token);
+    if ((int) $fila['terminado'] === 1) { gq_error(409, 'ya_jugado', 'Ya has jugado este torneo.'); }
 
     $prog = gq_t_progreso($pdo, $partidaId);
     $orden = $prog['contestadas'] + 1;   // el servidor decide cuál toca, no el navegador
-    if ($orden > $nPreguntas) { gq_error(409, 'terminada', 'Ya has contestado todas.'); }
+    if ($orden > $nPreguntas) {
+        // Están contestadas todas pero la partida sigue marcada como abierta: el cierre se
+        // quedó a medias (por ejemplo, el proceso murió entre las dos escrituras). Antes
+        // esto era un callejón sin salida —ni se cerraba ni salía en la tabla, y el jugador
+        // había gastado su único intento para nada—, así que se cierra aquí.
+        gq_t_cerrar_partida($pdo, $partidaId, $prog, $nPreguntas);
+        gq_error(409, 'terminada', 'Ya has contestado todas.');
+    }
 
     $p = gq_consulta(
         $pdo,
@@ -325,12 +453,31 @@ if (($datos['accion'] ?? '') === 'pregunta') {
     )->fetch();
     if ($r === false) {
         $baraja = gq_t_barajar();
-        gq_consulta(
-            $pdo,
-            'INSERT INTO torneo_respuestas (partida_id, orden, opciones, servida_en) VALUES (?, ?, ?, UTC_TIMESTAMP())',
-            [$partidaId, $orden, $baraja]
-        );
-        $transcurrido = 0;
+        try {
+            gq_consulta(
+                $pdo,
+                'INSERT INTO torneo_respuestas (partida_id, orden, opciones, servida_en) VALUES (?, ?, ?, UTC_TIMESTAMP())',
+                [$partidaId, $orden, $baraja]
+            );
+            $transcurrido = 0;
+        } catch (PDOException $e) {
+            // 23000: dos peticiones a la vez para la misma pregunta, que es lo que pasa con
+            // un doble toque en "Siguiente" (el segundo evento ya está en la cola cuando el
+            // primero esconde el botón). Antes esto reventaba en 500 y el navegador lo leía
+            // como caída de red: te sacaba de la partida a mitad del torneo. La baraja que
+            // ganó la carrera es la buena, así que se lee y se sigue.
+            if ($e->getCode() !== '23000') { throw $e; }
+            $r = gq_consulta(
+                $pdo,
+                'SELECT opciones, servida_en FROM torneo_respuestas WHERE partida_id = ? AND orden = ?',
+                [$partidaId, $orden]
+            )->fetch();
+            if ($r === false) { throw $e; }
+            $baraja = (string) $r['opciones'];
+            $transcurrido = (int) gq_consulta(
+                $pdo, 'SELECT TIMESTAMPDIFF(SECOND, ?, UTC_TIMESTAMP())', [$r['servida_en']]
+            )->fetchColumn();
+        }
     } else {
         $baraja = (string) $r['opciones'];
         $transcurrido = (int) gq_consulta(
@@ -361,11 +508,12 @@ if (($datos['accion'] ?? '') === 'pregunta') {
 }
 
 // ── RESPONDER: corrige el servidor ────────────────────────────────────────
-if (($datos['accion'] ?? '') === 'responder') {
+if ($accion === 'responder') {
     $fila = gq_t_fila_jugador($pdo, $torneoId, $nombre);
     if ($fila === null) { gq_error(409, 'sin_reserva', 'Esa partida no está empezada.'); }
-    if ((int) $fila['terminado'] === 1) { gq_error(409, 'ya_jugado', 'Ya has jugado este torneo.'); }
     $partidaId = (int) $fila['id'];
+    gq_t_exigir_token($pdo, $partidaId, $token);
+    if ((int) $fila['terminado'] === 1) { gq_error(409, 'ya_jugado', 'Ya has jugado este torneo.'); }
 
     $prog  = gq_t_progreso($pdo, $partidaId);
     $orden = $prog['contestadas'] + 1;
@@ -382,6 +530,10 @@ if (($datos['accion'] ?? '') === 'responder') {
         'SELECT pts, ans, exp FROM torneo_preguntas WHERE torneo_id = ? AND orden = ?',
         [$torneoId, $orden]
     )->fetch();
+    // El mismo guardia que en `pregunta`. Sin él, $p['ans'] sobre un false da null, y
+    // (int) null es 0: se daría por buena la opción que originalmente era la primera, con
+    // cero puntos y sin que saltara ningún error.
+    if ($p === false) { gq_error(500, 'sin_pregunta', 'Falta una pregunta del torneo.'); }
 
     $perm    = array_map('intval', explode(',', (string) $r['opciones']));
     $tardado = max(0, (int) $r['tardado']);
@@ -404,28 +556,37 @@ if (($datos['accion'] ?? '') === 'responder') {
         $pts    = ((int) $p['pts'] + $bonus) * $multAplicado;
     }
 
-    gq_consulta(
-        $pdo,
-        'UPDATE torneo_respuestas SET elegida = ?, acertada = ?, puntos = ?, respondida_en = UTC_TIMESTAMP()
-          WHERE partida_id = ? AND orden = ?',
-        [$elegida, $acerto ? 1 : 0, $pts, $partidaId, $orden]
-    );
-
-    $prog = gq_t_progreso($pdo, $partidaId);
     $ultima = $orden >= $nPreguntas;
 
-    if ($ultima) {
-        // Se cierra la partida con los puntos que ha ido sumando el servidor. El navegador
-        // no ha llegado a tocar la puntuación en ningún momento.
-        gq_consulta(
+    // En la última pregunta son DOS escrituras —guardar la respuesta y cerrar la partida—
+    // y tienen que ir juntas. Sueltas, si el proceso moría entre una y otra (un timeout
+    // del hosting compartido basta), la partida se quedaba con las quince contestadas y
+    // marcada como abierta: invisible en la tabla, con el único intento ya gastado.
+    if ($ultima) { $pdo->beginTransaction(); }
+    try {
+        // El `respondida_en IS NULL` va también en el UPDATE, no solo en el SELECT de
+        // arriba: dos peticiones simultáneas podían pasar las dos por el guardia y
+        // escribir las dos, descuadrando los puntos de la partida respecto a la suma de
+        // sus respuestas. Aquí la segunda no cambia ninguna fila.
+        $filasTocadas = gq_consulta(
             $pdo,
-            'UPDATE torneo_partidas
-                SET puntos = ?, correctas = ?, total = ?,
-                    segundos = LEAST(GREATEST(TIMESTAMPDIFF(SECOND, empezado_en, UTC_TIMESTAMP()), 0), 65535),
-                    terminado = 1, creado_en = UTC_TIMESTAMP()
-              WHERE id = ? AND terminado = 0',
-            [$prog['puntos'], $prog['aciertos'], $nPreguntas, $partidaId]
-        );
+            'UPDATE torneo_respuestas SET elegida = ?, acertada = ?, puntos = ?, respondida_en = UTC_TIMESTAMP()
+              WHERE partida_id = ? AND orden = ? AND respondida_en IS NULL',
+            [$elegida, $acerto ? 1 : 0, $pts, $partidaId, $orden]
+        )->rowCount();
+        if ($filasTocadas !== 1) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
+            gq_error(409, 'ya_respondida', 'Esa pregunta ya estaba contestada.');
+        }
+
+        $prog = gq_t_progreso($pdo, $partidaId);
+        if ($ultima) {
+            gq_t_cerrar_partida($pdo, $partidaId, $prog, $nPreguntas);
+            $pdo->commit();
+        }
+    } catch (Throwable $e) {
+        if ($pdo->inTransaction()) { $pdo->rollBack(); }
+        throw $e;
     }
 
     // Qué casilla de las que ÉL vio era la buena: el navegador no conoce la permutación.

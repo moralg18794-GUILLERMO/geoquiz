@@ -18,6 +18,18 @@ let torneoNombre = '';          // el nick con el que se está jugando ahora
 let torneoTotal = 0;            // cuántas preguntas tiene, según el servidor
 let torneoCierreDatos = null;   // lo que devolvió al contestar la última
 let torneoCuentaInt = null;
+let torneoToken = '';           // el testigo que demuestra que la partida es de este móvil
+let torneoEnVuelo = false;      // hay una petición abierta: no mandar otra encima
+let torneoModoPrevio = '';      // el modo que estaba elegido en el menú antes del torneo
+let torneoEstado = '';          // qué dice el servidor del mote de este móvil: libre/enCurso/terminado
+
+// Devuelve el menú como estaba antes de entrar al torneo.
+function torneoSoltarModo() {
+  if (!torneoModoPrevio) return;
+  gameMode = torneoModoPrevio;
+  torneoModoPrevio = '';
+  if (typeof updateStartBtn === 'function') updateStartBtn();
+}
 
 // ── MEMORIA DE ESTE DISPOSITIVO ───────────────────────────────────────────
 // No es una defensa: quien borre los datos del navegador vuelve a verlo todo. Sirve para
@@ -32,6 +44,24 @@ function torneoApuntarJugado(slug, nombre) {
 }
 function torneoAvisoVisto(slug) {
   try { return localStorage.getItem(torneoKey(slug) + '_visto') === '1'; } catch { return false; }
+}
+// El testigo de la partida. Este sí es una defensa: sin él, el servidor no sirve preguntas
+// ni corrige, así que escribir el mote de otro ya no vale para jugar en su nombre. Se
+// guarda aquí porque el servidor solo lo entrega una vez, al reservar.
+function torneoTokenGuardado(slug) {
+  try { return localStorage.getItem(torneoKey(slug) + '_token') || ''; } catch { return ''; }
+}
+function torneoGuardarToken(slug, token) {
+  try { localStorage.setItem(torneoKey(slug) + '_token', token); } catch {}
+}
+// El mote va aparte del slug y sin él: hace falta ANTES de saber qué torneo hay, para
+// poder preguntarle al servidor si esa persona tiene una partida a medias. Y, de paso, la
+// gente usa el mismo mote todas las semanas, así que el prompt sale ya relleno.
+function torneoMiMote() {
+  try { return localStorage.getItem('gq_torneo_mote') || ''; } catch { return ''; }
+}
+function torneoGuardarMote(nombre) {
+  try { localStorage.setItem('gq_torneo_mote', nombre); } catch {}
 }
 function torneoMarcarAvisoVisto(slug) {
   try { localStorage.setItem(torneoKey(slug) + '_visto', '1'); } catch {}
@@ -104,9 +134,17 @@ function retarAlTorneo() {
 
 // ── AVISO AL ENTRAR ───────────────────────────────────────────────────────
 async function cargarTorneo() {
-  const res = await gqFetch(GQ_TORNEO_API, { method: 'GET' });
+  // Se pregunta por el mote de este dispositivo: el servidor contesta si tiene una partida
+  // libre, a medias o terminada. Antes no se preguntaba nunca, así que quedarse sin batería
+  // en la novena dejaba el aviso invitando a jugar de cero y el prompt vacío; si se tecleaba
+  // el mote con cualquier matiz distinto, se reservaba una segunda fila y la primera quedaba
+  // huérfana para siempre, con el intento gastado.
+  const mote = torneoMiMote();
+  const url = GQ_TORNEO_API + (mote ? '?nombre=' + encodeURIComponent(mote) : '');
+  const res = await gqFetch(url, { method: 'GET' });
   if (!res.ok || !res.cuerpo || !res.cuerpo.torneo) return;   // sin torneo, el juego sigue igual
   torneo = res.cuerpo.torneo;
+  torneoEstado = res.cuerpo.estado_jugador || '';
   torneoTabla = res.cuerpo.clasificacion || [];
   pintarAvisoTorneo();
   document.getElementById('nav-torneo').style.display = '';
@@ -134,12 +172,19 @@ function pintarAvisoTorneo() {
     document.getElementById('ta-eyebrow').textContent = '🏆 Torneo terminado';
     btn.textContent = 'Ver el podio';
     btn.onclick = () => showTab('torneo');
+  } else if (torneoEstado === 'enCurso') {
+    // Lo dice el servidor, no este navegador: la partida quedó reservada y a medias.
+    document.getElementById('ta-eyebrow').textContent = `🏆 Tienes una partida a medias como «${torneoMiMote()}»`;
+    btn.textContent = 'Continuar la partida';
+    btn.onclick = jugarTorneo;
   } else if (yaJugo) {
     // Ya jugó desde aquí: en vez de invitarle otra vez, se le dice cómo va.
     const mio = torneoTabla.find(f => f.nombre.toLowerCase() === yaJugo.toLowerCase());
-    document.getElementById('ta-eyebrow').textContent = mio
-      ? `🏆 Ya jugaste · vas ${mio.pos}º con ${Number(mio.puntos).toLocaleString()} puntos`
-      : '🏆 Ya jugaste este torneo';
+    document.getElementById('ta-eyebrow').textContent = (mio && mio.autor)
+      ? `🏆 Jugaste fuera de concurso · ${Number(mio.puntos).toLocaleString()} puntos`
+      : (mio
+        ? `🏆 Ya jugaste · vas ${mio.pos}º con ${Number(mio.puntos).toLocaleString()} puntos`
+        : '🏆 Ya jugaste este torneo');
     btn.textContent = 'Ver la clasificación';
     btn.onclick = () => showTab('torneo');
   } else {
@@ -165,8 +210,11 @@ async function jugarTorneo() {
   // la partida ha empezado. Aquí solo se sabe cuántas son.
   if (!torneo.n_preguntas) { toast('El torneo no tiene preguntas'); return; }
 
-  const previo = torneoJugadoAqui(torneo.slug);
-  const nombre = (prompt('¿Con qué nombre juegas el torneo?\nSe reserva ahora y solo vale un intento.', previo || '') || '').trim();
+  const previo = torneoJugadoAqui(torneo.slug) || torneoMiMote();
+  const aviso = torneoEstado === 'enCurso'
+    ? '¿Con qué nombre juegas el torneo?\nTienes una partida a medias: escribe el mismo mote para seguirla.'
+    : '¿Con qué nombre juegas el torneo?\nSe reserva ahora y solo vale un intento.';
+  const nombre = (prompt(aviso, previo || '') || '').trim();
   if (!nombre) return;
 
   // El mote se RESERVA antes de enseñar ninguna pregunta. Si se reservara al terminar, se
@@ -174,7 +222,9 @@ async function jugarTorneo() {
   const res = await gqFetch(GQ_TORNEO_API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ accion: 'empezar', slug: torneo.slug, nombre }),
+    // El testigo guardado solo sirve para reanudar la propia partida; si no hay, el
+    // servidor entrega uno nuevo.
+    body: JSON.stringify({ accion: 'empezar', slug: torneo.slug, nombre, token: torneoTokenGuardado(torneo.slug) }),
   });
 
   if (res.estado === 409 && res.cuerpo) {
@@ -185,6 +235,12 @@ async function jugarTorneo() {
     showTab('torneo');
     return;
   }
+  if (res.estado === 403) {
+    // Ese mote está jugando en otro sitio y este navegador no tiene su testigo. Puede ser
+    // alguien intentando colarse con un nombre ajeno, o uno mismo tras borrar los datos.
+    toast(`«${nombre}» tiene una partida empezada en otro dispositivo.`);
+    return;
+  }
   if (!res.ok) {
     // Si no se ha podido reservar, no se empieza: jugar sin reserva acabaría en un envío
     // que el servidor podría rechazar, y la partida se habría jugado para nada.
@@ -192,13 +248,22 @@ async function jugarTorneo() {
     return;
   }
 
+  if (res.cuerpo.token) torneoGuardarToken(torneo.slug, res.cuerpo.token);
+  torneoToken = res.cuerpo.token || '';
+
   if (res.cuerpo.reanudado) {
     // Partida a medias que se retoma: nadie pierde el torneo por quedarse sin batería,
     // pero el reloj no se ha parado y eso se verá en la clasificación.
     toast('Retomas tu partida: el cronómetro no se ha parado.');
   }
 
-  torneoNombre = nombre;
+  // El nombre que manda es el que guardó el servidor, no el tecleado: su colación ignora
+  // mayúsculas y acentos, así que «guille» y «Guille» son la misma fila y conviene
+  // quedarse con la grafía buena para que luego cuadre al buscarse en la tabla.
+  torneoNombre = res.cuerpo.nombre || nombre;
+  // Se apunta ya, no al terminar: es lo que permite avisar de una partida a medias si se
+  // cierra la pestaña a mitad.
+  torneoGuardarMote(torneoNombre);
   arrancarTorneo();
 }
 
@@ -209,8 +274,18 @@ async function arrancarTorneo() {
 
   // El motor del juego se comporta como en modo solo (temporizador por pregunta,
   // multiplicador), pero lo que se guarda es una partida de torneo.
+  //
+  // El modo elegido en el menú se guarda para devolverlo al salir. Antes se pisaba y no se
+  // restauraba: quien tenía marcado Duelo, jugaba el torneo y volvía, veía Duelo resaltado
+  // y los nombres puestos, pero al pulsar Empezar arrancaba una partida en solitario que
+  // los ignoraba. Y si era de 13 épocas, se guardaba como oficial en el ranking global.
+  torneoModoPrevio = gameMode;
   gameMode = 'solo';
   partida = { modo: 'torneo', dif: 'na', eje: 'n', nsel: 0, ntot: 0, cats: torneo.titulo, torneo: torneo.slug };
+
+  // Restos de una partida de torneo anterior: sin esto, una segunda entrada que acabe en
+  // una rama temprana pinta los puntos y el puesto de la primera como si fueran nuevos.
+  torneoCierreDatos = null; torneoTotal = 0; torneoEnVuelo = false;
 
   // gameQ empieza vacío y crece conforme el servidor va sirviendo preguntas. El navegador
   // nunca llega a tener las quince: la última no existe para él hasta que contesta la 14ª.
@@ -229,16 +304,39 @@ async function arrancarTorneo() {
 // y cuánto tiempo queda: si se recarga a media pregunta, vuelve la misma con el reloj donde
 // estaba, no reiniciado.
 async function torneoSiguientePregunta() {
+  // Un doble toque en "Siguiente" mandaba dos peticiones a la vez: las dos pedían la misma
+  // pregunta, MySQL rechazaba la segunda y el navegador lo leía como caída de red y te
+  // sacaba de la partida. El servidor ya aguanta la carrera; esto evita provocarla.
+  if (torneoEnVuelo) return;
+  torneoEnVuelo = true;
   document.getElementById('next-btn').style.display = 'none';
-  const res = await gqFetch(GQ_TORNEO_API, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ accion: 'pregunta', slug: partida.torneo, nombre: torneoNombre }),
-  });
+  // Entre pregunta y pregunta hay una ida y vuelta al servidor. Sin avisar, la pantalla se
+  // quedaba con la pregunta anterior y sin botón, y con mala cobertura parecía colgada.
+  const espera = document.getElementById('explanation');
+  const previo = espera ? espera.innerHTML : '';
+  if (espera) espera.innerHTML = '<div class="explanation">⏳ Buscando la siguiente pregunta…</div>';
+
+  let res;
+  try {
+    res = await gqFetch(GQ_TORNEO_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accion: 'pregunta', slug: partida.torneo, nombre: torneoNombre, token: torneoToken }),
+    });
+  } finally {
+    torneoEnVuelo = false;
+  }
 
   if (!res.ok || !res.cuerpo || !res.cuerpo.q) {
-    if (res.estado === 409 && res.cuerpo && res.cuerpo.error === 'terminada') { mostrarResultadoTorneo(); return; }
+    const err = res.cuerpo && res.cuerpo.error;
+    // 'terminada' y 'ya_jugado' significan lo mismo para quien está jugando: ya ha acabado.
+    // Antes solo se contemplaba la primera, así que perder la respuesta de la pregunta 15
+    // acababa en "se perdió la conexión" y de vuelta al menú, con la marca guardada pero
+    // sin verla por ningún lado.
+    if (res.estado === 409 && (err === 'terminada' || err === 'ya_jugado')) { await torneoCerrarConTabla(); return; }
+    if (espera) espera.innerHTML = previo;
     toast('Se perdió la conexión con el torneo. Vuelve a entrar con tu mismo nombre.');
+    torneoSoltarModo();
     goMenu();
     return;
   }
@@ -252,20 +350,51 @@ async function torneoSiguientePregunta() {
   renderQuestion();
 }
 
+// La partida ya está cerrada en el servidor: se pide la clasificación para enseñar la
+// marca de verdad. Sin esto, una respuesta perdida en la última pregunta acababa en una
+// pantalla de resultado con cero puntos y «Marca guardada» sin puesto, aunque la marca
+// estuviera bien guardada y a la vista de los demás.
+async function torneoCerrarConTabla() {
+  try {
+    const res = await gqFetch(GQ_TORNEO_API + '?nombre=' + encodeURIComponent(torneoNombre), { method: 'GET' });
+    if (res.ok && res.cuerpo) {
+      torneoTabla = res.cuerpo.clasificacion || torneoTabla;
+      const yo = res.cuerpo.yo;
+      if (yo) {
+        torneoCierreDatos = {
+          puntos: yo.puntos, aciertos: yo.correctas, total: yo.total,
+          pos: yo.pos, clasificacion: torneoTabla,
+        };
+        if (!torneoTotal) torneoTotal = yo.total;
+      }
+    }
+  } catch {}
+  mostrarResultadoTorneo();
+}
+
 // Manda lo que se ha pulsado y pinta lo que conteste el servidor. -1 es tiempo agotado.
 async function pickTorneo(i) {
+  if (torneoEnVuelo) return;
+  torneoEnVuelo = true;
   answered = true;
   clearInterval(timerInt);
   const btns = document.querySelectorAll('.opt-btn');
   btns.forEach(b => b.disabled = true);
 
-  const res = await gqFetch(GQ_TORNEO_API, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ accion: 'responder', slug: partida.torneo, nombre: torneoNombre, elegida: i }),
-  });
+  let res;
+  try {
+    res = await gqFetch(GQ_TORNEO_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accion: 'responder', slug: partida.torneo, nombre: torneoNombre, token: torneoToken, elegida: i }),
+    });
+  } finally {
+    torneoEnVuelo = false;
+  }
 
   if (!res.ok || !res.cuerpo) {
+    const err = res.cuerpo && res.cuerpo.error;
+    if (res.estado === 409 && (err === 'ya_jugado' || err === 'terminada')) { await torneoCerrarConTabla(); return; }
     document.getElementById('explanation').innerHTML =
       '<div class="explanation fail">No se pudo enviar la respuesta. Vuelve a entrar con tu mismo nombre: la partida sigue donde estaba.</div>';
     document.getElementById('next-btn').style.display = 'block';
@@ -316,10 +445,16 @@ function mostrarResultadoTorneo() {
 
   torneoApuntarJugado(partida.torneo, torneoNombre);
   if (c.clasificacion) torneoTabla = c.clasificacion;
+  torneoSoltarModo();
 
-  const puesto = c.pos
-    ? `Vas <strong>${c.pos}º</strong> de ${torneoTabla.length} en el torneo.`
-    : 'Marca guardada.';
+  // Los que juegan fuera de concurso (quien escribe las preguntas) no tienen puesto: su
+  // marca cuenta y se ve, pero no ocupa el podio de los demás.
+  const mio = torneoTabla.find(f => f.nombre === torneoNombre);
+  const puesto = (mio && mio.autor)
+    ? 'Fuera de concurso: tu marca se ve, pero no entra en el podio.'
+    : (c.pos
+      ? `Vas <strong>${c.pos}º</strong> de ${torneoTabla.filter(f => !f.autor).length} en el torneo.`
+      : 'Marca guardada.');
 
   document.getElementById('result-hero').innerHTML = `
     <div style="font-size:40px;margin-bottom:0.5rem">🏆</div>
@@ -372,14 +507,24 @@ async function renderTorneo() {
     return;
   }
 
-  div.innerHTML = cab + `<div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Jugador</th><th>Puntos</th><th>Aciertos</th><th>Tiempo</th><th class="celda-fecha">Fecha</th></tr></thead><tbody>${torneoTabla.map(e => `<tr><td>${MEDALLAS[e.pos - 1] || e.pos}</td><td style="font-weight:600">${esc(e.nombre)}</td><td style="color:var(--accent);font-weight:600">${esc(Number(e.puntos).toLocaleString())}</td><td>${esc(e.correctas)}/${esc(e.total)}</td><td class="celda-dif">${esc(tiempoCorto(e.segundos))}</td><td class="celda-fecha" style="font-size:11px;color:var(--muted)">${esc(fechaCorta(e.fecha))}</td></tr>`).join('')}</tbody></table></div>` + pie;
+  // Quien escribe las preguntas va fuera de concurso: su fila baja al final, sin número y
+  // atenuada. Se sigue viendo —es parte de la gracia saber cuánto hizo el que las puso—
+  // pero no ocupa el podio de los demás.
+  const fila = e => {
+    const pos = e.autor ? '<span title="Fuera de concurso">✎</span>' : (MEDALLAS[e.pos - 1] || e.pos);
+    const tenue = e.autor ? ' style="opacity:0.65"' : '';
+    return `<tr${tenue}><td>${pos}</td><td style="font-weight:600">${esc(e.nombre)}${e.autor ? ' <span style="font-weight:400;font-size:11px;color:var(--muted)">fuera de concurso</span>' : ''}</td><td style="color:var(--accent);font-weight:600">${esc(Number(e.puntos).toLocaleString())}</td><td>${esc(e.correctas)}/${esc(e.total)}</td><td class="celda-dif">${esc(tiempoCorto(e.segundos))}</td><td class="celda-fecha" style="font-size:11px;color:var(--muted)">${esc(fechaCorta(e.fecha))}</td></tr>`;
+  };
+  div.innerHTML = cab + `<div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Jugador</th><th>Puntos</th><th>Aciertos</th><th>Tiempo</th><th class="celda-fecha">Fecha</th></tr></thead><tbody>${torneoTabla.map(fila).join('')}</tbody></table></div>` + pie;
 }
 
 // El final del torneo es lo que vende el siguiente, así que el podio sale listo para pegar.
 function textoPodio() {
   const url = window.location.href.split('?')[0];
-  const podio = torneoTabla.slice(0, 3)
+  // Sin los que van fuera de concurso: el podio que se manda al grupo es el de verdad.
+  const enLiza = torneoTabla.filter(e => !e.autor);
+  const podio = enLiza.slice(0, 3)
     .map((e, i) => `${['🥇', '🥈', '🥉'][i]} ${e.nombre} — ${Number(e.puntos).toLocaleString()}`)
     .join('\n');
-  return `🏆 ${torneo ? torneo.titulo : 'Torneo GeoQuiz'}\n\n${podio}\n\nJugaron ${torneoTabla.length}. La semana que viene, otro:\n${url}`;
+  return `🏆 ${torneo ? torneo.titulo : 'Torneo GeoQuiz'}\n\n${podio}\n\nJugaron ${enLiza.length}. La semana que viene, otro:\n${url}`;
 }
