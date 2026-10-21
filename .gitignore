@@ -19,3 +19,11 @@ api/config.php
 # los torneos: se regenera sola con tools/exportar-preguntas.php y solo vive en
 # local y en el servidor.
 api/preguntas.json
+
+# Los JSON de los torneos llevan el `ans` y la explicación de cada pregunta. El
+# repositorio es público y GitHub Pages sirve su raíz tal cual, así que versionarlos
+# publicaba el examen de la semana en la misma web desde la que se juega: cualquiera
+# podía pedir torneos/<slug>.json y sacar las quince respuestas. Viven solo en local,
+# que es de donde los lee tools/publicar-torneo.sh para mandarlos al servidor.
+# El calendario sí se versiona: no lleva respuestas.
+torneos/*.json
