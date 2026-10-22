@@ -156,7 +156,9 @@ async function cargarTorneo() {
 function pintarAvisoTorneo() {
   const caja = document.getElementById('torneo-aviso');
   if (!caja || !torneo) return;
-  document.getElementById('ta-titulo').textContent = torneo.titulo;
+  // El trofeo va aquí y no en el título guardado: el nombre del torneo viaja también al
+  // texto de WhatsApp, que ya empieza con un 🏆, y acabaría saliendo dos veces.
+  document.getElementById('ta-titulo').textContent = torneo.titulo + ' 🏆';
   document.getElementById('ta-tema').textContent = torneo.tema || '';
 
   const yaJugo = torneoJugadoAqui(torneo.slug);
