@@ -471,12 +471,15 @@ function mostrarResultadoTorneo() {
   playFinish();
 }
 
+// El mensaje que manda el jugador al terminar. Va en primera persona y RETA a quien lo
+// recibe: es el que de verdad trae gente al torneo, porque pica más la nota de un amigo
+// que una invitación. Por eso dice la marca y luego desafía, en vez de solo informar.
 function textoTorneo() {
   const total = torneoTotal;
-  const pct = Math.round((correct / Math.max(total, 1)) * 100);
   const url = window.location.href.split('?')[0];
   const t = torneo ? torneo.titulo : 'Torneo GeoQuiz';
-  return `🏆 ${t}\n⭐ ${score.toLocaleString()} puntos · ${correct}/${total} (${pct}%)\n\nSolo se juega una vez, así que piénsatelo bien:\n${url}`;
+  return `🏆 ${t}\n⭐ He hecho ${score.toLocaleString("es-ES")} puntos · ${correct} de ${total}\n\n`
+    + `Te reto a superarme. Aviso: solo se juega una vez, no hay segunda oportunidad.\n${url}`;
 }
 
 // ── CLASIFICACIÓN ─────────────────────────────────────────────────────────
@@ -523,8 +526,15 @@ function textoPodio() {
   const url = window.location.href.split('?')[0];
   // Sin los que van fuera de concurso: el podio que se manda al grupo es el de verdad.
   const enLiza = torneoTabla.filter(e => !e.autor);
+  const t = torneo ? torneo.titulo : 'Torneo GeoQuiz';
+  if (!enLiza.length) return `🏆 ${t}\n\nEsta semana no jugó nadie. La próxima, otro:\n${url}`;
+
   const podio = enLiza.slice(0, 3)
-    .map((e, i) => `${['🥇', '🥈', '🥉'][i]} ${e.nombre} — ${Number(e.puntos).toLocaleString()}`)
+    .map((e, i) => `${['🥇', '🥈', '🥉'][i]} ${e.nombre} — ${Number(e.puntos).toLocaleString("es-ES")}`)
     .join('\n');
-  return `🏆 ${torneo ? torneo.titulo : 'Torneo GeoQuiz'}\n\n${podio}\n\nJugaron ${enLiza.length}. La semana que viene, otro:\n${url}`;
+  // Felicitar al ganador por su nombre es lo que convierte la tabla en un titular. El
+  // recuento se mantiene porque es lo que empuja a jugar la semana siguiente: ver que
+  // fueron catorce y tú no estabas.
+  const cuantos = enLiza.length === 1 ? 'Jugó una sola persona.' : `Jugaron ${enLiza.length}.`;
+  return `🏆 ${t}\n\n${podio}\n\n¡Enhorabuena, ${enLiza[0].nombre}! ${cuantos}\nLa semana que viene, otro:\n${url}`;
 }
