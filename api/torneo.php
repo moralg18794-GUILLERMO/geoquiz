@@ -275,6 +275,15 @@ if ($metodo === 'GET') {
         'empieza_en' => gq_iso((string) $t['empieza_en']),
         'acaba_en'   => gq_iso((string) $t['acaba_en']),
         'jugadores'  => (int) gq_consulta($pdo, 'SELECT COUNT(*) FROM torneo_partidas WHERE torneo_id = ?', [$id])->fetchColumn(),
+        // Qué número de torneo es, para que el aviso pueda decir "Torneo semanal III" sin
+        // que haya que escribirlo a mano cada semana ni guardar un contador. Se cuenta
+        // cuántos torneos publicados empezaron antes o a la vez que este, así que se
+        // mantiene solo: el primero que se publique en noviembre será el IV.
+        'numero'     => (int) gq_consulta(
+            $pdo,
+            'SELECT COUNT(*) FROM torneos WHERE borrador = 0 AND empieza_en <= ?',
+            [$t['empieza_en']]
+        )->fetchColumn(),
     ];
 
     // Las preguntas NO viajan aquí. Antes se mandaban las quince de golpe, con su respuesta

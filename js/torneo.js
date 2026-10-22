@@ -153,12 +153,29 @@ async function cargarTorneo() {
   torneoCuentaInt = setInterval(torneoPintarCuenta, 30000);
 }
 
+// El número del torneo en romanos. Lo cuenta el servidor (campo `numero`), así que no hay
+// que escribirlo a mano cada semana ni arriesgarse a repetir un III.
+function romano(n) {
+  n = parseInt(n, 10);
+  if (!n || n < 1 || n > 3999) return '';
+  const tabla = [[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],
+                 [50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];
+  let s = '';
+  for (const [v, r] of tabla) { while (n >= v) { s += r; n -= v; } }
+  return s;
+}
+
+// El rótulo de arriba del aviso. Si por lo que sea no viene el número —una versión vieja
+// del servidor, por ejemplo— se queda el de siempre en vez de enseñar un hueco.
+function torneoRotulo() {
+  const n = torneo ? romano(torneo.numero) : '';
+  return n ? `🏆 Torneo semanal ${n}🏆` : '🏆 Torneo de la semana';
+}
+
 function pintarAvisoTorneo() {
   const caja = document.getElementById('torneo-aviso');
   if (!caja || !torneo) return;
-  // El trofeo va aquí y no en el título guardado: el nombre del torneo viaja también al
-  // texto de WhatsApp, que ya empieza con un 🏆, y acabaría saliendo dos veces.
-  document.getElementById('ta-titulo').textContent = torneo.titulo + ' 🏆';
+  document.getElementById('ta-titulo').textContent = torneo.titulo;
   document.getElementById('ta-tema').textContent = torneo.tema || '';
 
   const yaJugo = torneoJugadoAqui(torneo.slug);
@@ -190,7 +207,7 @@ function pintarAvisoTorneo() {
     btn.textContent = 'Ver la clasificación';
     btn.onclick = () => showTab('torneo');
   } else {
-    document.getElementById('ta-eyebrow').textContent = '🏆 Torneo de la semana';
+    document.getElementById('ta-eyebrow').textContent = torneoRotulo();
     btn.textContent = 'Jugar el torneo';
     btn.onclick = jugarTorneo;
   }
