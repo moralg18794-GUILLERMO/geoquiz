@@ -28,7 +28,7 @@ siguiente es el III: mirar el historial antes de escribir la descripción.
 |---|---|---|---|
 | 14–18 oct | dom 18 | Actualidad: la entrada masiva de 2021 y el pulso con Marruecos | **Ceuta** · publicado · torneo II |
 | 19–25 oct | dom 25 | **24 oct 1929**: jueves negro en Wall Street | El crac del 29 y los felices años veinte |
-| 26 oct–1 nov | dom 1 | **28 oct 1886**: se inaugura la Estatua de la Libertad ⭐ **140 años** | La Estatua de la Libertad y la emigración a América |
+| 26 oct–1 nov | dom 1 | **28 oct 1886**: se inaugura la Estatua de la Libertad ⭐ **140 años** | ~~La Estatua de la Libertad~~ · semana sin torneo |
 | 2–8 nov | dom 8 | **4 nov 1922**: Howard Carter encuentra el primer escalón | Tutankamón y los grandes hallazgos arqueológicos |
 | 9–15 nov | dom 15 | **9 nov 1989**: cae el Muro, y el torneo abre ese mismo día | La caída del Muro |
 | 16–22 nov | dom 22 | **20 nov 1975**: muere Franco | 1975: la muerte de Franco y la Transición |
@@ -74,4 +74,13 @@ carpeta se ordene sola.
 | Nº | Semana | Torneo | Jugaron | Ganó | Media |
 |---|---|---|---|---|---|
 | I | 12 oct (un día) | Torneo de la Hispanidad | 20 | Weedllermo, 8.635 | 8,3 de 15 |
-| II | 14–18 oct | Ceuta | — | — | — |
+| II | 14–18 oct | Ceuta | 13 | Jorge H, 5.635 | 9,5 de 15 |
+| III | 22–25 oct | E.T.A. | 12 en liza (17 empezaron) | magui, 4.379 · 12/15 | 9,0 de 15 |
+
+Desde el II, Guillermo juega **fuera de concurso**: su marca sale en la tabla pero no
+ocupa el podio ni cuenta en el recuento del mensaje. Por eso el ganador de Ceuta figura
+aquí como Jorge H y no como Weedllermo.
+
+En el III, 17 personas reservaron mote y solo 13 terminaron. Como el mote se reserva al
+empezar, esas cuatro gastaron su intento sin salir en la tabla: conviene tenerlo en
+cuenta antes de leer el recuento como "gente que ha jugado".
