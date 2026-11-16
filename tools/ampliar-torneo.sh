@@ -15,7 +15,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-BASE="${GQ_BASE:-https://mediumturquoise-dugong-529601.hostingersite.com}"
+BASE="${GQ_BASE:-https://geoquiz.tunegocioconestrategia.com}"
 API="$BASE/api/torneo-admin.php"
 
 if [ ! -f api/config.php ]; then

@@ -4,7 +4,10 @@
 // es absoluta. Desde el propio Hostinger la petición sigue siendo del mismo
 // origen; desde GitHub Pages es cruzada y la resuelve el CORS de ranking.php.
 // Si algún día cambia el dominio, este es el único sitio donde tocarlo.
-const GQ_API='https://mediumturquoise-dugong-529601.hostingersite.com/api/ranking.php';
+// Dirección principal: geoquiz.tunegocioconestrategia.com; la temporal de Hostinger sigue viva.
+const GQ_API=/^(geoquiz\.tunegocioconestrategia\.com|mediumturquoise-dugong-529601\.hostingersite\.com)$/.test(location.hostname)
+  ?'/api/ranking.php'
+  :'https://geoquiz.tunegocioconestrategia.com/api/ranking.php';
 const GQ_TIMEOUT=8000;
 
 // Nada de esto debe poder tumbar la partida: si la API falla, el juego sigue

@@ -329,6 +329,7 @@ const GQ_MAX_NOMBRE = 24;
 const GQ_AUTORES = ['Weedllermo'];
 
 const GQ_ORIGENES = [
+    'https://geoquiz.tunegocioconestrategia.com',
     'https://mediumturquoise-dugong-529601.hostingersite.com',
     'https://moralg18794-guillermo.github.io',
 ];
