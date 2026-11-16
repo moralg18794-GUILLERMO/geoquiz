@@ -376,6 +376,9 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 
 /* FIRMA */
 .firma{margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--border);text-align:center;font-family:'Libre Baskerville',serif;font-size:12px;font-style:italic;line-height:1.7;color:var(--muted);opacity:0.75;}
+.firma-logo{display:block;width:max-content;margin:1rem auto 0;padding:8px 12px;opacity:0.85;transition:opacity 0.15s;}
+.firma-logo img{display:block;height:26px;width:auto;}
+.firma-logo:hover,.firma-logo:focus-visible{opacity:1;}
 
 /* COMPARTIR POR WHATSAPP */
 .btn-whatsapp{background:rgba(37,211,102,0.12);color:#43d178;border:1px solid rgba(37,211,102,0.35);}
