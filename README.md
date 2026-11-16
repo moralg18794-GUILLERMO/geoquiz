@@ -51,7 +51,8 @@ Se abre haciendo doble clic en `index.html` y se publica subiendo la carpeta tal
 ```
 GEOQUIZ/
 ├── index.html                  Marcado de las 6 pantallas
-├── css/styles.css              Todo el CSS (variables en :root)
+├── css/styles.css              Todo el CSS (variables en :root; colores de torneo: neón)
+├── img/                        Iconos, imagen del enlace (og-torneo.jpg) y atardecer.svg
 ├── js/
 │   ├── data/questions.js       Las 521 preguntas  ← aquí se añaden preguntas
 │   ├── data/events.js          Los 102 eventos    ← aquí se añaden eventos
@@ -80,8 +81,10 @@ GEOQUIZ/
 ├── tools/
 │   ├── version.sh                Sube la versión de caché de todas las rutas (y
 │   │                              regenera api/preguntas.json antes de hacerlo)
-│   └── exportar-preguntas.php    Genera api/preguntas.json desde js/data/questions.js
-├── docs/                       Notas de mantenimiento
+│   ├── exportar-preguntas.php    Genera api/preguntas.json desde js/data/questions.js
+│   ├── og/                       Fuente y script de la imagen que sale al compartir el enlace
+│   └── pruebas/mock-torneo.js    API de torneo simulada para ver las pantallas en local
+├── docs/                       Notas de mantenimiento (rediseno-gta6.md: el aspecto y su plan)
 └── geopolitica-quiz.html       Original de un solo archivo, congelado como referencia
 ```
 

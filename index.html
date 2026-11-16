@@ -2,7 +2,8 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0d0820">
 <title>GeoQuiz — Guerras & Conflictos</title>
 <meta name="description" content="Trivia de geopolítica, guerras y conflictos: 521 preguntas en 13 categorías, seis modos de juego y ranking global.">
 <link rel="icon" href="img/favicon-32.png?v=20261023c" sizes="32x32">
@@ -12,14 +13,19 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="GeoQuiz">
 <meta property="og:locale" content="es_ES">
-<meta property="og:title" content="GeoQuiz — Guerras & Conflictos">
-<meta property="og:description" content="521 preguntas de guerras, conflictos y geopolítica, de la Antigüedad a Ucrania. Seis modos de juego y ranking compartido.">
+<!-- ESPECIAL GTA VI (semana del 19/11/2026). Al acabar el torneo hay que volver a lo de
+     siempre: og:title «GeoQuiz — Guerras & Conflictos», og:description «521 preguntas de
+     guerras, conflictos y geopolítica, de la Antigüedad a Ucrania. Seis modos de juego y
+     ranking compartido.» e imagen img/og.jpg?v=2 (sigue en la carpeta). Para estrenar una
+     imagen nueva, subir el número de ?v= o WhatsApp enseñará la anterior (la guarda unos días). -->
+<meta property="og:title" content="Torneo GeoQuiz: especial estreno GTA VI">
+<meta property="og:description" content="15 preguntas, las mismas para todos y una sola partida. ¿Quién gana en tu grupo? Juega gratis desde el móvil.">
 <meta property="og:url" content="https://mediumturquoise-dugong-529601.hostingersite.com/">
-<meta property="og:image" content="https://mediumturquoise-dugong-529601.hostingersite.com/img/og.jpg?v=2">
+<meta property="og:image" content="https://mediumturquoise-dugong-529601.hostingersite.com/img/og-torneo.jpg?v=3">
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="GeoQuiz — Guerras, conflictos y poder global a través de los siglos">
+<meta property="og:image:alt" content="Torneo semanal de GeoQuiz, especial estreno GTA VI: un atardecer de neón con palmeras. Torneo no oficial, sin relación con Rockstar Games.">
 <meta name="twitter:card" content="summary_large_image">
 <!-- Las fuentes se piden AQUÍ y no con un @import dentro del CSS. Con el @import, el
      navegador no sabía que existía fonts.googleapis.com hasta haber descargado y leído
@@ -39,6 +45,22 @@
 <link rel="stylesheet" href="css/styles.css?v=20261023c">
 </head>
 <body>
+<!-- Iconos de la interfaz: se dibujan con trazo (currentColor), así toman el color del
+     botón activo y se ven igual en todos los móviles, cosa que los emojis no garantizan. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5.5v13l10.5-6.5z"/></symbol>
+    <symbol id="i-records" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-ranking" viewBox="0 0 24 24"><path d="M4 20h16M6 20v-7h3.5v7M10.25 20V5h3.5v15M14.5 20V10H18v10"/></symbol>
+    <symbol id="i-trofeo" viewBox="0 0 24 24"><path d="M7 4h10v5a5 5 0 0 1-10 0zM7 6H4v1a3.5 3.5 0 0 0 3.5 3.5M17 6h3v1a3.5 3.5 0 0 1-3.5 3.5M12 14v3.5M8.5 20h7M9.5 17.5h5"/></symbol>
+    <symbol id="i-duelo" viewBox="0 0 24 24"><path d="M4 4l15 15M20 4L5 19M12 18l6-6M12 18l-6-6"/></symbol>
+    <symbol id="i-solo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r=".8"/></symbol>
+    <symbol id="i-blitz" viewBox="0 0 24 24"><path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"/></symbol>
+    <symbol id="i-superv" viewBox="0 0 24 24"><path d="M12 3a7 7 0 0 0-7 7c0 2.5 1.2 4 3 5v3h8v-3c1.8-1 3-2.5 3-5a7 7 0 0 0-7-7z"/><circle cx="9.3" cy="11" r="1.2"/><circle cx="14.7" cy="11" r="1.2"/><path d="M10.5 18v2M13.5 18v2"/></symbol>
+    <symbol id="i-crono" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 10h16M8 3v4M16 3v4"/></symbol>
+    <symbol id="i-fechas" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+  </defs>
+</svg>
 <div class="app">
 
   <!-- TRANSITION OVERLAY -->
@@ -52,21 +74,37 @@
   <div class="streak-banner" id="streak-banner">🔥 ¡Racha x3!</div>
 
   <header class="site-header" id="site-header">
-    <button class="sound-toggle" id="sound-toggle">🔊</button>
+    <button class="sound-toggle" id="sound-toggle" aria-label="Activar o silenciar el sonido">🔊</button>
     <div class="header-flash" id="header-flash"></div>
-    <div class="eyebrow">⚔ Trivia estratégica</div>
-    <h1>Geo<em>Quiz</em></h1>
-    <p class="tagline">Guerras, conflictos y poder global a través de los siglos</p>
-    <div class="header-nav">
-      <button class="nav-btn active" onclick="showTab('menu')">Jugar</button>
-      <button class="nav-btn" onclick="showTab('records')">Récords</button>
-      <button class="nav-btn" onclick="showTab('ranking')">Ranking</button>
-      <!-- Solo aparece cuando hay torneo: el resto del tiempo sobra en la barra. -->
-      <button class="nav-btn" id="nav-torneo" style="display:none" onclick="showTab('torneo')">🏆 Torneo</button>
-      <button class="nav-btn" onclick="showTab('duelos')">⚔️ Duelos</button>
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+        <circle cx="20" cy="20" r="17" fill="rgba(201,168,76,0.1)"/>
+        <g fill="none" stroke="currentColor" stroke-linecap="round">
+          <circle cx="20" cy="20" r="17" stroke-width="2"/>
+          <ellipse cx="20" cy="20" rx="7.5" ry="17" stroke-width="1.4" opacity=".6"/>
+          <path d="M3 20h34M6.5 11.5h27M6.5 28.5h27M20 3v34" stroke-width="1.2" opacity=".45"/>
+        </g>
+      </svg>
+      <div class="brand-text">
+        <h1>Geo<em>Quiz</em></h1>
+        <p class="tagline">Guerras, conflictos y poder global</p>
+        <!-- Mientras se juega, la época de la pregunta sustituye a la frase de arriba. -->
+        <span class="era-label" id="era-label"></span>
+      </div>
     </div>
-    <span class="era-label" id="era-label"></span>
   </header>
+
+  <!-- Barra de secciones. En el móvil queda fija abajo, al alcance del pulgar; en pantalla
+       ancha es una fila de botones bajo la cabecera. Los onclick no se tocan: showTab() y
+       goMenu() encuentran cada botón por ese atributo. -->
+  <nav class="tabbar" aria-label="Secciones">
+    <button class="nav-btn active" onclick="showTab('menu')"><svg class="ico"><use href="#i-play"/></svg><span>Jugar</span></button>
+    <button class="nav-btn" onclick="showTab('records')"><svg class="ico"><use href="#i-records"/></svg><span>Récords</span></button>
+    <button class="nav-btn" onclick="showTab('ranking')"><svg class="ico"><use href="#i-ranking"/></svg><span>Ranking</span></button>
+    <!-- Solo aparece cuando hay torneo: el resto del tiempo sobra en la barra. -->
+    <button class="nav-btn" id="nav-torneo" style="display:none" onclick="showTab('torneo')"><svg class="ico"><use href="#i-trofeo"/></svg><span>Torneo</span></button>
+    <button class="nav-btn" onclick="showTab('duelos')"><svg class="ico"><use href="#i-duelo"/></svg><span>Duelos</span></button>
+  </nav>
 
   <!-- MENU -->
   <div id="screen-menu" class="screen active">
@@ -75,40 +113,47 @@
          entonces en vez de invitar informa del puesto. -->
     <div class="torneo-aviso" id="torneo-aviso">
       <button class="ta-cerrar" onclick="cerrarAvisoTorneo()" aria-label="Cerrar">✕</button>
-      <div class="ta-eyebrow" id="ta-eyebrow">🏆 Torneo de la semana</div>
-      <div class="ta-titulo" id="ta-titulo">—</div>
-      <div class="ta-tema" id="ta-tema"></div>
-      <div class="ta-cuenta" id="ta-cuenta"></div>
-      <button class="ta-jugar" id="ta-jugar" onclick="jugarTorneo()">Jugar el torneo</button>
-      <button class="invitar-btn" id="ta-retar" onclick="retarAlTorneo()">💬 Retar a alguien por WhatsApp</button>
-      <div class="ta-nota">Una sola partida por persona</div>
+      <div class="ta-arte" aria-hidden="true"></div>
+      <div class="ta-cuerpo">
+        <div class="ta-eyebrow" id="ta-eyebrow">🏆 Torneo de la semana</div>
+        <div class="ta-titulo" id="ta-titulo">—</div>
+        <div class="ta-tema" id="ta-tema"></div>
+        <div class="ta-datos">
+          <span class="ta-chip ta-reloj" id="ta-cuenta"></span>
+          <span class="ta-chip" id="ta-npreg"></span>
+        </div>
+        <button class="ta-jugar" id="ta-jugar" onclick="jugarTorneo()">Jugar el torneo</button>
+        <button class="invitar-btn" id="ta-retar" onclick="retarAlTorneo()">💬 Retar a alguien por WhatsApp</button>
+        <div class="ta-nota">Una sola partida por persona</div>
+        <div class="ta-legal" id="ta-legal">Torneo no oficial, sin relación con Rockstar Games.</div>
+      </div>
     </div>
     <div class="challenge-banner" id="challenge-banner">
       <div class="cb-title">🎯 Alguien te ha retado</div>
       <div class="cb-score" id="cb-score">—</div>
       <div class="cb-detail" id="cb-detail">—</div>
     </div>
-    <p class="section-label">Modo de juego:</p>
+    <p class="section-label">Modo de juego</p>
     <div class="mode-row" id="mode-row">
-      <button class="mode-btn active" data-mode="solo"><span class="mi">🎯</span><span class="mn">Solo</span><span class="md">Timer por pregunta</span></button>
-      <button class="mode-btn" data-mode="blitz"><span class="mi">⚡</span><span class="mn">Blitz</span><span class="md">60s para todo</span></button>
-      <button class="mode-btn" data-mode="survival"><span class="mi">💀</span><span class="mn">Supervivencia</span><span class="md">Hasta morir</span></button>
-      <button class="mode-btn" data-mode="crono"><span class="mi">📅</span><span class="mn">Cronológico</span><span class="md">Ordena eventos</span></button>
-      <button class="mode-btn" data-mode="fechas"><span class="mi">🔗</span><span class="mn">Fechas</span><span class="md">Une evento y año</span></button>
-      <button class="mode-btn" data-mode="duel"><span class="mi">⚔️</span><span class="mn">Duelo</span><span class="md">Online, 1 contra 1</span></button>
+      <button class="mode-btn active" data-mode="solo"><span class="mi"><svg class="ico"><use href="#i-solo"/></svg></span><span class="mn">Solo</span><span class="md">Timer por pregunta</span></button>
+      <button class="mode-btn" data-mode="blitz"><span class="mi"><svg class="ico"><use href="#i-blitz"/></svg></span><span class="mn">Blitz</span><span class="md">60 s para todo</span></button>
+      <button class="mode-btn" data-mode="survival"><span class="mi"><svg class="ico"><use href="#i-superv"/></svg></span><span class="mn">Supervivencia</span><span class="md">Hasta morir</span></button>
+      <button class="mode-btn" data-mode="crono"><span class="mi"><svg class="ico"><use href="#i-crono"/></svg></span><span class="mn">Cronológico</span><span class="md">Ordena eventos</span></button>
+      <button class="mode-btn" data-mode="fechas"><span class="mi"><svg class="ico"><use href="#i-fechas"/></svg></span><span class="mn">Fechas</span><span class="md">Une evento y año</span></button>
+      <button class="mode-btn" data-mode="duel"><span class="mi"><svg class="ico"><use href="#i-duelo"/></svg></span><span class="mn">Duelo</span><span class="md">Online, 1 contra 1</span></button>
     </div>
     <div id="cat-diff-section">
     <div class="filter-switch" id="filter-switch">
       <button class="fs-btn active" data-filter="epocas"><span class="fs-icon">🕰️</span>Por épocas</button>
       <button class="fs-btn" data-filter="tematicas"><span class="fs-icon">🎭</span>Por temáticas</button>
     </div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem;">
-      <p class="section-label" id="grid-label" style="margin-bottom:0">Categorías:</p>
-      <button id="select-all-btn" onclick="toggleAllCats()" style="background:transparent;border:1px solid var(--border2);border-radius:20px;padding:3px 12px;font-size:12px;color:var(--muted);cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.15s;">Seleccionar todas</button>
+    <div class="label-row">
+      <p class="section-label" id="grid-label">Categorías</p>
+      <button id="select-all-btn" class="chip-btn" onclick="toggleAllCats()">Seleccionar todas</button>
     </div>
     <div class="cat-grid" id="cat-grid"></div>
     <div class="cat-grid" id="theme-grid" style="display:none"></div>
-    <p class="section-label">Dificultad:</p>
+    <p class="section-label">Dificultad</p>
     <div class="diff-row" id="diff-row">
       <button class="diff-btn active" data-diff="all">Todas</button>
       <button class="diff-btn" data-diff="facil">Fácil</button>
@@ -116,9 +161,9 @@
       <button class="diff-btn" data-diff="dificil">Difícil</button>
     </div>
     </div>
-    <div id="crono-info" style="display:none;background:var(--accent-dim);border:1px solid rgba(201,168,76,0.3);border-radius:var(--radius);padding:0.9rem 1rem;margin-bottom:1.25rem;font-size:13px;color:var(--muted);line-height:1.5;">📅 En el modo <strong style="color:var(--accent)">Cronológico</strong> ordenarás eventos de <strong style="color:var(--text)">todas las épocas</strong> en la línea del tiempo, del más antiguo al más reciente. No hace falta elegir categorías.</div>
-    <div id="fechas-info" style="display:none;background:var(--accent-dim);border:1px solid rgba(201,168,76,0.3);border-radius:var(--radius);padding:0.9rem 1rem;margin-bottom:1.25rem;font-size:13px;color:var(--muted);line-height:1.5;">🔗 En el modo <strong style="color:var(--accent)">Fechas</strong> emparejarás cada evento con su año. Los cinco de cada ronda son <strong style="color:var(--text)">cercanos en el tiempo</strong>, así que no vale con distinguir a ojo la Antigüedad del siglo XX. No hace falta elegir categorías.</div>
-    <div id="duelo-info" style="display:none;background:var(--accent-dim);border:1px solid rgba(201,168,76,0.3);border-radius:var(--radius);padding:0.9rem 1rem;margin-bottom:1.25rem;font-size:13px;color:var(--muted);line-height:1.5;">⚔️ En el modo <strong style="color:var(--accent)">Duelo</strong> juegas por turnos contra un rival, cada uno en su dispositivo: 3 vidas por persona y sin comodines. Quien crea el duelo elige las categorías y la dificultad para los dos.</div>
+    <div id="crono-info" class="info-box" style="display:none">📅 En el modo <strong style="color:var(--accent)">Cronológico</strong> ordenarás eventos de <strong style="color:var(--text)">todas las épocas</strong> en la línea del tiempo, del más antiguo al más reciente. No hace falta elegir categorías.</div>
+    <div id="fechas-info" class="info-box" style="display:none">🔗 En el modo <strong style="color:var(--accent)">Fechas</strong> emparejarás cada evento con su año. Los cinco de cada ronda son <strong style="color:var(--text)">cercanos en el tiempo</strong>, así que no vale con distinguir a ojo la Antigüedad del siglo XX. No hace falta elegir categorías.</div>
+    <div id="duelo-info" class="info-box" style="display:none">⚔️ En el modo <strong style="color:var(--accent)">Duelo</strong> juegas por turnos contra un rival, cada uno en su dispositivo: 3 vidas por persona y sin comodines. Quien crea el duelo elige las categorías y la dificultad para los dos.</div>
     <div id="start-actions">
       <button class="start-btn" id="start-btn" disabled>Selecciona al menos una categoría</button>
       <button class="invitar-btn" onclick="compartirWhatsApp(textoInvitacion())">💬 Invitar por WhatsApp</button>

@@ -14,6 +14,9 @@ const CAT_STYLES={
   "África y Oriente Medio":{bg:"linear-gradient(135deg,#1a0a00,#3d1e00 40%,#7a3c00 70%,#2a1000)",label:"África y Oriente Medio"},
   "Américas":            {bg:"linear-gradient(135deg,#00001a,#001a3d 40%,#002b5c 70%,#00000f)",label:"Continente americano"},
 };
+// Cabecera de la portada: sobria y azulada, para que el naranja y el magenta del torneo
+// destaquen debajo. Las épocas conservan sus degradados mientras se juega.
+const MENU_STYLE={bg:"linear-gradient(135deg,#0d1b2a,#16263d 45%,#1d1a3a 100%)",label:""};
 const DEFAULT_STYLE={bg:"linear-gradient(135deg,#1a1209,#3d2b0a 40%,#7a5c1e 70%,#2a1f06)",label:""};
 const CAT_ICONS={"Antigüedad":"⚱️","Edad Media":"🏰","S. XVI–XVIII":"⚓","Era Napoleónica":"🎖️","S. XIX":"🏭","I Guerra Mundial":"🪖","II Guerra Mundial":"✈️","Guerra Fría":"☢️","Conflictos Modernos":"🌍","Geopolítica":"🗺️","Asia y Pacífico":"🌏","África y Oriente Medio":"🏜️","Américas":"🌎"};
 
@@ -35,7 +38,7 @@ const THEMES={
 
 // ── HEADER ────────────────────────────────────────────────────────────────
 function setHeaderStyle(cat){
-  const s=CAT_STYLES[cat]||DEFAULT_STYLE;
+  const s=cat==='menu'?MENU_STYLE:(CAT_STYLES[cat]||DEFAULT_STYLE);
   document.getElementById('site-header').style.background=s.bg;
   document.getElementById('era-label').textContent=s.label;
 }

@@ -1,5 +1,5 @@
 // GeoQuiz — arranque. Debe cargarse el último.
-setHeaderStyle('Antigüedad');
+setHeaderStyle('menu');
 checkChallenge();
 cargarTorneo();
 checkDuelInvite();

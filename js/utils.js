@@ -36,3 +36,109 @@ function toast(msg){
   t.textContent=msg;t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2500);
 }
+
+// ── IMAGEN PARA COMPARTIR ─────────────────────────────────────────────────
+// Una tarjeta cuadrada con la nota del jugador, dibujada con canvas en su propio móvil: no
+// se sube a ningún sitio. Va por WhatsApp junto al texto del reto, y una imagen con tu nota
+// llama más la atención en un grupo que un enlace suelto. Cada pantalla de resultado deja en
+// `ultimaTarjeta` lo que hay que pintar: {titulo, puntos, detalle, neon, legal, texto}.
+let ultimaTarjeta = null;
+
+function cargarImagen(src) {
+  return new Promise((ok, ko) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ko; i.src = src; });
+}
+
+// Parte un texto en líneas que quepan en `ancho` píxeles con la fuente ya puesta en `ctx`.
+function lineasDeTexto(ctx, texto, ancho) {
+  const lineas = []; let actual = '';
+  for (const palabra of String(texto).split(/\s+/)) {
+    const prueba = actual ? actual + ' ' + palabra : palabra;
+    if (actual && ctx.measureText(prueba).width > ancho) { lineas.push(actual); actual = palabra; }
+    else actual = prueba;
+  }
+  if (actual) lineas.push(actual);
+  return lineas;
+}
+
+async function tarjetaResultado(d) {
+  const W = 1080, H = 1080;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const x = c.getContext('2d');
+  // Las fuentes de la página tienen que estar listas antes de pintar con ellas.
+  try {
+    await Promise.all([document.fonts.load('700 60px "Libre Baskerville"'), document.fonts.load('italic 700 60px "Libre Baskerville"'), document.fonts.load('600 40px Inter')]);
+  } catch {}
+
+  x.fillStyle = '#0b0f17'; x.fillRect(0, 0, W, H);
+  if (d.neon) {
+    // La ilustración propia del torneo, recortada como un «cover» a mano, y fundida con el fondo.
+    const arte = await cargarImagen('img/atardecer.svg?v=1');
+    const ah = 540, k = Math.max(W / 720, ah / 320), w = 720 * k, h = 320 * k;
+    x.drawImage(arte, (W - w) / 2, ah - h, w, h);
+    const f = x.createLinearGradient(0, ah - 170, 0, ah + 4);
+    f.addColorStop(0, 'rgba(11,15,23,0)'); f.addColorStop(1, '#0b0f17');
+    x.fillStyle = f; x.fillRect(0, ah - 170, W, 176);
+  } else {
+    const g = x.createRadialGradient(W / 2, 230, 10, W / 2, 230, 720);
+    g.addColorStop(0, 'rgba(201,168,76,0.30)'); g.addColorStop(1, 'rgba(11,15,23,0)');
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+    x.strokeStyle = 'rgba(201,168,76,0.22)'; x.lineWidth = 3;
+    x.beginPath(); x.arc(W / 2, 250, 190, 0, Math.PI * 2); x.stroke();
+    x.beginPath(); x.ellipse(W / 2, 250, 80, 190, 0, 0, Math.PI * 2); x.stroke();
+    x.beginPath(); x.moveTo(W / 2 - 190, 250); x.lineTo(W / 2 + 190, 250); x.moveTo(W / 2, 60); x.lineTo(W / 2, 440); x.stroke();
+  }
+
+  // Marca
+  x.textAlign = 'left'; x.textBaseline = 'alphabetic';
+  x.font = '700 54px "Libre Baskerville"'; x.fillStyle = '#fff'; x.fillText('Geo', 64, 104);
+  const gw = x.measureText('Geo').width;
+  x.font = 'italic 700 54px "Libre Baskerville"'; x.fillStyle = '#e0b94f'; x.fillText('Quiz', 64 + gw, 104);
+
+  // Título (el del torneo o el rango ganado), centrado, hasta dos líneas
+  x.textAlign = 'center'; x.fillStyle = '#fff';
+  x.font = 'italic 700 50px "Libre Baskerville"';
+  const lineas = lineasDeTexto(x, d.titulo, 900).slice(0, 2);
+  lineas.forEach((l, i) => x.fillText(l, W / 2, 610 + i * 62));
+
+  // Puntuación, en degradado
+  const yP = 610 + (lineas.length - 1) * 62 + 205;
+  const gp = x.createLinearGradient(0, yP - 160, 0, yP);
+  if (d.neon) { gp.addColorStop(0, '#ffe27a'); gp.addColorStop(1, '#ff3d81'); }
+  else { gp.addColorStop(0, '#f1d98a'); gp.addColorStop(1, '#c9a84c'); }
+  x.fillStyle = gp; x.font = '700 190px "Libre Baskerville"';
+  x.fillText(d.puntos, W / 2, yP);
+  x.fillStyle = 'rgba(255,255,255,0.8)'; x.font = '600 40px Inter';
+  x.fillText(d.detalle, W / 2, yP + 64);
+
+  // Reto y, si procede, la aclaración de que no es oficial
+  const yR = yP + 140, rw = 560;
+  const gr = x.createLinearGradient(W / 2 - rw / 2, 0, W / 2 + rw / 2, 0);
+  if (d.neon) { gr.addColorStop(0, '#ff3d81'); gr.addColorStop(1, '#ff9a3c'); } else { gr.addColorStop(0, '#e7c96e'); gr.addColorStop(1, '#c9a84c'); }
+  x.fillStyle = gr; x.beginPath(); x.roundRect(W / 2 - rw / 2, yR - 48, rw, 74, 37); x.fill();
+  x.fillStyle = '#1a0626'; x.font = '700 38px Inter'; x.fillText('¿Puedes superarme?', W / 2, yR);
+  if (d.legal) { x.fillStyle = 'rgba(255,255,255,0.5)'; x.font = '500 24px Inter'; x.fillText(d.legal, W / 2, H - 34); }
+
+  return new Promise((ok, ko) => c.toBlob(b => b ? ok(b) : ko(new Error('canvas')), 'image/png'));
+}
+
+// En el móvil abre la hoja de compartir (WhatsApp incluido) con la imagen adjunta; donde no
+// se puede, la descarga para subirla a mano.
+async function compartirImagen() {
+  if (!ultimaTarjeta) return;
+  try {
+    const blob = await tarjetaResultado(ultimaTarjeta);
+    const archivo = new File([blob], 'geoquiz-resultado.png', { type: 'image/png' });
+    if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+      await navigator.share({ files: [archivo], text: ultimaTarjeta.texto || '' });
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = 'geoquiz-resultado.png';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast('Imagen guardada: súbela a tu chat');
+  } catch (e) {
+    if (e && e.name === 'AbortError') return;   // cerró la hoja de compartir: no es un error
+    toast('No se pudo crear la imagen');
+  }
+}

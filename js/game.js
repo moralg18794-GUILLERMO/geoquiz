@@ -315,21 +315,25 @@ function showResult(){
   if(playerName&&playerName.trim())saveRanking(playerName.trim(),score,pct);
   saveRecord({score,correct,total:correct+wrong,mode:partida.modo,diff:diffLabel(partida.dif),cats:partida.cats,date:new Date().toLocaleDateString('es-ES')});
 
+  // La tarjeta que se manda como imagen (js/utils.js): rango arriba, nota grande, reto abajo.
+  ultimaTarjeta={titulo:rank,puntos:score.toLocaleString('es-ES'),detalle:`${correct} correctas · ${pct}% de aciertos`,neon:false,texto:textoReto()};
+
   document.getElementById('result-hero').innerHTML=`
-    <div><span class="result-score-num">${score.toLocaleString()}</span></div>
-    <div style="font-size:13px;color:var(--muted);margin-top:4px">${correct} correctas · ${wrong} errores · ${pct}% aciertos</div>
+    <div class="rh-etiqueta">Tu resultado</div>
     <div class="result-rank">${rank}</div>
-    <div class="result-msg">${msg}</div>
+    <div><span class="result-score-num">${score.toLocaleString()}</span></div>
+    <div class="rh-pts">puntos</div>
     <div class="result-stats">
       <div class="rstat"><div class="rv green">${correct}</div><div class="rl">Correctas</div></div>
       <div class="rstat"><div class="rv red">${wrong}</div><div class="rl">Errores</div></div>
-      <div class="rstat"><div class="rv gold">${score.toLocaleString()}</div><div class="rl">Puntos</div></div>
+      <div class="rstat"><div class="rv gold">${pct}%</div><div class="rl">Precisión</div></div>
       <div class="rstat"><div class="rv" style="color:var(--text)">${maxStreak}</div><div class="rl">Racha máx.</div></div>
       ${partida.modo==='survival'?`<div class="rstat"><div class="rv" style="color:var(--blue)">${correct+wrong}</div><div class="rl">Respondidas</div></div>`:''}
     </div>
+    <div class="result-msg">${msg}</div>
     <div class="result-actions">
-      <button class="btn-secondary" onclick="copyResult()">📋 Copiar</button>
-      <button class="btn-whatsapp" onclick="retarPorWhatsApp()">💬 WhatsApp</button>
+      <button class="btn-whatsapp ra-full" onclick="retarPorWhatsApp()">💬 Retar a mis amigos por WhatsApp</button>
+      <button class="btn-secondary" onclick="compartirImagen()">📸 Compartir imagen</button>
       <button class="btn-challenge" onclick="copyChallenge()">🎯 Copiar reto</button>
       <button class="btn-secondary" onclick="showTab('ranking')">🏆 Ranking</button>
       <button class="btn-primary" onclick="goMenu()">Jugar de nuevo</button>
@@ -341,10 +345,13 @@ function goMenu(){
   showScreen('screen-menu');
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.querySelector('.nav-btn[onclick="showTab(\'menu\')"]').classList.add('active');
-  setHeaderStyle('Antigüedad');
+  setHeaderStyle('menu');
 }
 
 function showScreen(id){
+  // El resultado del torneo se viste con el atardecer (clase .evento); en cuanto se sale de
+  // esa pantalla se quita, para que el siguiente resultado, sea del modo que sea, no la herede.
+  if(id!=='screen-result')document.getElementById('result-hero').classList.remove('evento');
   document.querySelectorAll('.screen').forEach(s=>{
     s.classList.remove('active');
     s.style.display='none';

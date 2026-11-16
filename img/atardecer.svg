@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="320" viewBox="0 0 720 320" preserveAspectRatio="xMidYMax slice">
+<!-- Ilustración propia de GeoQuiz: atardecer de neón con palmeras y horizonte de ciudad.
+     Evoca el ambiente (Miami, años 80) sin usar ningún material de terceros. -->
+<defs>
+  <linearGradient id="cielo" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#120a30"/>
+    <stop offset=".34" stop-color="#3a1066"/>
+    <stop offset=".6" stop-color="#b8186f"/>
+    <stop offset=".8" stop-color="#ff5d62"/>
+    <stop offset="1" stop-color="#ffb04a"/>
+  </linearGradient>
+  <linearGradient id="sol" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#ffe680"/>
+    <stop offset=".5" stop-color="#ff8a4a"/>
+    <stop offset="1" stop-color="#ff2f95"/>
+  </linearGradient>
+  <linearGradient id="mar" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#3b0f4f"/>
+    <stop offset="1" stop-color="#10051f"/>
+  </linearGradient>
+  <radialGradient id="halo" cx=".5" cy=".5" r=".5">
+    <stop offset="0" stop-color="#ff9d5c" stop-opacity=".55"/>
+    <stop offset="1" stop-color="#ff9d5c" stop-opacity="0"/>
+  </radialGradient>
+  <mask id="franjas">
+    <rect x="0" y="0" width="720" height="320" fill="#fff"/>
+    <rect x="370" y="176" width="200" height="3" fill="#000"/>
+    <rect x="370" y="188" width="200" height="4" fill="#000"/>
+    <rect x="370" y="200" width="200" height="5" fill="#000"/>
+    <rect x="370" y="211" width="200" height="6" fill="#000"/>
+  </mask>
+  <path id="fronda" d="M0 0C16-20 54-26 88 6C56-8 24-6 0 0Z"/>
+  <g id="palmera" fill="#0d0420">
+    <use href="#fronda" transform="rotate(-8)"/>
+    <use href="#fronda" transform="rotate(-38) scale(1.05)"/>
+    <use href="#fronda" transform="rotate(-68)"/>
+    <use href="#fronda" transform="scale(-1 1) rotate(-8)"/>
+    <use href="#fronda" transform="scale(-1 1) rotate(-38) scale(1.05)"/>
+    <use href="#fronda" transform="scale(-1 1) rotate(-68)"/>
+    <use href="#fronda" transform="rotate(26) scale(.8)"/>
+    <use href="#fronda" transform="scale(-1 1) rotate(26) scale(.8)"/>
+    <circle r="5"/>
+  </g>
+</defs>
+
+<rect width="720" height="320" fill="url(#cielo)"/>
+<g fill="#fff" opacity=".75">
+  <circle cx="48" cy="36" r="1.1"/><circle cx="130" cy="72" r=".9"/><circle cx="210" cy="28" r="1.2"/>
+  <circle cx="296" cy="58" r=".9"/><circle cx="352" cy="22" r="1"/><circle cx="560" cy="34" r="1.2"/>
+  <circle cx="640" cy="66" r=".9"/><circle cx="690" cy="24" r="1"/><circle cx="420" cy="48" r=".8"/>
+</g>
+<circle cx="470" cy="204" r="150" fill="url(#halo)"/>
+<circle cx="470" cy="204" r="92" fill="url(#sol)" mask="url(#franjas)"/>
+
+<!-- ciudad en el horizonte -->
+<g fill="#1b0838">
+  <rect x="296" y="181" width="14" height="34"/><rect x="312" y="163" width="10" height="52"/>
+  <rect x="316" y="154" width="2" height="10"/><rect x="324" y="185" width="18" height="30"/>
+  <rect x="344" y="171" width="12" height="44"/><rect x="358" y="189" width="22" height="26"/>
+  <rect x="382" y="177" width="10" height="38"/>
+  <rect x="560" y="187" width="16" height="28"/><rect x="578" y="169" width="12" height="46"/>
+  <rect x="592" y="191" width="20" height="24"/><rect x="614" y="179" width="10" height="36"/>
+  <rect x="626" y="193" width="18" height="22"/><rect x="646" y="175" width="14" height="40"/>
+  <rect x="662" y="189" width="22" height="26"/><rect x="686" y="181" width="34" height="34"/>
+</g>
+<g fill="#2de2e6" opacity=".85">
+  <rect x="316" y="172" width="2" height="2"/><rect x="316" y="182" width="2" height="2"/>
+  <rect x="349" y="180" width="2" height="2"/><rect x="583" y="178" width="2" height="2"/>
+  <rect x="650" y="184" width="2" height="2"/><rect x="383" y="186" width="2" height="2"/>
+</g>
+<g fill="#ff4fa3" opacity=".8">
+  <rect x="316" y="192" width="2" height="2"/><rect x="349" y="196" width="2" height="2"/>
+  <rect x="583" y="188" width="2" height="2"/><rect x="650" y="196" width="2" height="2"/>
+</g>
+
+<!-- mar y reflejo -->
+<rect y="215" width="720" height="105" fill="url(#mar)"/>
+<g fill="#ff7a55">
+  <rect x="410" y="221" width="120" height="3" opacity=".75"/>
+  <rect x="424" y="230" width="92" height="3" opacity=".6"/>
+  <rect x="434" y="240" width="72" height="3" opacity=".5"/>
+  <rect x="444" y="252" width="52" height="3" opacity=".38"/>
+  <rect x="452" y="265" width="36" height="3" opacity=".26"/>
+</g>
+<g fill="#ff2f95" opacity=".18">
+  <rect x="0" y="228" width="720" height="1.5"/><rect x="0" y="246" width="720" height="1.5"/>
+  <rect x="0" y="270" width="720" height="1.5"/><rect x="0" y="298" width="720" height="1.5"/>
+</g>
+
+<!-- palmeras en primer plano -->
+<path d="M92 320C96 262 70 205 86 134" fill="none" stroke="#0d0420" stroke-width="7" stroke-linecap="round"/>
+<use href="#palmera" transform="translate(86 134)"/>
+<path d="M150 320C146 276 160 236 150 196" fill="none" stroke="#0d0420" stroke-width="5" stroke-linecap="round"/>
+<use href="#palmera" transform="translate(150 196) scale(.62)"/>
+<path d="M646 320C642 270 668 230 654 160" fill="none" stroke="#0d0420" stroke-width="6" stroke-linecap="round"/>
+<use href="#palmera" transform="translate(654 160) scale(.85)"/>
+</svg>

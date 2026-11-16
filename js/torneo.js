@@ -81,6 +81,8 @@ function torneoRestante(hasta) {
 function torneoPintarCuenta() {
   const el = document.getElementById('ta-cuenta');
   if (!el || !torneo) return;
+  // El reloj de delante solo va con la cuenta atrás: «⏱ Terminado» no tendría sentido.
+  el.classList.toggle('ta-reloj', torneo.estado === 'activo');
   if (torneo.estado !== 'activo') { el.textContent = 'Terminado'; return; }
   const r = torneoRestante(torneo.acaba_en);
   // Si el plazo se agota con la pestaña abierta, se recarga el estado en vez de dejar un
@@ -172,11 +174,19 @@ function torneoRotulo() {
   return n ? `🏆 Torneo semanal ${n}🏆` : '🏆 Torneo de la semana';
 }
 
+// La línea de «no oficial» solo tiene sentido cuando el torneo habla del juego de Rockstar:
+// GeoQuiz no está afiliado a Rockstar Games ni a Take-Two. Cualquier otra semana no sale.
+function torneoEsGTA() {
+  return !!torneo && /gta|rockstar|grand theft|vice city|leonida/i.test(`${torneo.titulo} ${torneo.tema || ''}`);
+}
+
 function pintarAvisoTorneo() {
   const caja = document.getElementById('torneo-aviso');
   if (!caja || !torneo) return;
   document.getElementById('ta-titulo').textContent = torneo.titulo;
   document.getElementById('ta-tema').textContent = torneo.tema || '';
+  document.getElementById('ta-npreg').textContent = torneo.n_preguntas ? `${torneo.n_preguntas} preguntas · 1 intento` : '';
+  document.getElementById('ta-legal').style.display = torneoEsGTA() ? '' : 'none';
 
   const yaJugo = torneoJugadoAqui(torneo.slug);
   const cerrado = torneo.estado !== 'activo';
@@ -475,17 +485,32 @@ function mostrarResultadoTorneo() {
       ? `Vas <strong>${c.pos}º</strong> de ${torneoTabla.filter(f => !f.autor).length} en el torneo.`
       : 'Marca guardada.');
 
+  // La tarjeta que se manda como imagen (js/utils.js). El texto del reto va aparte.
+  ultimaTarjeta = {
+    titulo: torneo ? torneo.titulo : 'Torneo GeoQuiz', puntos: puntos.toLocaleString('es-ES'),
+    detalle: `${aciertos} de ${total} correctas · ${pct}%`, neon: true,
+    legal: torneoEsGTA() ? 'Torneo no oficial · sin relación con Rockstar Games' : '',
+    texto: textoTorneo(),
+  };
+
   document.getElementById('result-hero').innerHTML = `
-    <div style="font-size:40px;margin-bottom:0.5rem">🏆</div>
-    <div><span class="result-score-num">${puntos.toLocaleString()}</span></div>
-    <div style="font-size:13px;color:var(--muted);margin-top:4px">${aciertos} de ${total} correctas · ${pct}%</div>
-    <div class="result-rank">${esc(torneo ? torneo.titulo : 'Torneo')}</div>
-    <div class="result-msg">${puesto}</div>
-    <div class="result-actions" style="margin-top:1.5rem">
-      <button class="btn-whatsapp" onclick="compartirWhatsApp(textoTorneo())">💬 WhatsApp</button>
-      <button class="btn-secondary" onclick="showTab('torneo')">🏆 Clasificación</button>
-      <button class="btn-primary" onclick="goMenu()">Volver</button>
+    <div class="rh-arte" aria-hidden="true"></div>
+    <div class="rh-cuerpo">
+      <div class="rh-trofeo"><svg class="ico"><use href="#i-trofeo"/></svg></div>
+      <div class="rh-etiqueta">Torneo completado</div>
+      <div class="result-rank">${esc(torneo ? torneo.titulo : 'Torneo')}</div>
+      <div><span class="result-score-num">${puntos.toLocaleString()}</span></div>
+      <div class="rh-pts">puntos · ${aciertos} de ${total} correctas · ${pct}%</div>
+      <div class="rh-puesto">${puesto}</div>
+      <div class="result-actions">
+        <button class="btn-whatsapp ra-full" onclick="compartirWhatsApp(textoTorneo())">💬 Retar a mis amigos por WhatsApp</button>
+        <button class="btn-secondary" onclick="compartirImagen()">📸 Compartir imagen</button>
+        <button class="btn-secondary" onclick="showTab('torneo')">🏆 Clasificación</button>
+        <button class="btn-primary ra-full" onclick="goMenu()">Volver al inicio</button>
+      </div>
+      ${torneoEsGTA() ? '<div class="ta-legal">Torneo no oficial, sin relación con Rockstar Games.</div>' : ''}
     </div>`;
+  document.getElementById('result-hero').classList.add('evento');
   showScreen('screen-result');
   playFinish();
 }
@@ -516,13 +541,34 @@ async function renderTorneo() {
 
   const activo = torneo.estado === 'activo';
   const r = activo ? torneoRestante(torneo.acaba_en) : null;
-  const cab = `<p class="section-label">🏆 ${esc(torneo.titulo)}${torneo.tema ? ' — ' + esc(torneo.tema) : ''}</p>
-    <p class="section-label" style="margin-top:-0.3rem">${activo && r ? 'Quedan ' + esc(r) + ' · una sola partida por persona' : 'Torneo terminado'}</p>`;
+  const yoMote = (torneoJugadoAqui(torneo.slug) || torneoMiMote()).toLowerCase();
+
+  // Cabecera con la ilustración del torneo: título, de qué va, cuánto queda y, si aún no se
+  // ha jugado desde este móvil, el botón de entrar (la portada lo tiene, pero aquí también
+  // se llega: desde la barra de abajo o desde un enlace).
+  const yaJugo = !!torneoJugadoAqui(torneo.slug);
+  const botonJugar = activo && !yaJugo
+    ? `<button class="ta-jugar" onclick="jugarTorneo()">${torneoEstado === 'enCurso' ? 'Continuar la partida' : 'Jugar el torneo'}</button>`
+    : '';
+  const cab = `<div class="tn-hero">
+    <div class="ta-arte" aria-hidden="true"></div>
+    <div class="ta-cuerpo">
+      <div class="ta-eyebrow">${esc(torneoRotulo())}</div>
+      <h2 class="ta-titulo">${esc(torneo.titulo)}</h2>
+      ${torneo.tema ? `<p class="ta-tema">${esc(torneo.tema)}</p>` : ''}
+      <div class="ta-datos">
+        <span class="ta-chip${activo && r ? ' ta-reloj' : ''}">${activo && r ? 'Quedan ' + esc(r) : 'Terminado'}</span>
+        <span class="ta-chip">${esc(torneo.n_preguntas || 15)} preguntas · 1 intento</span>
+      </div>
+      ${botonJugar}
+      ${torneoEsGTA() ? '<div class="ta-legal">Torneo no oficial, sin relación con Rockstar Games.</div>' : ''}
+    </div>
+  </div>`;
 
   // Mientras está abierto, lo útil es traer gente; cuando cierra, enseñar el podio.
   const pie = activo
     ? '<button class="invitar-btn" onclick="retarAlTorneo()">💬 Retar a alguien por WhatsApp</button>'
-    : '<button class="clear-btn" style="border-color:var(--accent);color:var(--accent)" onclick="compartirWhatsApp(textoPodio())">🏆 Compartir el podio</button>';
+    : '<button class="clear-btn clear-oro" onclick="compartirWhatsApp(textoPodio())">🏆 Compartir el podio</button>';
 
   if (!torneoTabla.length) {
     div.innerHTML = cab + '<div class="no-records">Todavía no ha jugado nadie.<br>¡Sé el primero!</div>' + pie;
@@ -532,12 +578,38 @@ async function renderTorneo() {
   // Quien escribe las preguntas va fuera de concurso: su fila baja al final, sin número y
   // atenuada. Se sigue viendo —es parte de la gracia saber cuánto hizo el que las puso—
   // pero no ocupa el podio de los demás.
-  const fila = e => {
-    const pos = e.autor ? '<span title="Fuera de concurso">✎</span>' : (MEDALLAS[e.pos - 1] || e.pos);
-    const tenue = e.autor ? ' style="opacity:0.65"' : '';
-    return `<tr${tenue}><td>${pos}</td><td style="font-weight:600">${esc(e.nombre)}${e.autor ? ' <span style="font-weight:400;font-size:11px;color:var(--muted)">fuera de concurso</span>' : ''}</td><td style="color:var(--accent);font-weight:600">${esc(Number(e.puntos).toLocaleString())}</td><td>${esc(e.correctas)}/${esc(e.total)}</td><td class="celda-dif">${esc(tiempoCorto(e.segundos))}</td><td class="celda-fecha" style="font-size:11px;color:var(--muted)">${esc(fechaCorta(e.fecha))}</td></tr>`;
+  const enLiza = torneoTabla.filter(e => !e.autor);
+  const autores = torneoTabla.filter(e => e.autor);
+  const esMio = e => !!yoMote && String(e.nombre).toLowerCase() === yoMote;
+  const inicial = n => (Array.from(String(n).trim())[0] || '?').toUpperCase();
+  const detalle = e => `${esc(e.correctas)}/${esc(e.total)} · ${esc(tiempoCorto(e.segundos))}`;
+
+  // Podio: primero en el centro y más alto, segundo a su izquierda y tercero a su derecha.
+  const top = enLiza.slice(0, 3);
+  const orden = top.length === 3 ? [1, 0, 2] : top.length === 2 ? [1, 0] : [0];
+  const columna = i => {
+    const e = top[i];
+    return `<div class="pd pd${i + 1}${esMio(e) ? ' yo' : ''}">
+      <div class="pd-medalla">${MEDALLAS[i]}</div>
+      <div class="pd-avatar">${esc(inicial(e.nombre))}</div>
+      <div class="pd-nombre">${esc(e.nombre)}</div>
+      <div class="pd-puntos">${esc(Number(e.puntos).toLocaleString())}</div>
+      <div class="pd-det">${detalle(e)}</div>
+      <div class="pd-base"></div>
+    </div>`;
   };
-  div.innerHTML = cab + `<div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Jugador</th><th>Puntos</th><th>Aciertos</th><th>Tiempo</th><th class="celda-fecha">Fecha</th></tr></thead><tbody>${torneoTabla.map(fila).join('')}</tbody></table></div>` + pie;
+  const podio = `<div class="podio">${orden.map(columna).join('')}</div>`;
+
+  const fila = e => `<div class="tn-fila${e.autor ? ' autor' : ''}${esMio(e) ? ' yo' : ''}">
+    <div class="tn-pos">${e.autor ? '<span title="Fuera de concurso">✎</span>' : esc(e.pos)}</div>
+    <div class="tn-nom"><div class="tn-n">${esc(e.nombre)}${esMio(e) ? ' <span class="tn-tu">tú</span>' : ''}</div><div class="tn-sub">${e.autor ? 'fuera de concurso · ' : ''}${detalle(e)}</div></div>
+    <div class="tn-pts">${esc(Number(e.puntos).toLocaleString())}</div>
+  </div>`;
+  const resto = enLiza.slice(3).concat(autores);
+  div.innerHTML = cab
+    + (top.length ? `<p class="section-label tn-titulo-sec">Clasificación</p>${podio}` : '')
+    + (resto.length ? `<div class="tn-lista">${resto.map(fila).join('')}</div>` : '')
+    + pie;
 }
 
 // El final del torneo es lo que vende el siguiente, así que el podio sale listo para pegar.

@@ -17,6 +17,8 @@ CAT_KEYS.forEach(cat=>{
   const card=document.createElement('div');
   card.className='cat-card';card.dataset.cat=cat;
   card.innerHTML=`<div class="cat-check">✓</div><div class="cat-icon">${CAT_ICONS[cat]||'📌'}</div><div class="cat-name">${cat}</div>`;
+  // El icono de cada época se apoya en el degradado de su cabecera (js/theme.js).
+  card.style.setProperty('--era',CAT_STYLES[cat].bg);
   card.addEventListener('click',()=>toggleCat(cat,card));
   catGrid.appendChild(card);
 });
@@ -61,7 +63,7 @@ document.getElementById('filter-switch').addEventListener('click',e=>{
   const esTema=filterMode==='tematicas';
   catGrid.style.display=esTema?'none':'grid';
   themeGrid.style.display=esTema?'grid':'none';
-  document.getElementById('grid-label').textContent=esTema?'Temáticas:':'Categorías:';
+  document.getElementById('grid-label').textContent=esTema?'Temáticas':'Categorías';
   updateSelectAllBtn();updateStartBtn();
 });
 
