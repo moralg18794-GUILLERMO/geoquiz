@@ -33,3 +33,24 @@ window.__mock = function (estado, opc) {
   };
   return cargarTorneo();
 };
+
+// ── VISTAS FIJAS PARA ENSEÑAR EL ASPECTO ──────────────────────────────────
+// Con una copia de index.html que cargue este archivo ENTRE torneo.js y main.js y fije
+// `window.__MOCK_AUTO = 'activo'` antes, la página arranca ya con el torneo simulado y, según
+// el # de la dirección, abre la clasificación (#torneo) o el resultado (#resultado). No
+// guarda nada en el navegador, para que cada vista salga como la vería alguien nuevo.
+if (window.__MOCK_AUTO) {
+  window.torneoApuntarJugado = function () {};
+  window.torneoJugadoAqui = function () { return ''; };
+  window.torneoMiMote = function () { return ''; };
+  window.torneoAvisoVisto = function () { return false; };
+  window.__mock(window.__MOCK_AUTO).then(() => {
+    const h = location.hash;
+    if (h === '#torneo') showTab('torneo');
+    if (h === '#resultado') {
+      partida = { modo: 'torneo', torneo: 'prueba' }; torneoNombre = 'Carlos_M'; torneoTotal = 15; score = 3340; correct = 9;
+      torneoCierreDatos = { puntos: 3340, aciertos: 9, total: 15, pos: 4, clasificacion: torneoTabla };
+      mostrarResultadoTorneo();
+    }
+  });
+}
