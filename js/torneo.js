@@ -189,7 +189,7 @@ function torneoEsGTA() {
 function pintarAvisoTorneo() {
   const caja = document.getElementById('torneo-aviso');
   if (!caja || !torneo) return;
-  document.getElementById('ta-titulo').textContent = torneo.titulo;
+  const tt = document.getElementById('ta-titulo'); tt.textContent = torneo.titulo; tt.classList.toggle('ta-gta', torneoEsGTA());
   document.getElementById('ta-tema').textContent = torneo.tema || '';
   document.getElementById('ta-npreg').textContent = torneo.n_preguntas ? `${torneo.n_preguntas} preguntas · 1 intento` : '';
   document.getElementById('ta-legal').style.display = torneoEsGTA() ? '' : 'none';
@@ -560,7 +560,7 @@ async function renderTorneo() {
     <div class="ta-arte" aria-hidden="true"></div>
     <div class="ta-cuerpo">
       <div class="ta-eyebrow">${esc(torneoRotulo())}</div>
-      <h2 class="ta-titulo">${esc(torneo.titulo)}</h2>
+      <h2 class="ta-titulo${torneoEsGTA() ? ' ta-gta' : ''}">${esc(torneo.titulo)}</h2>
       ${torneo.tema ? `<p class="ta-tema">${esc(torneo.tema)}</p>` : ''}
       <div class="ta-datos">
         <span class="ta-chip${activo && r ? ' ta-reloj' : ''}">${activo && r ? 'Quedan ' + esc(r) : 'Terminado'}</span>

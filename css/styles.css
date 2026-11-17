@@ -409,7 +409,15 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .te-rotulo{font-size:10.5px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#ffd9a8;margin-bottom:6px;}
 .te-cifras{display:flex;justify-content:center;gap:10px;}
 .te-celda{min-width:58px;}
-.te-num{display:block;font-family:'Bowlby One','Arial Black',Impact,sans-serif;font-size:2.1rem;line-height:1.05;background:linear-gradient(180deg,#ff6fa3 0%,#ff9a3c 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;font-variant-numeric:tabular-nums;}
-.te-eti{display:block;font-family:'Bowlby One','Arial Black',Impact,sans-serif;font-size:0.62rem;letter-spacing:0.06em;color:#fff;opacity:0.85;margin-top:2px;}
-.te-ya{font-family:'Bowlby One','Arial Black',Impact,sans-serif;font-size:1.7rem;line-height:1.15;background:linear-gradient(180deg,#ff6fa3,#ff9a3c);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;padding:2px 0;}
+.te-num{display:block;font-family:'Titan One','Arial Black',Impact,sans-serif;font-size:2.1rem;line-height:1.05;background:linear-gradient(180deg,#ff6fa3 0%,#ff9a3c 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;font-variant-numeric:tabular-nums;}
+.te-eti{display:block;font-family:'Titan One','Arial Black',Impact,sans-serif;font-size:0.62rem;letter-spacing:0.06em;color:#fff;opacity:0.85;margin-top:2px;}
+.te-ya{font-family:'Titan One','Arial Black',Impact,sans-serif;font-size:1.7rem;line-height:1.15;background:linear-gradient(180deg,#ff6fa3,#ff9a3c);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;padding:2px 0;}
 @media(max-width:380px){.te-cifras{gap:6px}.te-celda{min-width:50px}.te-num{font-size:1.8rem}}
+/* Relieve de cartel: sombra dura detrás de las cifras y de las etiquetas. */
+.te-num{font-size:2.3rem;filter:drop-shadow(0 3px 0 #7a1f4a);}
+.te-eti{font-size:0.7rem;letter-spacing:0.08em;text-shadow:0 2px 0 #1a0b2e;opacity:1;}
+.te-ya{filter:drop-shadow(0 3px 0 #7a1f4a);}
+@media(max-width:380px){.te-num{font-size:1.9rem}}
+
+/* Título del torneo de GTA: letra gruesa de cartel (Titan One, fuente libre), no la del logotipo. */
+.ta-titulo.ta-gta{font-family:'Titan One','Arial Black',Impact,sans-serif;font-weight:400;text-transform:uppercase;font-size:30px;line-height:1.08;letter-spacing:0.01em;background:linear-gradient(180deg,#fff 10%,#ffd1e3 45%,#ff9a3c 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;filter:drop-shadow(0 3px 0 #7a1f4a);}
