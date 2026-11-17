@@ -13,6 +13,7 @@ desktop.ini
 
 # Credenciales: solo en el servidor
 api/config.php
+api/correo-config.php
 
 # Lleva la respuesta correcta de las 521 preguntas (ans). Si se versionara, el
 # repositorio público la publicaría en GitHub Pages igual que pasó con los JSON de

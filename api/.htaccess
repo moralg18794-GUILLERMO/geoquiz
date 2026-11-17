@@ -1,7 +1,7 @@
 # La configuración y el módulo de base de datos no se sirven nunca por HTTP.
 # Son PHP y de por sí no devolverían código fuente, pero si algún día PHP dejara
 # de ejecutarse en esta carpeta quedarían expuestas las credenciales.
-<FilesMatch "^(config|config\.example|db)\.php$">
+<FilesMatch "^(config|config\.example|correo-config|db)\.php$">
   Require all denied
 </FilesMatch>
 # preguntas.json lleva la respuesta correcta de las 521 preguntas (ans): es lo que

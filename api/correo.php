@@ -23,9 +23,18 @@ declare(strict_types=1);
 const GQ_TEXTO_VERSION = 'v1-2026-11';
 
 function gq_correo_cfg(): array {
+    // Los datos del buzón viven en api/correo-config.php (que devuelve directamente el array
+    // de abajo) para no tener que reescribir config.php, que lleva la base de datos. Si no
+    // existe, se mira la clave 'correo' de config.php.
+    $propio = __DIR__ . '/correo-config.php';
     $ruta = __DIR__ . '/config.php';
-    $cfg = is_file($ruta) ? require $ruta : [];
-    $c = is_array($cfg) && isset($cfg['correo']) && is_array($cfg['correo']) ? $cfg['correo'] : [];
+    if (is_file($propio)) {
+        $c = require $propio;
+    } else {
+        $cfg = is_file($ruta) ? require $ruta : [];
+        $c = is_array($cfg) && isset($cfg['correo']) && is_array($cfg['correo']) ? $cfg['correo'] : [];
+    }
+    $c = is_array($c) ? $c : [];
     $c += ['smtp_host' => 'smtp.hostinger.com', 'smtp_puerto' => 465, 'smtp_usuario' => '', 'smtp_clave' => '',
            'remitente_nombre' => 'GeoQuiz', 'contacto' => '',
            'base' => 'https://geoquiz.tunegocioconestrategia.com'];
