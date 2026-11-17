@@ -418,3 +418,6 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .te-eti{font-size:0.7rem;letter-spacing:0.08em;text-shadow:0 2px 0 #1a0b2e;opacity:1;}
 .te-ya{filter:drop-shadow(0 3px 0 #7a1f4a);}
 @media(max-width:380px){.te-num{font-size:1.9rem}}
+
+/* Título del torneo de GTA: letra gruesa de cartel (Titan One, fuente libre), no la del logotipo. */
+.ta-titulo.ta-gta{font-family:'Titan One','Arial Black',Impact,sans-serif;font-weight:400;text-transform:uppercase;font-size:30px;line-height:1.08;letter-spacing:0.01em;background:linear-gradient(180deg,#fff 10%,#ffd1e3 45%,#ff9a3c 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;filter:drop-shadow(0 3px 0 #7a1f4a);}
