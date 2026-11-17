@@ -660,7 +660,7 @@ function estrenoPintar() {
   const s = Math.floor(ms / 1000), d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600),
         m = Math.floor(s % 3600 / 60), seg = s % 60;
   const celda = (n, t) => `<div class="te-celda"><span class="te-num">${String(n).padStart(2, '0')}</span><span class="te-eti">${t}</span></div>`;
-  rot.textContent = 'GTA VI llega en';
+  rot.textContent = 'Faltan para el estreno de GTA VI';
   cif.innerHTML = celda(d, 'DÍAS') + celda(h, 'HORAS') + celda(m, 'MIN') + celda(seg, 'SEG');
 }
 
