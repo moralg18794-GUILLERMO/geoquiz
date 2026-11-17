@@ -393,3 +393,12 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .torneo-aviso .ta-tema{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;}
 /* En pantalla ancha la ilustración necesita más altura para que se vea el sol y no solo el mar. */
 @media(min-width:600px){.ta-arte{height:200px;}.rh-arte{height:170px;}}
+
+/* ── BIENVENIDA (primera visita) ── */
+.bienvenida{display:none;background:linear-gradient(135deg,rgba(45,226,230,0.10),rgba(255,61,129,0.10));border:1px solid rgba(255,255,255,0.14);border-radius:var(--radius-lg);padding:1.1rem 1.1rem 1.2rem;margin-bottom:1.25rem;}
+.bienvenida.show{display:block;}
+.bv-titulo{font-family:'Libre Baskerville',serif;font-size:1.35rem;font-weight:700;margin-bottom:0.6rem;}
+.bv-titulo em{color:var(--accent);}
+.bienvenida p{font-size:0.92rem;line-height:1.5;color:var(--muted);margin:0 0 0.6rem;}
+.bienvenida strong{color:#fff;}
+.bv-boton{margin-top:0.4rem;width:100%;padding:0.8rem 1rem;border:0;border-radius:var(--radius);background:linear-gradient(135deg,var(--neon-pink),var(--neon-orange));color:#1a0b2e;font-weight:700;font-size:1rem;cursor:pointer;}
