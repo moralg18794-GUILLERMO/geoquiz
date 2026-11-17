@@ -20,7 +20,7 @@
 
 declare(strict_types=1);
 
-const GQ_TEXTO_VERSION = 'v1-2026-11';
+const GQ_TEXTO_VERSION = 'v2-2026-11';
 
 function gq_correo_cfg(): array {
     // Los datos del buzón viven en api/correo-config.php (que devuelve directamente el array
@@ -127,4 +127,18 @@ function gq_enviar_correo(string $para, string $asunto, string $html, string $te
 function gq_enlace_aviso(string $accion, string $token): string {
     $c = gq_correo_cfg();
     return rtrim($c['base'], '/') . '/api/avisos.php?a=' . $accion . '&t=' . $token;
+}
+
+// Pie con quién escribe y a dónde dirigirse (la LSSI pide que el remitente sea identificable).
+// Devuelve [texto, html].
+function gq_pie_legal(): array {
+    $c = gq_correo_cfg();
+    $priv = rtrim($c['base'], '/') . '/privacidad.html';
+    $txt = "Responsable: Guillermo Moral Lozano · {$c['contacto']}
+Política de privacidad: $priv
+";
+    $html = '<p style="font-size:12px;color:#666">Responsable: Guillermo Moral Lozano · '
+        . htmlspecialchars($c['contacto'], ENT_QUOTES, 'UTF-8') . ' · <a href="'
+        . htmlspecialchars($priv, ENT_QUOTES, 'UTF-8') . '">Política de privacidad</a></p>';
+    return [$txt, $html];
 }

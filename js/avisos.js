@@ -41,7 +41,7 @@
       <input id="aviso-web" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0">
       <label style="display:block;margin-bottom:4px"><input id="aviso-ok" type="checkbox"> Acepto recibir avisos de GeoQuiz por correo. Puedo darme de baja en cualquier momento.</label>
       <label style="display:block;margin-bottom:8px"><input id="aviso-mayor" type="checkbox"> Tengo 14 años o más.</label>
-      <div style="margin-bottom:8px;color:var(--muted)">Más información en la <a href="${PRIVACIDAD}" target="_blank" rel="noopener" style="color:var(--accent)">política de privacidad</a>.</div>
+      <div style="margin-bottom:8px;color:var(--muted);font-size:12px">Responsable: Guillermo Moral Lozano. Usaremos tu correo solo para avisarte de torneos y eventos de GeoQuiz. Puedes acceder, rectificar o borrar tus datos escribiendo a comunicaciones@tunegocioconestrategia.com. Más información en la <a href="${PRIVACIDAD}" target="_blank" rel="noopener" style="color:var(--accent)">política de privacidad</a>.</div>
       <div id="aviso-msg" role="status" style="margin-bottom:8px"></div>
       <button class="btn-primary" id="aviso-enviar" type="button">Avisadme</button>
       <button class="btn-secondary" id="aviso-no" type="button">No, gracias</button>`;
