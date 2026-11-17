@@ -294,6 +294,29 @@ function gq_crear_tablas(PDO $pdo): void {
             CONSTRAINT fk_dr_duelo FOREIGN KEY (duelo_id) REFERENCES duelos (id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
     );
+
+    // ── AVISOS POR CORREO ─────────────────────────────────────────────────
+    // Lista opcional de gente que pide que le avisen de los torneos. Solo se guarda el
+    // correo y lo mínimo para poder demostrar el consentimiento (cuándo, con qué texto y
+    // desde qué IP, esta última hasheada). Nada del juego (mote, partidas) se cruza con ella.
+    // `estado` es 'pendiente' hasta que la persona pulsa el enlace del correo de confirmación:
+    // sin eso no se le escribe nunca. Darse de baja BORRA la fila entera.
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS avisos (
+            id             INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            email          VARCHAR(190) NOT NULL,
+            estado         VARCHAR(10)  NOT NULL DEFAULT \'pendiente\',
+            token          CHAR(40)     NOT NULL,
+            texto_version  VARCHAR(20)  NOT NULL,
+            ip_hash        CHAR(64)     NOT NULL,
+            pedido_en      DATETIME     NOT NULL,
+            confirmado_en  DATETIME     NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_email (email),
+            UNIQUE KEY uq_token (token),
+            KEY idx_estado (estado)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
 }
 
 // Se intenta la consulta y solo si MySQL responde "la tabla no existe"
