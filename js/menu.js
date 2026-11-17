@@ -197,3 +197,19 @@ document.getElementById('start-btn').addEventListener('click',()=>{
   else if(gameMode==='fechas'){startFechas();}
   else{startGame();}
 });
+
+// ── BIENVENIDA ────────────────────────────────────────────────────────────
+// Una vez por dispositivo; si no hay almacenamiento, se enseña siempre hasta que se cierre.
+function iniciarBienvenida() {
+  const caja = document.getElementById('bienvenida');
+  if (!caja) return;
+  let vista = false;
+  try { vista = localStorage.getItem('gq_bienvenida') === '1'; } catch {}
+  const reto = document.getElementById('challenge-banner');
+  if (!vista && !(reto && reto.classList.contains('show'))) caja.classList.add('show');
+}
+function cerrarBienvenida() {
+  const caja = document.getElementById('bienvenida');
+  if (caja) caja.classList.remove('show');
+  try { localStorage.setItem('gq_bienvenida', '1'); } catch {}
+}

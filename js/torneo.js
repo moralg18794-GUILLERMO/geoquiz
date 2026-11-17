@@ -127,7 +127,12 @@ function textoRetoTorneo() {
   const url = window.location.href.split('?')[0];
   const r = torneoRestante(torneo.acaba_en);
   const regla = torneoDiceLaRegla() ? '' : '\n\n15 preguntas, las mismas para todos. Una sola partida por cabeza: no hay segunda oportunidad.';
-  return `🏆 ${torneo.titulo}\n${torneo.tema}${regla}\n\nCierra el ${torneoCierre()}${r ? ` · quedan ${r}` : ''}.\n\n${url}`;
+  // Mientras GTA VI no ha salido, el reto lo recuerda: es lo que da prisa a quien lo recibe.
+  const msE = torneoEsGTA() ? estrenoRestanteMs() : 0;
+  const dias = Math.ceil(msE / 86400000);
+  const falta = msE > 86400000 ? `${dias} ${dias === 1 ? 'día' : 'días'}` : `${Math.ceil(msE / 3600000)} h`;
+  const estreno = msE > 0 ? `\n\n⏳ GTA VI sale en ${falta}.` : '';
+  return `🏆 ${torneo.titulo}\n${torneo.tema}${regla}${estreno}\n\nCierra el ${torneoCierre()}${r ? ` · quedan ${r}` : ''}.\n\n${url}`;
 }
 
 function retarAlTorneo() {
@@ -150,6 +155,7 @@ async function cargarTorneo() {
   torneoTabla = res.cuerpo.clasificacion || [];
   pintarAvisoTorneo();
   document.getElementById('nav-torneo').style.display = '';
+  estrenoIniciar();
   clearInterval(torneoCuentaInt);
   torneoPintarCuenta();
   torneoCuentaInt = setInterval(torneoPintarCuenta, 30000);
@@ -628,4 +634,38 @@ function textoPodio() {
   // fueron catorce y tú no estabas.
   const cuantos = enLiza.length === 1 ? 'Jugó una sola persona.' : `Jugaron ${enLiza.length}.`;
   return `🏆 ${t}\n\n${podio}\n\n¡Enhorabuena, ${enLiza[0].nombre}! ${cuantos}\nLa semana que viene, otro:\n${url}`;
+}
+
+// ── CUENTA ATRÁS DEL ESTRENO DE GTA VI ───────────────────────────────────
+// 00:00 del jueves 19/11/2026 en Madrid (CET, UTC+1) = 23:00 UTC del miércoles.
+// Solo sale en el aviso, cuando el torneo es de GTA y sigue abierto. No toca la API.
+const ESTRENO_GTA6 = Date.UTC(2026, 10, 18, 23, 0, 0);
+let estrenoInt = null;
+
+function estrenoRestanteMs() { return ESTRENO_GTA6 - Date.now(); }
+
+function estrenoPintar() {
+  const caja = document.getElementById('ta-estreno');
+  if (!caja) return;
+  if (!torneo || torneo.estado !== 'activo' || !torneoEsGTA()) { caja.classList.remove('show'); clearInterval(estrenoInt); return; }
+  const ms = estrenoRestanteMs();
+  const cif = document.getElementById('te-cifras'), rot = document.getElementById('te-rotulo');
+  caja.classList.add('show');
+  if (ms <= 0) {
+    rot.textContent = 'GTA VI';
+    cif.innerHTML = '<div class="te-ya">¡Ya está aquí!</div>';
+    clearInterval(estrenoInt);
+    return;
+  }
+  const s = Math.floor(ms / 1000), d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600),
+        m = Math.floor(s % 3600 / 60), seg = s % 60;
+  const celda = (n, t) => `<div class="te-celda"><span class="te-num">${String(n).padStart(2, '0')}</span><span class="te-eti">${t}</span></div>`;
+  rot.textContent = 'Faltan para el estreno de GTA VI';
+  cif.innerHTML = celda(d, 'DÍAS') + celda(h, 'HORAS') + celda(m, 'MIN') + celda(seg, 'SEG');
+}
+
+function estrenoIniciar() {
+  clearInterval(estrenoInt);
+  estrenoPintar();
+  if (estrenoRestanteMs() > 0) estrenoInt = setInterval(estrenoPintar, 1000);
 }
