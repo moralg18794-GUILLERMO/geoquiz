@@ -402,3 +402,14 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .bienvenida p{font-size:0.92rem;line-height:1.5;color:var(--muted);margin:0 0 0.6rem;}
 .bienvenida strong{color:#fff;}
 .bv-boton{margin-top:0.4rem;width:100%;padding:0.8rem 1rem;border:0;border-radius:var(--radius);background:linear-gradient(135deg,var(--neon-pink),var(--neon-orange));color:#1a0b2e;font-weight:700;font-size:1rem;cursor:pointer;}
+
+/* ── CUENTA ATRÁS DEL ESTRENO ── */
+.ta-estreno{display:none;margin-top:14px;padding:12px 10px 10px;border-radius:var(--radius);background:rgba(10,4,24,0.5);border:1px solid rgba(255,154,60,0.28);text-align:center;}
+.ta-estreno.show{display:block;}
+.te-rotulo{font-size:10.5px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#ffd9a8;margin-bottom:6px;}
+.te-cifras{display:flex;justify-content:center;gap:10px;}
+.te-celda{min-width:58px;}
+.te-num{display:block;font-family:'Bowlby One','Arial Black',Impact,sans-serif;font-size:2.1rem;line-height:1.05;background:linear-gradient(180deg,#ff6fa3 0%,#ff9a3c 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;font-variant-numeric:tabular-nums;}
+.te-eti{display:block;font-family:'Bowlby One','Arial Black',Impact,sans-serif;font-size:0.62rem;letter-spacing:0.06em;color:#fff;opacity:0.85;margin-top:2px;}
+.te-ya{font-family:'Bowlby One','Arial Black',Impact,sans-serif;font-size:1.7rem;line-height:1.15;background:linear-gradient(180deg,#ff6fa3,#ff9a3c);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;padding:2px 0;}
+@media(max-width:380px){.te-cifras{gap:6px}.te-celda{min-width:50px}.te-num{font-size:1.8rem}}
