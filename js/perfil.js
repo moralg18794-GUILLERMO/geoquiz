@@ -111,6 +111,8 @@
       if (r.estado === 401) { gqCuenta.sesionInvalida(); return; }
       if (!r.ok) return; // sin conexión: se intentará en la próxima
       base = r.cuerpo.stats;
+      // El correo de la cuenta ya está suscrito en el servidor: este dispositivo lo refleja.
+      try { if (r.cuerpo.suscrito && localStorage.getItem('gq_avisos') !== 'confirmado') { localStorage.setItem('gq_avisos', 'confirmado'); localStorage.setItem('gq_avisos_feliz', '1'); window.dispatchEvent(new Event('gq-avisos')); } } catch (e) { /* nada */ }
     }
     const rem = base && base.dispositivos ? base : { v: 2, dispositivos: {} };
     const mine = entradaLocal();

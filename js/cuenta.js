@@ -194,7 +194,7 @@
           cerrar();
           const w = document.getElementById('pf-vel');
           if (w) w.remove();
-          if (r.cuerpo.avisos) { guardar('gq_avisos', 'confirmado'); guardar('gq_avisos_feliz', '1'); try { window.dispatchEvent(new Event('gq-avisos')); } catch (e) { /* nada */ } }
+          if (r.cuerpo.avisos || r.cuerpo.suscrito) { guardar('gq_avisos', 'confirmado'); guardar('gq_avisos_feliz', '1'); try { window.dispatchEvent(new Event('gq-avisos')); } catch (e) { /* nada */ } }
           toast(r.cuerpo.avisos ? 'Sesión iniciada y suscrito a los avisos: ' + r.cuerpo.nombre : 'Sesión iniciada: ' + r.cuerpo.nombre);
           if (gqCuenta.alEntrar) gqCuenta.alEntrar(r.cuerpo.stats);
           return;

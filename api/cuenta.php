@@ -162,6 +162,13 @@ function gq_cuenta_suscribir_avisos(PDO $pdo, string $email, string $ahora): voi
     }
 }
 
+// ¿Está el correo de esta cuenta suscrito a los avisos? Lo sabe el servidor, no el dispositivo: así un
+// móvil nuevo que inicia sesión lo refleja igual que el ordenador donde se suscribió.
+function gq_cuenta_suscrito(PDO $pdo, string $email): bool {
+    $fila = gq_consulta($pdo, 'SELECT estado FROM avisos WHERE email = ?', [$email])->fetch();
+    return $fila && $fila['estado'] === 'confirmado';
+}
+
 function gq_cuenta_stats_json(?string $s) {
     if ($s === null || $s === '') {
         return null;
@@ -239,14 +246,14 @@ if ($accion === 'verificar') {
     $token = bin2hex(random_bytes(32));
     gq_consulta($pdo, 'INSERT INTO cuenta_sesiones (cuenta_id, token_hash, creada_en, ultimo_uso) VALUES (?, ?, ?, ?)',
         [$cuenta['id'], hash('sha256', $token), $ahora, $ahora]);
-    gq_json(200, ['ok' => true, 'sesion' => $token, 'nombre' => $cuenta['nombre'], 'avisos' => $avisos, 'stats' => gq_cuenta_stats_json($cuenta['stats'])]);
+    gq_json(200, ['ok' => true, 'sesion' => $token, 'nombre' => $cuenta['nombre'], 'avisos' => $avisos, 'suscrito' => gq_cuenta_suscrito($pdo, $email), 'stats' => gq_cuenta_stats_json($cuenta['stats'])]);
 }
 
 // ── Desde aquí hace falta una sesión ──────────────────────────────────────
 $cuenta = gq_cuenta_de_sesion($pdo, $d, $ahora);
 
 if ($accion === 'perfil') {
-    gq_json(200, ['ok' => true, 'nombre' => $cuenta['nombre'], 'stats' => gq_cuenta_stats_json($cuenta['stats'])]);
+    gq_json(200, ['ok' => true, 'nombre' => $cuenta['nombre'], 'suscrito' => gq_cuenta_suscrito($pdo, $cuenta['email']), 'stats' => gq_cuenta_stats_json($cuenta['stats'])]);
 }
 
 if ($accion === 'guardar') {
