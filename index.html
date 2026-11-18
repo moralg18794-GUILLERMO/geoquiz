@@ -6,8 +6,8 @@
 <meta name="theme-color" content="#0d0820">
 <title>GeoQuiz — Guerras & Conflictos</title>
 <meta name="description" content="Trivia de geopolítica, guerras y conflictos: 521 preguntas en 13 categorías, seis modos de juego y ranking global.">
-<link rel="icon" href="img/favicon-32.png?v=20261118a" sizes="32x32">
-<link rel="apple-touch-icon" href="img/icono.png?v=20261118a">
+<link rel="icon" href="img/favicon-32.png?v=20261118b" sizes="32x32">
+<link rel="apple-touch-icon" href="img/icono.png?v=20261118b">
 <!-- Vista previa al compartir el enlace (WhatsApp, Telegram, redes). La imagen tiene
      que ir con URL absoluta: los rastreadores no resuelven rutas relativas. -->
 <meta property="og:type" content="website">
@@ -43,7 +43,7 @@
      Desde GitHub Pages es un dominio distinto y esta es la primera petición que va allí;
      desde Hostinger es el propio origen y no estorba. -->
 <link rel="preconnect" href="https://mediumturquoise-dugong-529601.hostingersite.com" crossorigin>
-<link rel="stylesheet" href="css/styles.css?v=20261118a">
+<link rel="stylesheet" href="css/styles.css?v=20261118b">
 </head>
 <body>
 <!-- Iconos de la interfaz: se dibujan con trazo (currentColor), así toman el color del
@@ -153,14 +153,11 @@
       <button class="mode-btn" data-mode="blitz"><span class="mi"><svg class="ico"><use href="#i-blitz"/></svg></span><span class="mn">Blitz</span><span class="md">60 s para todo</span></button>
       <button class="mode-btn" data-mode="survival"><span class="mi"><svg class="ico"><use href="#i-superv"/></svg></span><span class="mn">Supervivencia</span><span class="md">Hasta morir</span></button>
       </div>
-      <div class="mode-grupo-t">Otros modos<small>Sin opciones: ordenas y unes</small></div>
-      <div class="mode-fila mode-fila-2">
+      <div class="mode-grupo-t">Otros modos<small>Ordena, une o reta a un amigo</small></div>
+      <div class="mode-fila">
       <button class="mode-btn" data-mode="crono"><span class="mi"><svg class="ico"><use href="#i-crono"/></svg></span><span class="mn">Cronológico</span><span class="md">Ordena eventos</span></button>
       <button class="mode-btn" data-mode="fechas"><span class="mi"><svg class="ico"><use href="#i-fechas"/></svg></span><span class="mn">Fechas</span><span class="md">Une evento y año</span></button>
-      </div>
-      <div class="mode-grupo-t">Duelo<small>Contra otra persona, cada uno en su móvil</small></div>
-      <div class="mode-fila mode-fila-1">
-      <button class="mode-btn mode-duelo" data-mode="duel"><span class="mi"><svg class="ico"><use href="#i-duelo"/></svg></span><span class="mn">Duelo</span><span class="md">Reta a un amigo: preguntas por turnos, 5 vidas cada uno</span></button>
+      <button class="mode-btn" data-mode="duel"><span class="mi"><svg class="ico"><use href="#i-duelo"/></svg></span><span class="mn">Duelo</span><span class="md">Online, 1 contra 1</span></button>
       </div>
     </div>
     <div id="cat-diff-section">
@@ -317,7 +314,7 @@
   <footer class="firma">
     Hecho por Guillermo Moral<br>para sus mejores amigos
     <a class="firma-logo" href="https://tunegocioconestrategia.com" target="_blank" rel="noopener" aria-label="EstrategIA, tunegocioconestrategia.com">
-      <img src="img/estrategia-logo.png?v=20261118a" alt="EstrategIA" width="348" height="61" loading="lazy">
+      <img src="img/estrategia-logo.png?v=20261118b" alt="EstrategIA" width="348" height="61" loading="lazy">
     </a>
   </footer>
 
@@ -326,25 +323,25 @@
 <div class="share-toast" id="share-toast">¡Copiado!</div>
 
 <!-- El orden de carga importa: datos → estado → utilidades → pantallas → arranque. -->
-<script src="js/data/events.js?v=20261118a"></script>
-<script src="js/state.js?v=20261118a"></script>
-<script src="js/audio.js?v=20261118a"></script>
-<script src="js/utils.js?v=20261118a"></script>
-<script src="js/nube.js?v=20261118a"></script>
-<script src="js/theme.js?v=20261118a"></script>
-<script src="js/storage.js?v=20261118a"></script>
-<script src="js/crono.js?v=20261118a"></script>
-<script src="js/fechas.js?v=20261118a"></script>
-<script src="js/game.js?v=20261118a"></script>
-<script src="js/torneo.js?v=20261118a"></script>
-<script src="js/duelo.js?v=20261118a"></script>
-<script src="js/menu.js?v=20261118a"></script>
-<script src="js/avisos.js?v=20261118a"></script>
-<script src="js/main.js?v=20261118a"></script>
+<script src="js/data/events.js?v=20261118b"></script>
+<script src="js/state.js?v=20261118b"></script>
+<script src="js/audio.js?v=20261118b"></script>
+<script src="js/utils.js?v=20261118b"></script>
+<script src="js/nube.js?v=20261118b"></script>
+<script src="js/theme.js?v=20261118b"></script>
+<script src="js/storage.js?v=20261118b"></script>
+<script src="js/crono.js?v=20261118b"></script>
+<script src="js/fechas.js?v=20261118b"></script>
+<script src="js/game.js?v=20261118b"></script>
+<script src="js/torneo.js?v=20261118b"></script>
+<script src="js/duelo.js?v=20261118b"></script>
+<script src="js/menu.js?v=20261118b"></script>
+<script src="js/avisos.js?v=20261118b"></script>
+<script src="js/main.js?v=20261118b"></script>
 <!-- El banco va el ÚLTIMO y con defer: son 67 KB, el 59% del JavaScript, y el menú ya
      no lo necesita para dibujarse (sus claves salen de js/theme.js). Así la primera
      pantalla se pinta sin esperarlo. Nada de lo que corre al arrancar usa ALL_Q; quien
      lo usa es buildPool(), y eso no pasa hasta que alguien toca una categoría. -->
-<script defer src="js/data/questions.js?v=20261118a"></script>
+<script defer src="js/data/questions.js?v=20261118b"></script>
 </body>
 </html>
