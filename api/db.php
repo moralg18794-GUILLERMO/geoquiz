@@ -20,6 +20,14 @@ function gq_db(): PDO {
     $cfg = gq_config();
     // 127.0.0.1 y no "localhost": localhost puede resolverse a ::1 y el usuario de
     // la base de datos solo tiene permiso desde la IPv4 local.
+    // 'dsn' solo lo usan las pruebas locales (SQLite); el config.php del servidor nunca lo trae.
+    if (!empty($cfg['dsn'])) {
+        $pdo = new PDO((string) $cfg['dsn'], null, null, [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        ]);
+        return $pdo;
+    }
     $dsn = sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4', $cfg['host'], $cfg['port'], $cfg['nombre']);
     try {
         $pdo = new PDO($dsn, $cfg['usuario'], $cfg['clave'], [
@@ -315,6 +323,54 @@ function gq_crear_tablas(PDO $pdo): void {
             UNIQUE KEY uq_email (email),
             UNIQUE KEY uq_token (token),
             KEY idx_estado (estado)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
+
+    // ── CUENTAS DE JUGADOR ────────────────────────────────────────────────
+    // Entrada SIN contraseña: se pide un código de seis cifras que llega por correo. No hay nada
+    // que filtrar ni que olvidar. De cada código solo se guarda un hash, y las sesiones guardan el
+    // hash del testigo que vive en el navegador, no el testigo. `nombre` es único sin distinguir
+    // mayúsculas ni acentos (la colación lo hace). `stats` es el historial que enseña el Perfil,
+    // como un JSON que arma el propio navegador.
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS cuentas (
+            id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            email         VARCHAR(190) NOT NULL,
+            nombre        VARCHAR(24)  NOT NULL,
+            creada_en     DATETIME     NOT NULL,
+            ultimo_acceso DATETIME     NOT NULL,
+            stats         MEDIUMTEXT   NULL,
+            stats_en      DATETIME     NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_email (email),
+            UNIQUE KEY uq_nombre (nombre)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS cuenta_codigos (
+            id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            email       VARCHAR(190) NOT NULL,
+            codigo_hash CHAR(64)     NOT NULL,
+            nombre      VARCHAR(24)  NULL,
+            intentos    TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            creado_en   DATETIME     NOT NULL,
+            expira_en   DATETIME     NOT NULL,
+            ip_hash     CHAR(64)     NOT NULL,
+            PRIMARY KEY (id),
+            KEY idx_email (email, creado_en),
+            KEY idx_ip (ip_hash, creado_en)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS cuenta_sesiones (
+            id         INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            cuenta_id  INT UNSIGNED NOT NULL,
+            token_hash CHAR(64)     NOT NULL,
+            creada_en  DATETIME     NOT NULL,
+            ultimo_uso DATETIME     NOT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_token (token_hash),
+            KEY idx_cuenta (cuenta_id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
     );
 }

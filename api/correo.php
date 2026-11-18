@@ -69,6 +69,11 @@ function gq_enviar_correo(string $para, string $asunto, string $html, string $te
         return false;
     }
     $c = gq_correo_cfg();
+    // Solo en pruebas locales: en vez de enviar, deja el mensaje en un archivo.
+    if (!empty($c['archivo_pruebas'])) {
+        file_put_contents((string) $c['archivo_pruebas'], json_encode(['para' => $para, 'asunto' => $asunto, 'texto' => $texto], JSON_UNESCAPED_UNICODE) . "\n", FILE_APPEND);
+        return true;
+    }
     // Sin saltos de línea en nada que vaya a una cabecera: es como se cuela un segundo destinatario.
     $limpio = static fn(string $s): string => str_replace(["\r", "\n"], ' ', $s);
     $para = $limpio($para);
