@@ -163,7 +163,9 @@
         <input class="cu-in cu-cod" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="······" aria-label="Código de seis cifras">
         <div class="cu-msg" role="status"></div>
         <button class="cu-btn cu-ok" type="button">Entrar</button>
-        <div class="cu-pie"><button class="cu-lnk cu-otro" type="button">Cambiar el correo</button> · <button class="cu-lnk cu-reenviar" type="button">Reenviar el código</button></div>`;
+        <div class="cu-pie"><button class="cu-lnk cu-otro" type="button">Cambiar el correo</button> · <button class="cu-lnk cu-reenviar" type="button">Reenviar el código</button></div>
+        ${m === 'entrar' ? '<div class="cu-pie">¿No te llega nada? Puede que aún no tengas perfil: <button class="cu-lnk cu-crear" type="button">créalo ahora</button></div>' : ''}`;
+      if (m === 'entrar') q('.cu-crear').onclick = () => pantallaDatos('crear');
       ponX();
       q('.cu-otro').onclick = () => pantallaDatos(m);
       q('.cu-reenviar').onclick = async () => {

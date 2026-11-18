@@ -98,6 +98,9 @@ function gq_cuenta_de_sesion(PDO $pdo, array $d, string $ahora): array {
 }
 
 // Crea un código y lo manda. Los límites se aplican igual exista o no la cuenta.
+// Si $mandar es false (se pidió entrar con un correo que no tiene perfil) no se manda ningún código, pero SÍ
+// un aviso que lo explica y dice cómo crear el perfil: así quien se equivoca no se queda esperando un
+// correo que no va a llegar, y desde fuera sigue sin poder averiguarse quién tiene cuenta.
 function gq_cuenta_mandar_codigo(PDO $pdo, string $email, ?string $nombre, string $ahora, bool $mandar): void {
     $ip = hash('sha256', 'cuenta|' . gq_ip_hash());
     $hora = gmdate('Y-m-d H:i:s', time() - 3600);
@@ -116,10 +119,18 @@ function gq_cuenta_mandar_codigo(PDO $pdo, string $email, ?string $nombre, strin
     gq_consulta($pdo,
         'INSERT INTO cuenta_codigos (email, codigo_hash, nombre, intentos, creado_en, expira_en, ip_hash) VALUES (?, ?, ?, 0, ?, ?, ?)',
         [$email, gq_cuenta_hash_codigo($codigo, $email), $nombre, $ahora, gmdate('Y-m-d H:i:s', time() + GQ_CODIGO_MINUTOS * 60), $ip]);
+    [$pieTxt, $pieHtml] = gq_pie_legal();
     if (!$mandar) {
+        $web = rtrim(gq_correo_cfg()['base'], '/') . '/';
+        gq_enviar_correo(
+            $email,
+            'No hay ningún perfil de GeoQuiz con este correo',
+            '<p>Hola,</p><p>Alguien (esperamos que tú) ha intentado entrar en GeoQuiz con este correo, pero <strong>no hay ningún perfil creado con él</strong>.</p>'
+            . '<p>Si querías crear uno, abre <a href="' . htmlspecialchars($web, ENT_QUOTES, 'UTF-8') . '">GeoQuiz</a> y pulsa «Crear mi perfil». Si no has sido tú, ignora este mensaje.</p>' . $pieHtml,
+            "Hola,\n\nAlguien (esperamos que tú) ha intentado entrar en GeoQuiz con este correo, pero no hay ningún perfil creado con él.\n\nSi querías crear uno, abre $web y pulsa «Crear mi perfil». Si no has sido tú, ignora este mensaje.\n\n—\n" . $pieTxt
+        );
         return;
     }
-    [$pieTxt, $pieHtml] = gq_pie_legal();
     $ok = gq_enviar_correo(
         $email,
         "Tu código de GeoQuiz: $codigo",
