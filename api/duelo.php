@@ -27,36 +27,10 @@
 
 declare(strict_types=1);
 require __DIR__ . '/db.php';
+require __DIR__ . '/duelo-lib.php';
 
 gq_blindar('duelo');
 gq_cors();
-
-// ── LÍMITES ───────────────────────────────────────────────────────────────
-const GQ_D_CREACIONES_HORA   = 20;   // solo se cuenta "crear": lo demás ya lo limita el propio duelo
-const GQ_D_SEGUNDOS_PREGUNTA = 20;
-const GQ_D_GRACIA            = 5;
-const GQ_D_ABANDONO_MIN      = 5;
-const GQ_D_VIDAS_INICIAL     = 5;
-const GQ_D_TOPE_LISTA        = 100;
-const GQ_D_DIFS              = ['all', 'facil', 'medio', 'dificil'];
-// Retos abiertos: la lista solo enseña los que tienen a su creador conectado (su sondeo toca
-// ultimo_movimiento_en cada 2-3 s; 45 s de margen para móviles que frenan el navegador al
-// cambiar de app) y un reto sin rival se cierra solo a los 15 minutos.
-const GQ_D_PRESENCIA_SEG     = 45;
-const GQ_D_ABIERTO_MIN       = 15;
-const GQ_D_TOPE_ABIERTOS     = 20;
-// Sin O/0/I/1: se leen en voz alta o se copian de un mensaje de WhatsApp, y esos
-// cuatro son los que más se confunden entre sí.
-const GQ_D_ALFABETO = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
-
-function gq_d_codigo(): string {
-    $n = strlen(GQ_D_ALFABETO);
-    $c = '';
-    for ($i = 0; $i < 6; $i++) {
-        $c .= GQ_D_ALFABETO[random_int(0, $n - 1)];
-    }
-    return $c;
-}
 
 // ── BANCO DE PREGUNTAS ────────────────────────────────────────────────────
 function gq_d_banco(): array {
@@ -100,11 +74,6 @@ function gq_d_barajar(): string {
 }
 
 // ── DUELO: CARGA Y PERTENENCIA ────────────────────────────────────────────
-function gq_d_por_codigo(PDO $pdo, string $codigo): ?array {
-    $f = gq_consulta($pdo, 'SELECT * FROM duelos WHERE codigo = ? LIMIT 1', [$codigo])->fetch();
-    return $f === false ? null : $f;
-}
-
 // 1 si $nombre es el jugador 1 de este duelo, 2 si es el jugador 2, null si no es
 // ninguno de los dos. Se pregunta a la tabla y no se compara en PHP porque la
 // colación de MySQL es la que decide que "Guille" y "guille" son la misma persona.
@@ -116,30 +85,6 @@ function gq_d_mi_lado(PDO $pdo, int $id, string $nombre): ?int {
         return 2;
     }
     return null;
-}
-
-// Si el jugador en turno lleva más de GQ_D_ABANDONO_MIN sin mover (ni pedir
-// pregunta ni responder), pierde por abandono. Se comprueba aquí y no en un cron:
-// el sondeo del cliente (cada 2-3s mientras el duelo está abierto) ya pasa por aquí
-// con la frecuencia que hace falta.
-function gq_d_revisar_abandono(PDO $pdo, array $d): array {
-    if ($d['estado'] !== 'jugando') { return $d; }
-    $pasados = (int) gq_consulta(
-        $pdo, 'SELECT TIMESTAMPDIFF(MINUTE, ?, UTC_TIMESTAMP())', [$d['ultimo_movimiento_en']]
-    )->fetchColumn();
-    if ($pasados < GQ_D_ABANDONO_MIN) { return $d; }
-    $ganador = (int) $d['turno'] === 1 ? 2 : 1;
-    gq_consulta(
-        $pdo, 'UPDATE duelos SET estado = "terminado", ganador = ? WHERE id = ? AND estado = "jugando"',
-        [$ganador, $d['id']]
-    );
-    $d['estado']  = 'terminado';
-    $d['ganador'] = $ganador;
-    return $d;
-}
-
-function gq_d_hora_utc(string $dt): int {
-    return (int) strtotime($dt . ' UTC');
 }
 
 // Un reto abierto que lleva más de GQ_D_ABIERTO_MIN esperando sin rival se cierra solo. Se
@@ -188,8 +133,48 @@ function gq_d_abiertos(PDO $pdo, string $excluir): array {
     return $salida;
 }
 
+// Torneos de duelos que están recogiendo jugadores (sala abierta y con alguien conectado). Van en la
+// misma respuesta que los retos abiertos para que la lista sea UNA sola petición cada 5 s.
+// $yo deja fuera los torneos en los que ya estás apuntado (para esos, «Volver a tu torneo»).
+function gq_d_salas_abiertas(PDO $pdo, string $yo): array {
+    gq_consulta(
+        $pdo,
+        "UPDATE salas SET estado = 'cancelada'
+          WHERE estado IN ('abierta', 'llamando') AND ultima_actividad_en < ?",
+        [gmdate('Y-m-d H:i:s', time() - GQ_S_CADUCA_MIN * 60)]
+    );
+    $filas = gq_consulta(
+        $pdo,
+        "SELECT s.codigo, s.organizador, s.cats, s.dif, s.plazas, s.creado_en,
+                (SELECT COUNT(*) FROM sala_jugadores j WHERE j.sala_id = s.id) AS n
+           FROM salas s
+          WHERE s.estado = 'abierta' AND s.ultima_actividad_en > ?
+            AND NOT EXISTS (SELECT 1 FROM sala_jugadores j WHERE j.sala_id = s.id AND j.nombre = ?)
+          ORDER BY s.id DESC LIMIT " . GQ_D_TOPE_ABIERTOS,
+        [gmdate('Y-m-d H:i:s', time() - GQ_D_PRESENCIA_SEG), $yo]
+    )->fetchAll();
+    $salida = [];
+    foreach ($filas as $f) {
+        $salida[] = [
+            'codigo'      => $f['codigo'],
+            'organizador' => $f['organizador'],
+            'cats'        => json_decode((string) $f['cats'], true) ?: [],
+            'dif'         => $f['dif'],
+            'plazas'      => (int) $f['plazas'],
+            'apuntados'   => (int) $f['n'],
+            'hace'        => max(0, time() - gq_d_hora_utc((string) $f['creado_en'])),
+        ];
+    }
+    return $salida;
+}
+
 function gq_d_fila_publica(array $d, ?int $miLado): array {
+    $sala = gq_d_en_sala(gq_db(), (string) $d['codigo']);
     return [
+        // Vidas con las que empezó cada uno: 5 en un duelo suelto, las de la sala en un partido
+        // de torneo. El cliente las necesita para pintar los corazones.
+        'vidas_max'   => $sala === null ? GQ_D_VIDAS_INICIAL : $sala['vidas'],
+        'en_sala'     => $sala !== null,
         'codigo'      => $d['codigo'],
         'j1_nombre'   => $d['j1_nombre'],
         'j2_nombre'   => $d['j2_nombre'],
@@ -208,7 +193,9 @@ function gq_d_fila_publica(array $d, ?int $miLado): array {
 
 // ── CLASIFICACIÓN DE DUELOS ───────────────────────────────────────────────
 // Aparte del ranking oficial: no toca partidas ni api/ranking.php, que son solo de
-// Solo/Blitz/Supervivencia/Cronológico/Fechas. Un jugador puede salir dos veces en
+// Solo/Blitz/Supervivencia/Cronológico/Fechas. Los partidos de un torneo de duelos no
+// cuentan aquí (los campeones tienen su propia lista en api/sala.php): quien llega a la
+// final juega tres partidos, y sumarlos desequilibraría esta tabla. Un jugador puede salir dos veces en
 // las filas de abajo (una como J1, otra como J2 de otro duelo); se agrupan por
 // nombre con la misma colación que agrupa el resto de tablas.
 function gq_d_clasificacion(PDO $pdo, int $limite = GQ_D_TOPE_LISTA): array {
@@ -216,9 +203,12 @@ function gq_d_clasificacion(PDO $pdo, int $limite = GQ_D_TOPE_LISTA): array {
     $filas = gq_consulta(
         $pdo,
         'SELECT nombre, SUM(aciertos) AS aciertos, SUM(gano) AS ganados, COUNT(*) AS jugados FROM (
-            SELECT j1_nombre AS nombre, j1_aciertos AS aciertos, (ganador = 1) AS gano FROM duelos WHERE estado = "terminado"
+            SELECT j1_nombre AS nombre, j1_aciertos AS aciertos, (ganador = 1) AS gano FROM duelos
+             WHERE estado = "terminado" AND NOT EXISTS (SELECT 1 FROM sala_partidos p WHERE p.duelo_codigo = duelos.codigo)
             UNION ALL
-            SELECT j2_nombre AS nombre, j2_aciertos AS aciertos, (ganador = 2) AS gano FROM duelos WHERE estado = "terminado" AND j2_nombre IS NOT NULL
+            SELECT j2_nombre AS nombre, j2_aciertos AS aciertos, (ganador = 2) AS gano FROM duelos
+             WHERE estado = "terminado" AND j2_nombre IS NOT NULL
+               AND NOT EXISTS (SELECT 1 FROM sala_partidos p WHERE p.duelo_codigo = duelos.codigo)
          ) x GROUP BY nombre ORDER BY ganados DESC, aciertos DESC LIMIT ' . $limite
     )->fetchAll();
     $salida = [];
@@ -249,7 +239,11 @@ if ($metodo === 'GET') {
 
     if (($_GET['abiertos'] ?? '') === '1') {
         $excluir = isset($_GET['nombre']) && is_string($_GET['nombre']) ? gq_limpiar_nombre($_GET['nombre']) : '';
-        gq_json(200, ['ok' => true, 'abiertos' => gq_d_abiertos($pdo, $excluir)]);
+        gq_json(200, [
+            'ok'       => true,
+            'abiertos' => gq_d_abiertos($pdo, $excluir),
+            'salas'    => gq_d_salas_abiertas($pdo, $excluir),
+        ]);
     }
 
     $codigo = isset($_GET['codigo']) && is_string($_GET['codigo']) ? strtoupper(trim($_GET['codigo'])) : '';
@@ -562,18 +556,33 @@ if ($accion === 'responder') {
     } else {
         $fresco = gq_d_por_codigo($pdo, $codigo) ?? $d;
         $v1 = (int) $fresco['j1_vidas']; $v2 = (int) $fresco['j2_vidas'];
-        if ($v1 > 0 && $v2 > 0) {
+        $a1 = (int) $fresco['j1_aciertos']; $a2 = (int) $fresco['j2_aciertos'];
+        $enSala = gq_d_en_sala($pdo, $codigo) !== null;
+        $ganador = null;   // null = la partida sigue
+
+        if ($v1 <= 0 || $v2 <= 0) {
+            if ($v1 <= 0 && $v2 > 0) { $ganador = 2; }
+            elseif ($v2 <= 0 && $v1 > 0) { $ganador = 1; }
+            else { $ganador = $a1 === $a2 ? 0 : ($a1 > $a2 ? 1 : 2); }
+        } elseif ($enSala && intdiv((int) $r['orden'], 2) >= GQ_D_TOPE_RONDAS_SALA) {
+            // Tope de rondas de un partido de torneo: si los dos siguen vivos, gana quien lleve
+            // más aciertos y, si van igualados, no se cierra (ver abajo).
+            $ganador = $a1 === $a2 ? 0 : ($a1 > $a2 ? 1 : 2);
+        }
+
+        // En un cuadro no vale empatar: alguien tiene que pasar de ronda. Muerte súbita: los dos
+        // vuelven a 1 vida y se sigue hasta que uno acierte y el otro falle.
+        if ($enSala && $ganador === 0) {
+            gq_consulta(
+                $pdo, 'UPDATE duelos SET j1_vidas = 1, j2_vidas = 1, turno = 1, ultimo_movimiento_en = UTC_TIMESTAMP() WHERE id = ?', [$duId]
+            );
+            $ganador = null;
+        } elseif ($ganador === null) {
             gq_consulta(
                 $pdo, 'UPDATE duelos SET turno = 1, ultimo_movimiento_en = UTC_TIMESTAMP() WHERE id = ?', [$duId]
             );
         } else {
             $terminado = true;
-            if ($v1 <= 0 && $v2 > 0) { $ganador = 2; }
-            elseif ($v2 <= 0 && $v1 > 0) { $ganador = 1; }
-            else {
-                $a1 = (int) $fresco['j1_aciertos']; $a2 = (int) $fresco['j2_aciertos'];
-                $ganador = $a1 === $a2 ? 0 : ($a1 > $a2 ? 1 : 2);
-            }
             gq_consulta(
                 $pdo, 'UPDATE duelos SET estado = "terminado", ganador = ?, ultimo_movimiento_en = UTC_TIMESTAMP() WHERE id = ?',
                 [$ganador, $duId]

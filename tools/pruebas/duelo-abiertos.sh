@@ -52,15 +52,7 @@ return [
 ];
 EOF2
 
-cat > "$TMP/esquema.php" <<EOF2
-<?php
-\$p = new PDO('sqlite:$TMPW/prueba.sqlite');
-\$p->exec("CREATE TABLE envios (id INTEGER PRIMARY KEY AUTOINCREMENT, ip_hash TEXT NOT NULL, creado_en TEXT NOT NULL)");
-\$p->exec("CREATE TABLE duelos (id INTEGER PRIMARY KEY AUTOINCREMENT, codigo TEXT NOT NULL UNIQUE, j1_nombre TEXT NOT NULL COLLATE NOCASE, j2_nombre TEXT COLLATE NOCASE, cats TEXT NOT NULL, dif TEXT NOT NULL DEFAULT 'all', turno INTEGER NOT NULL DEFAULT 1, j1_vidas INTEGER NOT NULL DEFAULT 5, j2_vidas INTEGER NOT NULL DEFAULT 5, j1_aciertos INTEGER NOT NULL DEFAULT 0, j2_aciertos INTEGER NOT NULL DEFAULT 0, estado TEXT NOT NULL DEFAULT 'esperando', ganador INTEGER, ultimo_movimiento_en TEXT NOT NULL, creado_en TEXT NOT NULL, ip_hash_creador TEXT NOT NULL, ip_hash_rival TEXT)");
-\$p->exec("CREATE TABLE duelo_respuestas (id INTEGER PRIMARY KEY AUTOINCREMENT, duelo_id INTEGER NOT NULL REFERENCES duelos(id) ON DELETE CASCADE, orden INTEGER NOT NULL, turno_jugador INTEGER NOT NULL, cat TEXT NOT NULL DEFAULT '', diff TEXT NOT NULL DEFAULT 'medio', pts INTEGER NOT NULL DEFAULT 200, q TEXT NOT NULL, opts TEXT NOT NULL, ans INTEGER NOT NULL, exp TEXT NOT NULL DEFAULT '', opciones TEXT NOT NULL DEFAULT '', servida_en TEXT NOT NULL, elegida INTEGER NOT NULL DEFAULT -1, acertada INTEGER NOT NULL DEFAULT 0, respondida_en TEXT, UNIQUE (duelo_id, orden))");
-\$p->exec("CREATE TABLE duelo_abiertos (duelo_id INTEGER PRIMARY KEY REFERENCES duelos(id) ON DELETE CASCADE, publicado_en TEXT NOT NULL)");
-EOF2
-"$PHP" "${OPC[@]}" "$TMP/esquema.php"
+"$PHP" "${OPC[@]}" tools/pruebas/lib/esquema-duelos.php "$TMPW/prueba.sqlite" >/dev/null
 
 "$PHP" "${OPC[@]}" -S "127.0.0.1:$PUERTO" -t "$TMP" >"$TMP/servidor.log" 2>&1 &
 SRV=$!

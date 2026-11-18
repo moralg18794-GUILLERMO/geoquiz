@@ -25,6 +25,7 @@ let duelSondeoInt = null;
 let duelPreguntaActual = null; // true mientras hay una pregunta nuestra en pantalla sin contestar
 let duelEsperandoClic = false; // true mientras se enseña el botón "Empezar ronda" sin pulsar
 let duelAbierto = false;       // true si el duelo que espero rival está en la lista de retos abiertos
+let duelSala = null;           // {codigo, nombre, token} si el duelo en juego es un partido de un torneo (js/sala.js)
 
 function pararSondeoDuelo() {
   clearInterval(duelSondeoInt);
@@ -59,6 +60,7 @@ async function crearDuelo(abierto) {
   duelCodigo = res.cuerpo.codigo;
   duelNombre = nombre;
   duelMiLado = 1;
+  duelSala = null;
   duelAbierto = res.cuerpo.abierto === true;
   mostrarEsperaDuelo();
 }
@@ -154,6 +156,7 @@ async function pedirCodigoUnirse(prefill) {
   duelNombre = nombre;
   duelo = res.cuerpo.duelo;
   duelMiLado = duelo.mi_lado || 2;
+  duelSala = null;
   arrancarDuelo();
 }
 
@@ -194,8 +197,8 @@ function pintarDuelHUD() {
   document.getElementById('dp2-name').textContent = duelo.j2_nombre || 'J2';
   document.getElementById('dp1-score').textContent = duelo.j1_aciertos + ' aciertos';
   document.getElementById('dp2-score').textContent = duelo.j2_aciertos + ' aciertos';
-  document.getElementById('dp1-lives').innerHTML = rl(duelo.j1_vidas, 5);
-  document.getElementById('dp2-lives').innerHTML = rl(duelo.j2_vidas, 5);
+  document.getElementById('dp1-lives').innerHTML = rl(duelo.j1_vidas, duelo.vidas_max || 5);
+  document.getElementById('dp2-lives').innerHTML = rl(duelo.j2_vidas, duelo.vidas_max || 5);
   document.getElementById('dp1').classList.toggle('active', duelo.turno === 1);
   document.getElementById('dp2').classList.toggle('active', duelo.turno === 2);
   document.getElementById('duel-turn').textContent = `Turno de ${duelo.turno === 1 ? duelo.j1_nombre : (duelo.j2_nombre || 'J2')}`;
@@ -334,11 +337,17 @@ function mostrarResultadoDuelo() {
   const empate = duelo.ganador === 0;
   const gano = !empate && duelo.ganador === duelMiLado;
 
-  const titulo = empate ? '🤝 ¡Empate!' : (gano ? '🏆 ¡Ganas tú!' : '😔 Gana ' + esc(rivalNombre));
+  const enTorneo = typeof duelSala !== 'undefined' && duelSala;
+  const titulo = empate ? '🤝 ¡Empate!' : (gano ? (enTorneo ? '🏆 ¡Pasas de ronda!' : '🏆 ¡Ganas tú!') : (enTorneo ? '😔 Gana ' + esc(rivalNombre) + ': quedas eliminado' : '😔 Gana ' + esc(rivalNombre)));
+  const botones = enTorneo
+    ? `<button class="btn-primary" onclick="volverASala()">🏆 Volver al torneo</button>`
+    : `<button class="btn-whatsapp" onclick="compartirWhatsApp(textoResultadoDuelo())">💬 WhatsApp</button>
+      <button class="btn-secondary" onclick="showTab('duelos')">⚔️ Clasificación</button>
+      <button class="btn-primary" onclick="goMenu()">Volver</button>`;
 
   document.getElementById('result-hero').innerHTML = `
     <div style="font-size:36px;margin-bottom:0.5rem">⚔️</div>
-    <div class="result-rank">Duelo terminado</div>
+    <div class="result-rank">${enTorneo ? 'Partido del torneo terminado' : 'Duelo terminado'}</div>
     <div class="duel-winner">${titulo}</div>
     <div class="duel-scores">
       <div class="duel-score-card${!empate && misAciertos>=rivalAciertos ? ' winner' : ''}">
@@ -351,9 +360,7 @@ function mostrarResultadoDuelo() {
       </div>
     </div>
     <div class="result-actions">
-      <button class="btn-whatsapp" onclick="compartirWhatsApp(textoResultadoDuelo())">💬 WhatsApp</button>
-      <button class="btn-secondary" onclick="showTab('duelos')">⚔️ Clasificación</button>
-      <button class="btn-primary" onclick="goMenu()">Volver</button>
+      ${botones}
     </div>`;
   showScreen('screen-result');
 }
@@ -397,7 +404,10 @@ function prepararAbiertos() {
   caja.innerHTML = `
     <div class="label-row">
       <p class="section-label">🌐 Retos abiertos ahora</p>
-      <button class="chip-btn" onclick="crearDuelo(true)">➕ Abrir reto</button>
+      <span style="display:flex;gap:6px">
+        <button class="chip-btn" onclick="crearDuelo(true)">➕ Abrir reto</button>
+        <button class="chip-btn" onclick="crearSala()">🏆 Abrir torneo</button>
+      </span>
     </div>
     <div id="duelo-abiertos-lista"></div>`;
   acciones.insertAdjacentElement('afterend', caja);
@@ -420,20 +430,39 @@ function etiquetaCatsDuelo(cats) {
 
 const ETIQ_DIF_DUELO = { all: 'Todas las dificultades', facil: 'Fácil', medio: 'Medio', dificil: 'Difícil' };
 
-function pintarAbiertos(lista) {
+// Duelos abiertos y torneos que recogen jugadores, mezclados y los más nuevos primero. Si este
+// dispositivo tiene un torneo en marcha (sala.js lo guarda), arriba sale el botón para volver a él.
+function pintarAbiertos(duelos, salas) {
   const cont = document.getElementById('duelo-abiertos-lista');
   if (!cont) return;
-  if (!lista.length) {
-    cont.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:0.4rem 0 0.2rem">Nadie ha abierto reto ahora mismo. Abre uno y avisa a tus amigos por WhatsApp.</div>';
-    return;
-  }
-  cont.innerHTML = lista.map(r => `
-    <div style="display:flex;align-items:center;gap:10px;padding:0.65rem 0.8rem;margin-bottom:0.5rem;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius)">
+  const filas = [
+    ...duelos.map(r => ({ hace: r.hace, html: `
       <div style="flex:1;min-width:0">
         <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.j1_nombre)}</div>
         <div style="color:var(--muted);font-size:12px">${esc(etiquetaCatsDuelo(r.cats))} · ${esc(ETIQ_DIF_DUELO[r.dif] || r.dif)} · ${esc(haceCuantoAbierto(r.hace))}</div>
       </div>
-      <button class="chip-btn" style="color:var(--accent);border-color:var(--accent)" onclick="pedirCodigoUnirse('${esc(r.codigo)}')">⚔️ Unirme</button>
+      <button class="chip-btn" style="color:var(--accent);border-color:var(--accent)" onclick="pedirCodigoUnirse('${esc(r.codigo)}')">⚔️ Unirme</button>` })),
+    ...salas.map(r => ({ hace: r.hace, html: `
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">🏆 Torneo de ${esc(r.organizador)}</div>
+        <div style="color:var(--muted);font-size:12px">${esc(r.apuntados)} de ${esc(r.plazas)} apuntados · ${esc(etiquetaCatsDuelo(r.cats))} · ${esc(haceCuantoAbierto(r.hace))}</div>
+      </div>
+      <button class="chip-btn" style="color:var(--accent);border-color:var(--accent)" onclick="unirseSala('${esc(r.codigo)}')">🏆 Apuntarme</button>` })),
+  ].sort((a, b) => a.hace - b.hace);
+
+  const mia = typeof salaGuardada === 'function' ? salaGuardada() : null;
+  const retomar = mia
+    ? `<div style="display:flex;align-items:center;gap:10px;padding:0.65rem 0.8rem;margin-bottom:0.5rem;background:rgba(212,175,55,0.10);border:1px solid var(--accent);border-radius:var(--radius)">
+        <div style="flex:1;font-weight:600">🏆 Tienes un torneo en marcha</div>
+        <button class="chip-btn" style="color:var(--accent);border-color:var(--accent)" onclick="reanudarSala()">Volver</button>
+      </div>`
+    : '';
+  if (!filas.length) {
+    cont.innerHTML = retomar + '<div style="color:var(--muted);font-size:13px;padding:0.4rem 0 0.2rem">Nadie ha abierto reto ni torneo ahora mismo. Abre uno y avisa a tus amigos por WhatsApp.</div>';
+    return;
+  }
+  cont.innerHTML = retomar + filas.map(f => `
+    <div style="display:flex;align-items:center;gap:10px;padding:0.65rem 0.8rem;margin-bottom:0.5rem;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius)">${f.html}
     </div>`).join('');
 }
 
@@ -443,7 +472,9 @@ async function cargarAbiertos() {
   try {
     const n = typeof gqNombreGuardado === 'function' ? gqNombreGuardado() : '';
     const res = await gqFetch(`${GQ_DUELO_API}?abiertos=1&nombre=${encodeURIComponent(n)}`, { method: 'GET' });
-    if (res.ok && res.cuerpo && Array.isArray(res.cuerpo.abiertos)) pintarAbiertos(res.cuerpo.abiertos);
+    if (res.ok && res.cuerpo && Array.isArray(res.cuerpo.abiertos)) {
+      pintarAbiertos(res.cuerpo.abiertos, Array.isArray(res.cuerpo.salas) ? res.cuerpo.salas : []);
+    }
   } finally {
     abiertosCargando = false;
   }
@@ -482,12 +513,20 @@ setTimeout(tickAbiertos, 0);
 async function renderDuelos() {
   const div = document.getElementById('screen-duelos');
   div.innerHTML = '<div class="no-records">Cargando…</div>';
-  const res = await gqFetch(`${GQ_DUELO_API}?ranking=1`, { method: 'GET' });
+  const [res, resC] = await Promise.all([
+    gqFetch(`${GQ_DUELO_API}?ranking=1`, { method: 'GET' }),
+    gqFetch(`${GQ_SALA_API}?campeones=1`, { method: 'GET' }),
+  ]);
   const tabla = (res.ok && res.cuerpo && res.cuerpo.clasificacion) || [];
+  const campeones = (resC.ok && resC.cuerpo && resC.cuerpo.campeones) || [];
   const cab = '<p class="section-label">⚔️ Clasificación de duelos</p>';
-  if (!tabla.length) {
-    div.innerHTML = cab + '<div class="no-records">Todavía no ha terminado ningún duelo.<br>¡Sé el primero!</div>';
-    return;
-  }
-  div.innerHTML = cab + `<div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Jugador</th><th>Ganados</th><th>Jugados</th><th>Aciertos</th></tr></thead><tbody>${tabla.map(e => `<tr><td>${MEDALLAS[e.pos - 1] || e.pos}</td><td style="font-weight:600">${esc(e.nombre)}</td><td style="color:var(--accent);font-weight:600">${esc(e.ganados)}</td><td>${esc(e.jugados)}</td><td>${esc(e.aciertos)}</td></tr>`).join('')}</tbody></table></div>`;
+  const parteDuelos = !tabla.length
+    ? cab + '<div class="no-records">Todavía no ha terminado ningún duelo.<br>¡Sé el primero!</div>'
+    : cab + `<div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Jugador</th><th>Ganados</th><th>Jugados</th><th>Aciertos</th></tr></thead><tbody>${tabla.map(e => `<tr><td>${MEDALLAS[e.pos - 1] || e.pos}</td><td style="font-weight:600">${esc(e.nombre)}</td><td style="color:var(--accent);font-weight:600">${esc(e.ganados)}</td><td>${esc(e.jugados)}</td><td>${esc(e.aciertos)}</td></tr>`).join('')}</tbody></table></div>`;
+  // Los partidos de un torneo no cuentan en la tabla de arriba: los campeones tienen su propia lista.
+  const cabC = '<p class="section-label" style="margin-top:1.6rem">🏆 Campeones de torneos de duelos</p>';
+  const parteCampeones = !campeones.length
+    ? cabC + '<div style="color:var(--muted);font-size:13px">Todavía no hay campeones. Abre un torneo desde Jugar → Duelo.</div>'
+    : cabC + `<div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Jugador</th><th>Títulos</th><th>Torneos</th></tr></thead><tbody>${campeones.map(e => `<tr><td>${MEDALLAS[e.pos - 1] || e.pos}</td><td style="font-weight:600">${esc(e.nombre)}</td><td style="color:var(--accent);font-weight:600">${esc(e.ganados)}</td><td>${esc(e.jugados)}</td></tr>`).join('')}</tbody></table></div>`;
+  div.innerHTML = parteDuelos + parteCampeones;
 }

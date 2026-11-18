@@ -319,6 +319,75 @@ function gq_crear_tablas(PDO $pdo): void {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
     );
 
+    // ── TORNEO DE DUELOS ──────────────────────────────────────────────────
+    // Una sala junta a 2-8 jugadores, los sortea en un cuadro de eliminatoria y cada partido es un
+    // duelo normal (tabla `duelos`) que crea el servidor con los dos nombres ya puestos. Todo esto
+    // son tablas NUEVAS a propósito: ver el comentario de duelo_abiertos arriba.
+    //   estado   abierta (recogiendo jugadores) · llamando (30 s para confirmar «estoy aquí») ·
+    //            jugando · terminada · cancelada
+    //   organizador  quien puede empezar/expulsar/cancelar; si se va, pasa al siguiente
+    //   ultima_actividad_en  se toca con cada sondeo de cualquier jugador: lo que mantiene viva la sala
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS salas (
+            id            INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            codigo        CHAR(6)      NOT NULL,
+            organizador   VARCHAR(24)  NOT NULL,
+            cats          VARCHAR(400) NOT NULL,
+            dif           VARCHAR(8)   NOT NULL DEFAULT "all",
+            plazas        TINYINT UNSIGNED NOT NULL DEFAULT 8,
+            vidas         TINYINT UNSIGNED NOT NULL DEFAULT 3,
+            estado        VARCHAR(10)  NOT NULL DEFAULT "abierta",
+            ganador       VARCHAR(24)  NULL,
+            llamada_en    DATETIME     NULL,
+            creado_en     DATETIME     NOT NULL,
+            ultima_actividad_en DATETIME NOT NULL,
+            ip_hash_creador CHAR(64)   NOT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_codigo (codigo),
+            KEY idx_estado (estado, ultima_actividad_en)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
+    // El nombre es único DENTRO de la sala (la colación ignora mayúsculas y acentos, como en el
+    // torneo semanal). `token` es la llave secreta de ese jugador en esa sala: se le da UNA vez al
+    // apuntarse y se exige en todo lo demás, para que nadie pueda jugar con el nombre de otro
+    // (los nombres de la sala se ven; la llave, no).
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS sala_jugadores (
+            id        INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            sala_id   INT UNSIGNED NOT NULL,
+            nombre    VARCHAR(24)  NOT NULL,
+            token     CHAR(32)     NOT NULL,
+            orden     TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            listo     TINYINT UNSIGNED NOT NULL DEFAULT 0,
+            visto_en  DATETIME     NOT NULL,
+            ip_hash   CHAR(64)     NOT NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_jugador (sala_id, nombre),
+            CONSTRAINT fk_sj_sala FOREIGN KEY (sala_id) REFERENCES salas (id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
+    // El cuadro: una fila por partido, de la primera ronda a la final. j1/j2 se rellenan con los
+    // ganadores de la ronda anterior (o con un «pase directo» si sobra un hueco). `duelo_codigo` es
+    // el duelo de verdad donde se juega; solo lo ven los dos jugadores del partido.
+    //   motivo   juego · abandono (el rival no movió) · pase (pase directo)
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS sala_partidos (
+            id           INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            sala_id      INT UNSIGNED NOT NULL,
+            ronda        TINYINT UNSIGNED NOT NULL,
+            pos          TINYINT UNSIGNED NOT NULL,
+            j1           VARCHAR(24)  NULL,
+            j2           VARCHAR(24)  NULL,
+            duelo_codigo CHAR(6)      NULL,
+            ganador      VARCHAR(24)  NULL,
+            motivo       VARCHAR(10)  NULL,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_partido (sala_id, ronda, pos),
+            KEY idx_duelo (duelo_codigo),
+            CONSTRAINT fk_sp_sala FOREIGN KEY (sala_id) REFERENCES salas (id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
+
     // ── AVISOS POR CORREO ─────────────────────────────────────────────────
     // Lista opcional de gente que pide que le avisen de los torneos. Solo se guarda el
     // correo y lo mínimo para poder demostrar el consentimiento (cuándo, con qué texto y
