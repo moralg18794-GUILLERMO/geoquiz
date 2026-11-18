@@ -13,6 +13,7 @@ class GQPdoSqliteMysql extends PDO {
 
     private static function traducir(string $sql): string {
         $sql = preg_replace('/\(UTC_TIMESTAMP\(\)\s*-\s*INTERVAL\s+(\d+)\s+(DAY|HOUR)\)/i', "datetime('now', '-\${1} \${2}')", $sql);
+        $sql = preg_replace('/TIMESTAMPDIFF\(MINUTE,\s*([^,()]+?)\s*,\s*UTC_TIMESTAMP\(\)\)/i', "CAST((strftime('%s','now') - strftime('%s', \${1})) / 60 AS INTEGER)", $sql);
         $sql = preg_replace('/TIMESTAMPDIFF\(SECOND,\s*([^,()]+?)\s*,\s*UTC_TIMESTAMP\(\)\)/i', "CAST(strftime('%s','now') - strftime('%s', \${1}) AS INTEGER)", $sql);
         $sql = str_ireplace('UTC_TIMESTAMP()', "datetime('now')", $sql);
         $sql = preg_replace('/\bLEAST\(/i', 'MIN(', $sql);

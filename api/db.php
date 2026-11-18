@@ -303,6 +303,22 @@ function gq_crear_tablas(PDO $pdo): void {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
     );
 
+    // Retos abiertos: qué duelos en espera se enseñan en la lista pública. Es una tabla aparte
+    // y no una columna de `duelos` porque gq_consulta() solo sabe crear tablas que faltan
+    // (42S02), nunca columnas (42S22): una tabla nueva aparece sola en el primer uso y una
+    // columna habría obligado a borrar las tablas a mano en phpMyAdmin.
+    //   Un duelo SOLO CON ENLACE no tiene fila aquí y no sale en la lista.
+    //   Que siga «vivo» (su creador tiene la pantalla abierta) lo dice duelos.ultimo_movimiento_en,
+    //   que el sondeo del creador toca cada pocos segundos mientras espera.
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS duelo_abiertos (
+            duelo_id     INT UNSIGNED NOT NULL,
+            publicado_en DATETIME     NOT NULL,
+            PRIMARY KEY (duelo_id),
+            CONSTRAINT fk_da_duelo FOREIGN KEY (duelo_id) REFERENCES duelos (id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
+
     // ── AVISOS POR CORREO ─────────────────────────────────────────────────
     // Lista opcional de gente que pide que le avisen de los torneos. Solo se guarda el
     // correo y lo mínimo para poder demostrar el consentimiento (cuándo, con qué texto y

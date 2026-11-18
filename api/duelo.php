@@ -6,6 +6,10 @@
 //   POST /api/duelo.php   {accion:'pregunta', codigo, nombre}
 //   POST /api/duelo.php   {accion:'responder',codigo, nombre, elegida}
 //   GET  /api/duelo.php   ?ranking=1                         clasificación de duelos
+//   GET  /api/duelo.php   ?abiertos=1[&nombre=...]           retos abiertos ahora (lista pública)
+//   POST /api/duelo.php   {accion:'cancelar', codigo, nombre}    quien creó el duelo lo retira
+//   (crear admite abierto:true: el duelo sale en la lista de retos abiertos mientras su
+//   creador siga con la pantalla abierta; sin eso es solo por enlace, como siempre)
 //
 // 5 vidas por jugador, por rondas: en cada ronda responde primero J1 y después J2,
 // y LOS DOS CONTESTAN LA MISMA PREGUNTA -con las opciones en un orden distinto cada
@@ -35,6 +39,12 @@ const GQ_D_ABANDONO_MIN      = 5;
 const GQ_D_VIDAS_INICIAL     = 5;
 const GQ_D_TOPE_LISTA        = 100;
 const GQ_D_DIFS              = ['all', 'facil', 'medio', 'dificil'];
+// Retos abiertos: la lista solo enseña los que tienen a su creador conectado (su sondeo toca
+// ultimo_movimiento_en cada 2-3 s; 45 s de margen para móviles que frenan el navegador al
+// cambiar de app) y un reto sin rival se cierra solo a los 15 minutos.
+const GQ_D_PRESENCIA_SEG     = 45;
+const GQ_D_ABIERTO_MIN       = 15;
+const GQ_D_TOPE_ABIERTOS     = 20;
 // Sin O/0/I/1: se leen en voz alta o se copian de un mensaje de WhatsApp, y esos
 // cuatro son los que más se confunden entre sí.
 const GQ_D_ALFABETO = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -128,6 +138,56 @@ function gq_d_revisar_abandono(PDO $pdo, array $d): array {
     return $d;
 }
 
+function gq_d_hora_utc(string $dt): int {
+    return (int) strtotime($dt . ' UTC');
+}
+
+// Un reto abierto que lleva más de GQ_D_ABIERTO_MIN esperando sin rival se cierra solo. Se
+// comprueba aquí, al consultarlo, y no en un cron (igual que el abandono). Solo afecta a los
+// abiertos: un duelo por enlace puede esperar todo lo que haga falta.
+function gq_d_revisar_caducidad(PDO $pdo, array $d): array {
+    if ($d['estado'] !== 'esperando') { return $d; }
+    if (time() - gq_d_hora_utc((string) $d['creado_en']) < GQ_D_ABIERTO_MIN * 60) { return $d; }
+    if (!(bool) gq_consulta($pdo, 'SELECT 1 FROM duelo_abiertos WHERE duelo_id = ?', [$d['id']])->fetchColumn()) {
+        return $d;
+    }
+    gq_consulta($pdo, "UPDATE duelos SET estado = 'cancelado' WHERE id = ? AND estado = 'esperando'", [$d['id']]);
+    $d['estado'] = 'cancelado';
+    return $d;
+}
+
+// La lista pública: retos abiertos, sin rival y con su creador conectado, los más nuevos
+// primero. $excluir deja fuera los del propio jugador (no puede retarse a sí mismo).
+function gq_d_abiertos(PDO $pdo, string $excluir): array {
+    $corte = gmdate('Y-m-d H:i:s', time() - GQ_D_ABIERTO_MIN * 60);
+    gq_consulta(
+        $pdo,
+        "UPDATE duelos SET estado = 'cancelado'
+          WHERE estado = 'esperando' AND creado_en < ? AND id IN (SELECT duelo_id FROM duelo_abiertos)",
+        [$corte]
+    );
+    $vivo = gmdate('Y-m-d H:i:s', time() - GQ_D_PRESENCIA_SEG);
+    $filas = gq_consulta(
+        $pdo,
+        "SELECT d.codigo, d.j1_nombre, d.cats, d.dif, d.creado_en
+           FROM duelos d JOIN duelo_abiertos a ON a.duelo_id = d.id
+          WHERE d.estado = 'esperando' AND d.ultimo_movimiento_en > ? AND d.j1_nombre <> ?
+          ORDER BY d.id DESC LIMIT " . GQ_D_TOPE_ABIERTOS,
+        [$vivo, $excluir]
+    )->fetchAll();
+    $salida = [];
+    foreach ($filas as $f) {
+        $salida[] = [
+            'codigo'    => $f['codigo'],
+            'j1_nombre' => $f['j1_nombre'],
+            'cats'      => json_decode((string) $f['cats'], true) ?: [],
+            'dif'       => $f['dif'],
+            'hace'      => max(0, time() - gq_d_hora_utc((string) $f['creado_en'])),
+        ];
+    }
+    return $salida;
+}
+
 function gq_d_fila_publica(array $d, ?int $miLado): array {
     return [
         'codigo'      => $d['codigo'],
@@ -187,14 +247,27 @@ if ($metodo === 'GET') {
         gq_json(200, ['ok' => true, 'clasificacion' => gq_d_clasificacion($pdo)]);
     }
 
+    if (($_GET['abiertos'] ?? '') === '1') {
+        $excluir = isset($_GET['nombre']) && is_string($_GET['nombre']) ? gq_limpiar_nombre($_GET['nombre']) : '';
+        gq_json(200, ['ok' => true, 'abiertos' => gq_d_abiertos($pdo, $excluir)]);
+    }
+
     $codigo = isset($_GET['codigo']) && is_string($_GET['codigo']) ? strtoupper(trim($_GET['codigo'])) : '';
     if ($codigo === '') { gq_error(400, 'codigo', 'Hace falta un código de duelo.'); }
     $d = gq_d_por_codigo($pdo, $codigo);
     if ($d === null) { gq_error(404, 'no_existe', 'Ese código de duelo no existe.'); }
     $d = gq_d_revisar_abandono($pdo, $d);
+    $d = gq_d_revisar_caducidad($pdo, $d);
 
     $nombre  = isset($_GET['nombre']) && is_string($_GET['nombre']) ? gq_limpiar_nombre($_GET['nombre']) : '';
     $miLado  = $nombre === '' ? null : gq_d_mi_lado($pdo, (int) $d['id'], $nombre);
+
+    // Presencia: mientras el creador espera rival, cada sondeo suyo lo dice. Es lo que mantiene
+    // al reto en la lista de abiertos; si cierra o bloquea el móvil, deja de tocarse y a los
+    // GQ_D_PRESENCIA_SEG desaparece de la lista sin que nadie tenga que limpiar nada.
+    if ($d['estado'] === 'esperando' && $miLado === 1) {
+        gq_consulta($pdo, "UPDATE duelos SET ultimo_movimiento_en = UTC_TIMESTAMP() WHERE id = ? AND estado = 'esperando'", [$d['id']]);
+    }
 
     $pendiente = false;
     if ($d['estado'] === 'jugando') {
@@ -246,12 +319,27 @@ if ($accion === 'crear') {
 
     $dif = isset($datos['dif']) && is_string($datos['dif']) ? $datos['dif'] : 'all';
     if (!in_array($dif, GQ_D_DIFS, true)) { $dif = 'all'; }
+    $abierto = ($datos['abierto'] ?? false) === true;
 
     if (gq_d_elegir_pregunta($cats, $dif, []) === null) {
         gq_error(400, 'sin_preguntas', 'No hay preguntas con esos filtros.');
     }
 
     gq_consulta($pdo, 'INSERT INTO envios (ip_hash, creado_en) VALUES (?, UTC_TIMESTAMP())', [$ipHash]);
+
+    // Quien abre un reto nuevo deja de estar esperando en el anterior: si no, la lista se
+    // llenaría de retos fantasma de una misma persona que va probando. Solo cuenta entre
+    // ABIERTOS (un duelo por enlace no se toca), y se exige el mismo nombre Y la misma
+    // conexión para que nadie pueda cerrarle el reto a otro usando su nombre.
+    if ($abierto) {
+        gq_consulta(
+            $pdo,
+            "UPDATE duelos SET estado = 'cancelado'
+              WHERE estado = 'esperando' AND j1_nombre = ? AND ip_hash_creador = ?
+                AND id IN (SELECT duelo_id FROM duelo_abiertos)",
+            [$nombre, $ipHash]
+        );
+    }
 
     $codigo = null;
     for ($i = 0; $i < 5 && $codigo === null; $i++) {
@@ -273,7 +361,14 @@ if ($accion === 'crear') {
     }
     if ($codigo === null) { gq_error(500, 'codigo', 'No se pudo generar un código. Vuelve a intentarlo.'); }
 
-    gq_json(201, ['ok' => true, 'codigo' => $codigo]);
+    if ($abierto) {
+        $nuevo = gq_d_por_codigo($pdo, $codigo);
+        gq_consulta(
+            $pdo, 'INSERT INTO duelo_abiertos (duelo_id, publicado_en) VALUES (?, UTC_TIMESTAMP())', [$nuevo['id']]
+        );
+    }
+
+    gq_json(201, ['ok' => true, 'codigo' => $codigo, 'abierto' => $abierto]);
 }
 
 // A partir de aquí todas las acciones necesitan un duelo ya existente.
@@ -282,6 +377,7 @@ if ($codigo === '') { gq_error(400, 'codigo', 'Hace falta un código de duelo.')
 $d = gq_d_por_codigo($pdo, $codigo);
 if ($d === null) { gq_error(404, 'no_existe', 'Ese código de duelo no existe.'); }
 $d = gq_d_revisar_abandono($pdo, $d);
+$d = gq_d_revisar_caducidad($pdo, $d);
 $duId = (int) $d['id'];
 
 // ── UNIRSE ────────────────────────────────────────────────────────────────
@@ -290,6 +386,9 @@ if ($accion === 'unirse') {
     if ($yaSoy === 2) {
         // Recarga de quien ya se había unido: no es un error, es la misma partida.
         gq_json(200, ['ok' => true, 'duelo' => gq_d_fila_publica($d, 2)]);
+    }
+    if ($d['estado'] === 'cancelado') {
+        gq_error(409, 'cancelado', 'Ese reto ya no está disponible: quien lo abrió lo ha retirado o ha caducado.');
     }
     if ($d['estado'] !== 'esperando') {
         gq_error(409, 'duelo_lleno', 'Ese duelo ya tiene dos jugadores o ha terminado.');
@@ -320,6 +419,16 @@ if ($accion === 'unirse') {
 // Las acciones de juego exigen saber de qué lado se está.
 $lado = gq_d_mi_lado($pdo, $duId, $nombre);
 if ($lado === null) { gq_error(403, 'no_eres_jugador', 'Ese nombre no está en este duelo.'); }
+
+// ── CANCELAR ──────────────────────────────────────────────────────────────
+// Quien creó el duelo lo retira mientras nadie ha entrado. Idempotente: pulsarlo dos veces,
+// o con el duelo ya cancelado o ya empezado, no es un error (si ya había empezado, no se toca).
+if ($accion === 'cancelar') {
+    if ($lado !== 1) { gq_error(403, 'no_eres_creador', 'Solo quien creó el duelo puede retirarlo.'); }
+    gq_consulta($pdo, "UPDATE duelos SET estado = 'cancelado' WHERE id = ? AND estado = 'esperando'", [$duId]);
+    $d = gq_d_por_codigo($pdo, $codigo) ?? $d;
+    gq_json(200, ['ok' => true, 'duelo' => gq_d_fila_publica($d, 1)]);
+}
 
 // ── PREGUNTA ──────────────────────────────────────────────────────────────
 if ($accion === 'pregunta') {

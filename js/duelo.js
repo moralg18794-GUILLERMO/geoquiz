@@ -24,6 +24,7 @@ let duelMiLado = null;         // 1 o 2
 let duelSondeoInt = null;
 let duelPreguntaActual = null; // true mientras hay una pregunta nuestra en pantalla sin contestar
 let duelEsperandoClic = false; // true mientras se enseña el botón "Empezar ronda" sin pulsar
+let duelAbierto = false;       // true si el duelo que espero rival está en la lista de retos abiertos
 
 function pararSondeoDuelo() {
   clearInterval(duelSondeoInt);
@@ -31,7 +32,10 @@ function pararSondeoDuelo() {
 }
 
 // ── CREAR ─────────────────────────────────────────────────────────────────
-async function crearDuelo() {
+// abierto=true: el reto sale en la lista de «Retos abiertos» para que cualquiera se una.
+// Sin eso, es el duelo de siempre: solo entra quien tenga el enlace o el código.
+async function crearDuelo(abierto) {
+  abierto = abierto === true;   // desde un onclick="crearDuelo()" no llega nada; desde un evento, un objeto
   if (filterMode === 'tematicas') {
     toast('El duelo se juega por épocas, no por temáticas. Cambia el filtro arriba.');
     return;
@@ -45,7 +49,7 @@ async function crearDuelo() {
   const res = await gqFetch(GQ_DUELO_API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ accion: 'crear', nombre, cats, dif: selectedDiff }),
+    body: JSON.stringify({ accion: 'crear', nombre, cats, dif: selectedDiff, abierto }),
   });
   if (!res.ok || !res.cuerpo || !res.cuerpo.codigo) {
     toast((res.cuerpo && res.cuerpo.mensaje) || 'No se pudo crear el duelo. Revisa la conexión.');
@@ -55,6 +59,7 @@ async function crearDuelo() {
   duelCodigo = res.cuerpo.codigo;
   duelNombre = nombre;
   duelMiLado = 1;
+  duelAbierto = res.cuerpo.abierto === true;
   mostrarEsperaDuelo();
 }
 
@@ -69,17 +74,36 @@ function textoInvitacionDuelo() {
 
 function mostrarEsperaDuelo() {
   showScreen('screen-duelo');
+  const titulo = duelAbierto ? '🌐 Reto abierto' : '⚔️ Duelo creado';
+  const aviso = duelAbierto
+    ? 'Ya sale en la lista de retos abiertos: cualquiera puede unirse. Mantén esta pantalla abierta (si la cierras, el reto desaparece de la lista) y, en cuanto entre alguien, empieza la partida sola. Si nadie entra en 15 minutos, se cierra.'
+    : 'En cuanto se una tu rival, empieza la partida sola.';
   document.getElementById('screen-duelo').innerHTML = `
     <div class="no-records">
-      <p class="section-label">⚔️ Duelo creado</p>
+      <p class="section-label">${titulo}</p>
       <div style="font-size:30px;font-weight:700;letter-spacing:4px;margin:1rem 0;color:var(--accent)">${esc(duelCodigo)}</div>
-      <p style="color:var(--muted);font-size:13px;margin-bottom:1rem">En cuanto se una tu rival, empieza la partida sola.</p>
-      <button class="invitar-btn" onclick="compartirWhatsApp(textoInvitacionDuelo())">💬 Invitar por WhatsApp</button>
-      <button class="btn-secondary" style="margin-top:0.6rem" onclick="pararSondeoDuelo();goMenu()">Cancelar</button>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:1rem">${aviso}</p>
+      <button class="invitar-btn" onclick="compartirWhatsApp(textoInvitacionDuelo())">💬 ${duelAbierto ? 'Avisar por WhatsApp' : 'Invitar por WhatsApp'}</button>
+      <button class="btn-secondary" style="margin-top:0.6rem" onclick="cancelarEsperaDuelo()">${duelAbierto ? 'Retirar reto' : 'Cancelar'}</button>
     </div>`;
   pararSondeoDuelo();
   duelSondeoInt = setInterval(sondearEsperaDuelo, 2500);
   sondearEsperaDuelo();
+}
+
+// Retira el reto en el servidor (así deja de salir en la lista y nadie entra en un duelo
+// que ya no existe) y vuelve al menú. Si no hay red, se vuelve igual: el reto desaparece
+// solo de la lista a los pocos segundos porque ya no hay nadie sondeando por él.
+async function cancelarEsperaDuelo() {
+  const codigo = duelCodigo, nombre = duelNombre;
+  pararSondeoDuelo();
+  goMenu();
+  if (!codigo) return;
+  await gqFetch(GQ_DUELO_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accion: 'cancelar', codigo, nombre }),
+  });
 }
 
 async function sondearEsperaDuelo() {
@@ -90,7 +114,24 @@ async function sondearEsperaDuelo() {
   if (!res.ok || !res.cuerpo || !res.cuerpo.duelo) return;   // fallo puntual; se reintenta
   duelo = res.cuerpo.duelo;
   if (duelo.estado === 'jugando') { arrancarDuelo(); }
+  else if (duelo.estado === 'cancelado') {
+    // Caducó a los 15 min sin rival (o se retiró desde otro sitio).
+    pararSondeoDuelo();
+    document.getElementById('screen-duelo').innerHTML = `
+      <div class="no-records">
+        <p class="section-label">⌛ Reto cerrado</p>
+        <p style="color:var(--muted);font-size:13px;margin:1rem 0">Nadie ha entrado en 15 minutos, así que lo he cerrado. Puedes abrir otro cuando quieras.</p>
+        <button class="btn-primary" onclick="crearDuelo(${duelAbierto})">Abrir otro reto</button>
+        <button class="btn-secondary" style="margin-top:0.6rem" onclick="goMenu()">Volver</button>
+      </div>`;
+  }
 }
+
+// En cuanto la pestaña vuelve a verse (se volvió de WhatsApp, se desbloqueó el móvil), se
+// sondea sin esperar al siguiente tic: así el reto reaparece enseguida en la lista.
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && duelSondeoInt && duelo && duelo.estado === 'esperando') sondearEsperaDuelo();
+});
 
 // ── UNIRSE ────────────────────────────────────────────────────────────────
 async function pedirCodigoUnirse(prefill) {
@@ -329,6 +370,113 @@ function textoResultadoDuelo() {
   const resultado = empate ? 'Empate' : (gano ? '🏆 ¡He ganado!' : 'Ha ganado ' + rivalNombre);
   return `GeoQuiz — Duelo\n\n${miNombre}: ${misAciertos} aciertos\n${rivalNombre}: ${rivalAciertos} aciertos\n${resultado}\n\n¿Te atreves con el siguiente?\n${url}`;
 }
+
+// ── RETOS ABIERTOS ────────────────────────────────────────────────────────
+// Bajo «Crear duelo / Tengo un código» (solo con el modo Duelo elegido) sale la lista de
+// retos que alguien ha abierto y está esperando rival. El bloque lo construye este archivo
+// y no index.html, para que no dependa de cómo esté montado el menú: si no encuentra
+// #duelo-actions, simplemente no hay lista.
+//
+// Se pide al servidor cada 5 s, y solo mientras se está mirando: pestaña visible, modo Duelo
+// elegido y menú en pantalla. Tras 2 minutos sin tocar nada se para y queda un botón de
+// Actualizar: una pestaña olvidada abierta no debe seguir pidiendo datos eternamente.
+const ABIERTOS_CADA_MS  = 5000;
+const ABIERTOS_REPOSO_MS = 120000;
+let abiertosUltimaAccion = Date.now();
+let abiertosEnReposo = false;
+let abiertosCargando = false;
+
+function prepararAbiertos() {
+  let caja = document.getElementById('duelo-abiertos');
+  if (caja) return caja;
+  const acciones = document.getElementById('duelo-actions');
+  if (!acciones) return null;
+  caja = document.createElement('div');
+  caja.id = 'duelo-abiertos';
+  caja.style.cssText = 'display:none;margin-top:1.3rem';
+  caja.innerHTML = `
+    <div class="label-row">
+      <p class="section-label">🌐 Retos abiertos ahora</p>
+      <button class="chip-btn" onclick="crearDuelo(true)">➕ Abrir reto</button>
+    </div>
+    <div id="duelo-abiertos-lista"></div>`;
+  acciones.insertAdjacentElement('afterend', caja);
+  return caja;
+}
+
+function haceCuantoAbierto(seg) {
+  if (seg < 60) return 'ahora mismo';
+  const m = Math.floor(seg / 60);
+  return `hace ${m} min`;
+}
+
+function etiquetaCatsDuelo(cats) {
+  const todas = typeof CAT_KEYS !== 'undefined' ? CAT_KEYS.length : 0;
+  if (!cats || !cats.length) return '';
+  if (todas && cats.length >= todas) return 'Todas las épocas';
+  if (cats.length === 1) return cats[0];
+  return `${cats.length} épocas`;
+}
+
+const ETIQ_DIF_DUELO = { all: 'Todas las dificultades', facil: 'Fácil', medio: 'Medio', dificil: 'Difícil' };
+
+function pintarAbiertos(lista) {
+  const cont = document.getElementById('duelo-abiertos-lista');
+  if (!cont) return;
+  if (!lista.length) {
+    cont.innerHTML = '<div style="color:var(--muted);font-size:13px;padding:0.4rem 0 0.2rem">Nadie ha abierto reto ahora mismo. Abre uno y avisa a tus amigos por WhatsApp.</div>';
+    return;
+  }
+  cont.innerHTML = lista.map(r => `
+    <div style="display:flex;align-items:center;gap:10px;padding:0.65rem 0.8rem;margin-bottom:0.5rem;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius)">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(r.j1_nombre)}</div>
+        <div style="color:var(--muted);font-size:12px">${esc(etiquetaCatsDuelo(r.cats))} · ${esc(ETIQ_DIF_DUELO[r.dif] || r.dif)} · ${esc(haceCuantoAbierto(r.hace))}</div>
+      </div>
+      <button class="chip-btn" style="color:var(--accent);border-color:var(--accent)" onclick="pedirCodigoUnirse('${esc(r.codigo)}')">⚔️ Unirme</button>
+    </div>`).join('');
+}
+
+async function cargarAbiertos() {
+  if (abiertosCargando) return;
+  abiertosCargando = true;
+  try {
+    const n = typeof gqNombreGuardado === 'function' ? gqNombreGuardado() : '';
+    const res = await gqFetch(`${GQ_DUELO_API}?abiertos=1&nombre=${encodeURIComponent(n)}`, { method: 'GET' });
+    if (res.ok && res.cuerpo && Array.isArray(res.cuerpo.abiertos)) pintarAbiertos(res.cuerpo.abiertos);
+  } finally {
+    abiertosCargando = false;
+  }
+}
+
+function tickAbiertos() {
+  const caja = prepararAbiertos();
+  if (!caja) return;
+  const eligido = typeof gameMode !== 'undefined' && gameMode === 'duel';
+  caja.style.display = eligido ? 'block' : 'none';
+  const menu = document.getElementById('screen-menu');
+  if (!eligido || document.hidden || !menu || !menu.classList.contains('active')) return;
+  if (Date.now() - abiertosUltimaAccion > ABIERTOS_REPOSO_MS) {
+    if (!abiertosEnReposo) {
+      abiertosEnReposo = true;
+      const cont = document.getElementById('duelo-abiertos-lista');
+      if (cont) cont.innerHTML = '<button class="chip-btn" onclick="tickAbiertos()">🔄 Actualizar la lista</button>';
+    }
+    return;
+  }
+  cargarAbiertos();
+}
+
+// Cualquier toque o tecla cuenta como «sigo aquí»; si la lista estaba en reposo, despierta.
+['pointerdown', 'keydown', 'touchstart'].forEach(ev => document.addEventListener(ev, () => {
+  abiertosUltimaAccion = Date.now();
+  if (abiertosEnReposo) { abiertosEnReposo = false; tickAbiertos(); }
+}, { passive: true }));
+
+const modoFila = document.getElementById('mode-row');
+if (modoFila) modoFila.addEventListener('click', () => setTimeout(tickAbiertos, 0));
+setInterval(tickAbiertos, ABIERTOS_CADA_MS);
+setTimeout(tickAbiertos, 0);
 
 // ── CLASIFICACIÓN DE DUELOS ───────────────────────────────────────────────
 async function renderDuelos() {
