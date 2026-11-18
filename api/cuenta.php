@@ -69,8 +69,12 @@ function gq_cuenta_hash_codigo(string $codigo, string $email): string {
 // ¿Hay ya una cuenta con ese nombre? La comparación la hace la base de datos (sin distinguir
 // mayúsculas ni acentos). También se reservan los nombres de quien juega fuera de concurso.
 function gq_cuenta_nombre_ocupado(PDO $pdo, string $nombre, string $exceptoEmail = ''): bool {
+    // El nombre de quien escribe las preguntas (GQ_AUTORES) está reservado para que nadie se haga pasar
+    // por él en la tabla… salvo para el propio autor: sus correos van en 'autor_emails' de
+    // api/correo-config.php, que vive solo en el servidor y no en el repositorio.
+    $autores = gq_correo_cfg()['autor_emails'] ?? [];
     foreach (GQ_AUTORES as $a) {
-        if (gq_minus($a) === gq_minus($nombre)) {
+        if (gq_minus($a) === gq_minus($nombre) && !in_array($exceptoEmail, (array) $autores, true)) {
             return true;
         }
     }

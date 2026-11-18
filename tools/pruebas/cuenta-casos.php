@@ -164,5 +164,14 @@ post(['accion' => 'entrar', 'email' => 'dani@prueba.es']);
 post(['accion' => 'verificar', 'email' => 'dani@prueba.es', 'codigo' => ultimoCodigo('dani@prueba.es'), 'avisos' => true]);
 ok('hacerlo dos veces no duplica la fila', (int) db()->query("SELECT COUNT(*) FROM avisos WHERE email = 'dani@prueba.es'")->fetchColumn() === 1);
 
+// 10. El nombre reservado del autor: solo lo puede usar el autor (su correo está en la configuración)
+olvidarEspera();
+[$h, $r] = post(['accion' => 'alta', 'nombre' => 'WEEDLLERMO', 'email' => 'cualquiera@prueba.es', 'mayor' => true]);
+ok('otra persona NO puede coger el nombre del autor', $h === 409, $r);
+[$h, $r] = post(['accion' => 'alta', 'nombre' => 'WEEDLLERMO', 'email' => 'autor@prueba.es', 'mayor' => true]);
+ok('el autor SÍ puede usar su propio nombre', $h === 200 && ($r['ok'] ?? false), $r);
+[$h, $r] = post(['accion' => 'verificar', 'email' => 'autor@prueba.es', 'codigo' => ultimoCodigo('autor@prueba.es')]);
+ok('y crea su cuenta con él', $h === 200 && strtolower($r['nombre'] ?? '') === 'weedllermo', $r);
+
 echo "\nBIEN · $bien comprobaciones" . ($mal ? " · $mal FALLAN" : '') . "\n";
 exit($mal ? 1 : 0);

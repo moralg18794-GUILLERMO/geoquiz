@@ -41,7 +41,7 @@ return [
     'dsn' => 'sqlite:$TMPW/prueba.sqlite',
     'sal_ip' => 'sal-de-pruebas', 'token_admin' => 'token-de-pruebas-0123456789abcdef',
     'correo' => ['smtp_usuario' => 'a@b.c', 'smtp_clave' => 'x', 'contacto' => 'contacto@prueba.es',
-                 'archivo_pruebas' => '$TMPW/correos.jsonl'],
+                 'archivo_pruebas' => '$TMPW/correos.jsonl', 'autor_emails' => ['autor@prueba.es']],
 ];
 EOF
 
