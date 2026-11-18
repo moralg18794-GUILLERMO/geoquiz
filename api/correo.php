@@ -20,7 +20,7 @@
 
 declare(strict_types=1);
 
-const GQ_TEXTO_VERSION = 'v2-2026-11';
+const GQ_TEXTO_VERSION = 'v3-2026-11';
 
 function gq_correo_cfg(): array {
     // Los datos del buzón viven en api/correo-config.php (que devuelve directamente el array

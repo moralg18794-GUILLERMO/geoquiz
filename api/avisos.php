@@ -155,10 +155,10 @@ if ($enviar) {
     $ok = gq_enviar_correo(
         $email,
         'Confirma tu correo para los avisos de GeoQuiz',
-        '<p>Hola,</p><p>Alguien (esperamos que tú) ha pedido recibir avisos de los torneos de GeoQuiz en este correo.</p>'
+        '<p>Hola,</p><p>Alguien (esperamos que tú) ha pedido recibir avisos de torneos, preguntas y novedades de GeoQuiz en este correo.</p>'
         . '<p><a href="' . htmlspecialchars($enlace, ENT_QUOTES, 'UTF-8') . '">Confirmar mi correo</a></p>'
         . '<p>Si no has sido tú, ignora este mensaje: no te escribiremos más.</p>' . $pieHtml,
-        "Hola,\n\nAlguien (esperamos que tú) ha pedido recibir avisos de los torneos de GeoQuiz en este correo.\n"
+        "Hola,\n\nAlguien (esperamos que tú) ha pedido recibir avisos de torneos, preguntas y novedades de GeoQuiz en este correo.\n"
         . "Para confirmarlo, abre este enlace:\n$enlace\n\nSi no has sido tú, ignora este mensaje: no te escribiremos más.\n\n—\n" . $pieTxt
     );
     if (!$ok) {
