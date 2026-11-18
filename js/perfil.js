@@ -22,7 +22,7 @@
 
   // ── La entrada de ESTE dispositivo ──
   function nueva() {
-    return { dev: aleatorio(), desde: new Date().toISOString(), act: '', partidas: 0, modos: {}, hist: [], torneos: {}, duelos: { jugados: 0, ganados: 0, empatados: 0, perdidos: 0, contados: [], hist: [] } };
+    return { dev: aleatorio(), desde: new Date().toISOString(), act: '', partidas: 0, modos: {}, hist: [], torneos: {}, repes: {}, duelos: { jugados: 0, ganados: 0, empatados: 0, perdidos: 0, contados: [], hist: [] } };
   }
   function leer() {
     try {
@@ -30,7 +30,7 @@
       if (s && typeof s === 'object') {
         if (!s.dev) s.dev = aleatorio();
         if (!s.duelos) s.duelos = nueva().duelos;
-        s.modos = s.modos || {}; s.hist = s.hist || []; s.torneos = s.torneos || {};
+        s.modos = s.modos || {}; s.hist = s.hist || []; s.torneos = s.torneos || {}; s.repes = s.repes || {};
         return s;
       }
     } catch (e) { /* se parte de cero */ }
@@ -69,7 +69,7 @@
   function vista() {
     const mine = entradaLocal();
     const disp = Object.assign({}, gqCuenta.iniciada() ? remoto.dispositivos : {}, { [mine.dev]: mine });
-    const v = { desde: '', partidas: 0, modos: {}, duelos: { jugados: 0, ganados: 0, empatados: 0, perdidos: 0, hist: [] }, hist: [], torneos: {}, slugs: [], records: [], dispositivos: 0 };
+    const v = { desde: '', partidas: 0, modos: {}, duelos: { jugados: 0, ganados: 0, empatados: 0, perdidos: 0, hist: [] }, hist: [], torneos: {}, repes: {}, slugs: [], records: [], dispositivos: 0 };
     const slugs = new Set();
     for (const e of Object.values(disp)) {
       if (!e || typeof e !== 'object') continue;
@@ -85,6 +85,14 @@
       for (const [sl, t] of Object.entries(e.torneos || {})) {
         slugs.add(sl);
         if (!v.torneos[sl] || String(t.f) > String(v.torneos[sl].f)) v.torneos[sl] = t;
+      }
+      // Repeticiones de torneos ya cerrados: cada dispositivo cuenta las suyas, se suman las veces y se
+      // queda la mejor marca.
+      for (const [sl, r] of Object.entries(e.repes || {})) {
+        if (!r || typeof r !== 'object') continue;
+        const a = v.repes[sl];
+        if (!a) v.repes[sl] = { n: Number(r.n) || 0, mejor: Number(r.mejor) || 0, f: r.f || '' };
+        else { a.n += Number(r.n) || 0; a.mejor = Math.max(a.mejor, Number(r.mejor) || 0); if (String(r.f) > String(a.f)) a.f = r.f; }
       }
       v.records = v.records.concat(e.records || []);
     }
@@ -184,6 +192,12 @@
       if (slug && !(typeof torneoPractica !== 'undefined' && torneoPractica)) {
         s.torneos[slug] = { f: new Date().toISOString(), puntos: c.puntos !== undefined ? c.puntos : score, pos: c.pos || null, aciertos: c.aciertos !== undefined ? c.aciertos : correct, total: (typeof torneoTotal !== 'undefined' && torneoTotal) || c.total || 0 };
         guardar(s);
+      } else if (slug && typeof torneoRep !== 'undefined' && torneoRep && torneoRep.estado !== 'activo') {
+        // Repetición de un torneo cerrado: no puntúa, pero se anota aparte (cuántas veces y la mejor marca).
+        const pts = c.puntos !== undefined ? c.puntos : score;
+        const a = s.repes[slug] || { n: 0, mejor: 0, f: '' };
+        s.repes[slug] = { n: (Number(a.n) || 0) + 1, mejor: Math.max(Number(a.mejor) || 0, Number(pts) || 0), f: new Date().toISOString() };
+        guardar(s);
       }
     } catch (e) { /* idem */ }
     return res;
@@ -250,6 +264,12 @@
         color:var(--muted);border:1px solid rgba(255,255,255,.2);margin:6px 6px 0 0}
       .pf-hist{font-size:13px}
       .pf-hist .pf-fila span:first-child{color:var(--muted)}
+      .pf-tw{padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,.06)}
+      .pf-tw:last-child{border-bottom:0;padding-bottom:0}
+      .pf-tw .pf-fila{border-bottom:0}
+      .pf-tw .pf-nota{margin:0 0 2px}
+      .pf-acc{display:flex;flex-wrap:wrap;gap:6px;margin-top:2px}
+      .pf-acc .pf-link{margin:0}
       .pf-vel{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto;
         background:rgba(5,3,14,.78);backdrop-filter:blur(3px)}
       .pf-caja{box-sizing:border-box;width:100%;max-height:92vh;overflow:auto;padding:20px;border-radius:18px;background:#161226;
@@ -294,11 +314,21 @@
   function dia(iso) { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }); }
   function historial(v) {
     const out = [];
-    if (v.slugs.length) {
-      out.push('<div class="pf-bloque pf-hist"><h3>Historial de torneos</h3>' + v.slugs.slice().reverse().map(sl => {
+    // Los torneos jugados y también los que solo se han repetido (alguien invitado a uno que ya había
+    // cerrado). El slug tiene que tener la forma de siempre porque va dentro de un botón.
+    const slugsHist = Array.from(new Set(v.slugs.concat(Object.keys(v.repes)))).filter(sl => /^\d{4}-\d{2}-\d{2}-[a-z0-9-]+$/.test(sl)).sort();
+    if (slugsHist.length) {
+      out.push('<div class="pf-bloque pf-hist"><h3>Historial de torneos</h3>'
+        + '<div class="pf-nota" style="margin:0 0 8px">Puedes volver a jugar cualquiera de ellos: ya no puntúan ni cambian la clasificación, pero se anotan como repetición. Y puedes invitar a quien no estuvo.</div>'
+        + slugsHist.slice().reverse().map(sl => {
         const t = v.torneos[sl];
-        const dato = t ? `${esc(Number(t.puntos).toLocaleString())} pts` + (t.pos ? ` · ${esc(t.pos)}º` : '') : 'jugado';
-        return `<div class="pf-fila"><span>${esc(etiquetaTorneo(sl))}</span><span>${dato}</span></div>`;
+        const r = v.repes[sl];
+        const jugado = v.slugs.includes(sl);
+        const dato = t ? `${esc(Number(t.puntos).toLocaleString())} pts` + (t.pos ? ` · ${esc(t.pos)}º` : '') : (jugado ? 'jugado' : 'repetido');
+        const rep = r && r.n ? `<div class="pf-nota">🔁 Repetido ${esc(r.n)} ${r.n === 1 ? 'vez' : 'veces'} · mejor repetición ${esc(Number(r.mejor).toLocaleString())} pts</div>` : '';
+        return `<div class="pf-tw"><div class="pf-fila"><span>${esc(etiquetaTorneo(sl))}</span><span>${dato}</span></div>${rep}`
+          + `<div class="pf-acc"><button class="pf-link" type="button" onclick="gqPerfilRejugar('${esc(sl)}')">🔁 Jugar otra vez</button>`
+          + `<button class="pf-link" type="button" onclick="gqPerfilInvitar('${esc(sl)}')">📨 Invitar</button></div></div>`;
       }).join('') + '</div>');
     }
     const h = v.hist.slice(-10).reverse();
@@ -314,6 +344,15 @@
 
   // ── Acciones de los botones del Perfil ──
   window.gqPerfilAcceso = function (modo) { gqCuenta.abrir(modo, gqNombreGuardado()); };
+
+  // Volver a jugar un torneo del historial (sin puntuar) y mandar un enlace para que otros lo jueguen.
+  // La lógica vive en torneo.js; aquí solo se enganchan los botones.
+  window.gqPerfilRejugar = function (slug) {
+    if (typeof torneoRepetirSlug === 'function') torneoRepetirSlug(slug);
+  };
+  window.gqPerfilInvitar = function (slug) {
+    if (typeof torneoInvitar === 'function') torneoInvitar(slug);
+  };
 
   window.gqPerfilNombre = async function () {
     const n = prompt('Tu nombre de jugador:', gqNombreGuardado());
@@ -421,7 +460,7 @@
     try { if (localStorage.getItem('gq_perfil_decidido')) return; } catch (e) { /* sin almacenamiento: se pregunta siempre */ }
     if (gqCuenta.iniciada() || gqNombreGuardado()) return;
     const reto = document.getElementById('challenge-banner');
-    if ((reto && reto.classList.contains('show')) || /[?&](challenge|duelo|codigo|d)=/.test(location.search)) return;
+    if ((reto && reto.classList.contains('show')) || /[?&](challenge|duelo|codigo|d|torneo)=/.test(location.search)) return;
     estilo();
     // La bienvenida pequeña de siempre queda sustituida por esta.
     if (typeof cerrarBienvenida === 'function') cerrarBienvenida();
