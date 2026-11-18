@@ -4,3 +4,4 @@ checkChallenge();
 iniciarBienvenida();
 cargarTorneo();
 checkDuelInvite();
+checkTorneoInvite();

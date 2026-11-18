@@ -23,7 +23,8 @@ gq_cors();
 
 const GQ_AVISOS_POR_IP_HORA = 5;
 const GQ_AVISOS_GLOBAL_HORA = 200;
-const GQ_AVISOS_REENVIO_MIN = 10;
+const GQ_AVISOS_REENVIO_MIN = 1440; // un correo de confirmación al día como mucho por dirección
+const GQ_AVISOS_PENDIENTE_DIAS = 7;  // lo no confirmado en una semana se borra
 
 function gq_pagina(string $titulo, string $mensaje, string $formulario = ''): void {
     http_response_code(200);
@@ -54,6 +55,28 @@ if ($metodo === 'GET' && isset($_GET['estado'])) {
 }
 $pdo = gq_db();
 $ahora = gmdate('Y-m-d H:i:s');
+// Un correo sin confirmar no se guarda para siempre: a la semana se borra, y su enlace deja de valer.
+gq_consulta($pdo, "DELETE FROM avisos WHERE estado = 'pendiente' AND pedido_en < ?", [gmdate('Y-m-d H:i:s', time() - GQ_AVISOS_PENDIENTE_DIAS * 86400)]);
+
+// Seguimiento: el navegador que hizo el alta recibe un código que NO sirve para confirmar (eso solo
+// lo hace el enlace del correo) y con él pregunta si ya se confirmó. Sale de aplicar un hash al
+// token, así que no hace falta una columna nueva y del código no se puede sacar el token.
+if ($metodo === 'GET' && isset($_GET['seg'])) {
+    $seg = (string) $_GET['seg'];
+    if (preg_match('/^[a-f0-9]{32}$/', $seg) !== 1) {
+        gq_error(400, 'peticion', 'Petición no válida.');
+    }
+    // El hash se calcula en PHP y no en MySQL (SHA2 daba un error de colación en este servidor). La
+    // tabla es pequeña, así que recorrerla es barato.
+    $estado = 'ninguno';
+    foreach (gq_consulta($pdo, 'SELECT estado, token FROM avisos LIMIT 20000')->fetchAll() as $fila) {
+        if (hash_equals(substr(hash('sha256', 'seg|' . $fila['token']), 0, 32), $seg)) {
+            $estado = (string) $fila['estado'];
+            break;
+        }
+    }
+    gq_json(200, ['ok' => true, 'estado' => $estado]);
+}
 
 // ── GET ───────────────────────────────────────────────────────────────────
 if ($metodo === 'GET') {
@@ -78,8 +101,8 @@ if ($metodo !== 'POST') {
 // ── POST desde el formulario de las páginas de confirmar / baja ───────────
 $tipo = strtolower((string) ($_SERVER['CONTENT_TYPE'] ?? ''));
 if (strpos($tipo, 'application/x-www-form-urlencoded') === 0) {
-    $a = (string) ($_POST['a'] ?? '');
-    $t = (string) ($_POST['t'] ?? '');
+    $a = (string) ($_POST['a'] ?? $_GET['a'] ?? '');
+    $t = (string) ($_POST['t'] ?? $_GET['t'] ?? '');
     if (!gq_token_valido($t) || ($a !== 'confirmar' && $a !== 'baja')) {
         gq_pagina('Enlace no válido', 'Este enlace no es válido o ya se usó.');
     }
@@ -122,7 +145,8 @@ if ($email === '' || strlen($email) > 190 || filter_var($email, FILTER_VALIDATE_
     gq_error(400, 'email', 'Ese correo no parece válido.');
 }
 
-$ip = gq_ip_hash();
+// Huella propia de los avisos (otra sal que la del juego): así no puede unirse un correo con un mote.
+$ip = hash('sha256', 'avisos|' . gq_ip_hash());
 $hora = gmdate('Y-m-d H:i:s', time() - 3600);
 $porIp = (int) gq_consulta($pdo, 'SELECT COUNT(*) FROM avisos WHERE ip_hash = ? AND pedido_en > ?', [$ip, $hora])->fetchColumn();
 $global = (int) gq_consulta($pdo, 'SELECT COUNT(*) FROM avisos WHERE pedido_en > ?', [$hora])->fetchColumn();
@@ -130,31 +154,59 @@ if ($porIp >= GQ_AVISOS_POR_IP_HORA || $global >= GQ_AVISOS_GLOBAL_HORA) {
     gq_error(429, 'limite', 'Demasiados intentos. Prueba más tarde.');
 }
 
-$fila = gq_consulta($pdo, 'SELECT estado, pedido_en FROM avisos WHERE email = ?', [$email])->fetch();
+$fila = gq_consulta($pdo, 'SELECT estado, pedido_en, token FROM avisos WHERE email = ?', [$email])->fetch();
 $token = bin2hex(random_bytes(20));
 $enviar = false;
+$seg = bin2hex(random_bytes(16)); // código falso salvo que sea un alta o reenvío nuevo: así no se puede averiguar si un correo ya está apuntado
 if (!$fila) {
     gq_consulta($pdo,
         'INSERT INTO avisos (email, estado, token, texto_version, ip_hash, pedido_en) VALUES (?, \'pendiente\', ?, ?, ?, ?)',
         [$email, $token, GQ_TEXTO_VERSION, $ip, $ahora]);
     $enviar = true;
+    $seg = substr(hash('sha256', 'seg|' . $token), 0, 32);
 } elseif ($fila['estado'] === 'pendiente' && strtotime($fila['pedido_en'] . ' UTC') < time() - GQ_AVISOS_REENVIO_MIN * 60) {
     gq_consulta($pdo, 'UPDATE avisos SET token = ?, texto_version = ?, ip_hash = ?, pedido_en = ? WHERE email = ?',
         [$token, GQ_TEXTO_VERSION, $ip, $ahora, $email]);
     $enviar = true;
+    $seg = substr(hash('sha256', 'seg|' . $token), 0, 32);
 }
-// Si ya estaba confirmado, o se pidió hace menos de 10 minutos, no se envía nada y se responde igual.
+// Si se pidió hace menos de un día, no se envía nada y se responde igual.
+
+// Alguien que YA está suscrito y vuelve a apuntarse (por ejemplo, no recuerda si lo hizo) recibe un
+// correo que se lo confirma y le da el enlace de baja. Así lo sabe él, en su bandeja, y desde fuera no
+// se puede averiguar quién está en la lista: la respuesta de la web es la misma en todos los casos.
+// Como mucho uno al día por dirección.
+if ($fila && $fila['estado'] === 'confirmado' && strtotime($fila['pedido_en'] . ' UTC') < time() - 86400) {
+    gq_consulta($pdo, 'UPDATE avisos SET pedido_en = ?, ip_hash = ? WHERE email = ?', [$ahora, $ip, $email]);
+    $baja = gq_enlace_aviso('baja', $fila['token']);
+    [$pieTxt, $pieHtml] = gq_pie_legal();
+    gq_enviar_correo(
+        $email,
+        'Ya estás suscrito a los avisos de GeoQuiz',
+        '<p>Hola,</p><p>Alguien (esperamos que tú) ha intentado apuntar este correo a los avisos de GeoQuiz. <strong>Ya estabas suscrito</strong>, no hace falta hacer nada más: te avisaremos de torneos, preguntas nuevas y modos de juego.</p>'
+        . '<p>Si quieres darte de baja: <a href="' . htmlspecialchars($baja, ENT_QUOTES, 'UTF-8') . '">darme de baja</a>.</p>' . $pieHtml,
+        "Hola,
+
+Alguien (esperamos que tú) ha intentado apuntar este correo a los avisos de GeoQuiz. Ya estabas suscrito, no hace falta hacer nada más: te avisaremos de torneos, preguntas nuevas y modos de juego.
+
+Si quieres darte de baja: $baja
+
+—
+" . $pieTxt
+    );
+}
 
 if ($enviar) {
     $enlace = gq_enlace_aviso('confirmar', $token);
+    [$pieTxt, $pieHtml] = gq_pie_legal();
     $ok = gq_enviar_correo(
         $email,
         'Confirma tu correo para los avisos de GeoQuiz',
-        '<p>Hola,</p><p>Alguien (esperamos que tú) ha pedido recibir avisos de los torneos de GeoQuiz en este correo.</p>'
+        '<p>Hola,</p><p>Alguien (esperamos que tú) ha pedido recibir avisos de torneos, preguntas y novedades de GeoQuiz en este correo.</p>'
         . '<p><a href="' . htmlspecialchars($enlace, ENT_QUOTES, 'UTF-8') . '">Confirmar mi correo</a></p>'
-        . '<p>Si no has sido tú, ignora este mensaje: no te escribiremos más.</p>',
-        "Hola,\n\nAlguien (esperamos que tú) ha pedido recibir avisos de los torneos de GeoQuiz en este correo.\n"
-        . "Para confirmarlo, abre este enlace:\n$enlace\n\nSi no has sido tú, ignora este mensaje: no te escribiremos más.\n"
+        . '<p>Si no has sido tú, ignora este mensaje: no te escribiremos más.</p>' . $pieHtml,
+        "Hola,\n\nAlguien (esperamos que tú) ha pedido recibir avisos de torneos, preguntas y novedades de GeoQuiz en este correo.\n"
+        . "Para confirmarlo, abre este enlace:\n$enlace\n\nSi no has sido tú, ignora este mensaje: no te escribiremos más.\n\n—\n" . $pieTxt
     );
     if (!$ok) {
         // No se deja una fila que nunca recibió su correo de confirmación.
@@ -162,4 +214,4 @@ if ($enviar) {
         gq_error(502, 'envio', 'No hemos podido enviar el correo de confirmación. Prueba más tarde.');
     }
 }
-gq_json(200, ['ok' => true]);
+gq_json(200, ['ok' => true, 'seg' => $seg]);

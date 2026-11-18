@@ -202,7 +202,7 @@ function showCronoResult(){
   else if(pct>=30){rank="Historiador Novato";msg="Conoces los eventos pero los años te confunden.";}
   else{rank="Analfabeto Temporal";msg="La línea del tiempo es tu enemigo… de momento.";}
 
-  const playerName=prompt('¿Tu nombre para el ranking? (deja vacío para no guardar)','');
+  const playerName=gqNombre('¿Tu nombre para el ranking? (deja vacío para no guardar)');
   if(playerName&&playerName.trim())saveRanking(playerName.trim(),cronoScore,pct);
   saveRecord({score:cronoScore,correct:'-',total:cronoTotal+'r',mode:partida.modo,diff:'—',cats:partida.cats,date:new Date().toLocaleDateString('es-ES')});
 

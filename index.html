@@ -6,8 +6,9 @@
 <meta name="theme-color" content="#0d0820">
 <title>GeoQuiz — Guerras & Conflictos</title>
 <meta name="description" content="Trivia de geopolítica, guerras y conflictos: 521 preguntas en 13 categorías, seis modos de juego y ranking global.">
-<link rel="icon" href="img/favicon-32.png?v=20261118b" sizes="32x32">
-<link rel="apple-touch-icon" href="img/icono.png?v=20261118b">
+<link rel="icon" href="img/favicon-32.png?v=20261119f" sizes="32x32">
+<link rel="apple-touch-icon" href="img/icono.png?v=20261119f">
+<link rel="manifest" href="manifest.webmanifest">
 <!-- Vista previa al compartir el enlace (WhatsApp, Telegram, redes). La imagen tiene
      que ir con URL absoluta: los rastreadores no resuelven rutas relativas. -->
 <meta property="og:type" content="website">
@@ -20,8 +21,8 @@
      imagen nueva, subir el número de ?v= o WhatsApp enseñará la anterior (la guarda unos días). -->
 <meta property="og:title" content="GTA VI: ¿estás a la altura? Torneo GeoQuiz">
 <meta property="og:description" content="15 preguntas, las mismas para todos y una sola partida. ¿Quién gana en tu grupo? Juega gratis desde el móvil.">
-<meta property="og:url" content="https://mediumturquoise-dugong-529601.hostingersite.com/">
-<meta property="og:image" content="https://mediumturquoise-dugong-529601.hostingersite.com/img/og-torneo.jpg?v=6">
+<meta property="og:url" content="https://geoquiz.tunegocioconestrategia.com/">
+<meta property="og:image" content="https://geoquiz.tunegocioconestrategia.com/img/og-torneo.jpg?v=6">
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -42,8 +43,8 @@
 <!-- La API vive en Hostinger y el aviso del torneo no se puede pintar hasta que contesta.
      Desde GitHub Pages es un dominio distinto y esta es la primera petición que va allí;
      desde Hostinger es el propio origen y no estorba. -->
-<link rel="preconnect" href="https://mediumturquoise-dugong-529601.hostingersite.com" crossorigin>
-<link rel="stylesheet" href="css/styles.css?v=20261118b">
+<link rel="preconnect" href="https://geoquiz.tunegocioconestrategia.com" crossorigin>
+<link rel="stylesheet" href="css/styles.css?v=20261119f">
 </head>
 <body>
 <!-- Iconos de la interfaz: se dibujan con trazo (currentColor), así toman el color del
@@ -314,7 +315,7 @@
   <footer class="firma">
     Hecho por Guillermo Moral<br>para sus mejores amigos
     <a class="firma-logo" href="https://tunegocioconestrategia.com" target="_blank" rel="noopener" aria-label="EstrategIA, tunegocioconestrategia.com">
-      <img src="img/estrategia-logo.png?v=20261118b" alt="EstrategIA" width="348" height="61" loading="lazy">
+      <img src="img/estrategia-logo.png?v=20261119f" alt="EstrategIA" width="348" height="61" loading="lazy">
     </a>
   </footer>
 
@@ -323,25 +324,27 @@
 <div class="share-toast" id="share-toast">¡Copiado!</div>
 
 <!-- El orden de carga importa: datos → estado → utilidades → pantallas → arranque. -->
-<script src="js/data/events.js?v=20261118b"></script>
-<script src="js/state.js?v=20261118b"></script>
-<script src="js/audio.js?v=20261118b"></script>
-<script src="js/utils.js?v=20261118b"></script>
-<script src="js/nube.js?v=20261118b"></script>
-<script src="js/theme.js?v=20261118b"></script>
-<script src="js/storage.js?v=20261118b"></script>
-<script src="js/crono.js?v=20261118b"></script>
-<script src="js/fechas.js?v=20261118b"></script>
-<script src="js/game.js?v=20261118b"></script>
-<script src="js/torneo.js?v=20261118b"></script>
-<script src="js/duelo.js?v=20261118b"></script>
-<script src="js/menu.js?v=20261118b"></script>
-<script src="js/avisos.js?v=20261118b"></script>
-<script src="js/main.js?v=20261118b"></script>
+<script src="js/data/events.js?v=20261119f"></script>
+<script src="js/state.js?v=20261119f"></script>
+<script src="js/audio.js?v=20261119f"></script>
+<script src="js/utils.js?v=20261119f"></script>
+<script src="js/nube.js?v=20261119f"></script>
+<script src="js/theme.js?v=20261119f"></script>
+<script src="js/storage.js?v=20261119f"></script>
+<script src="js/crono.js?v=20261119f"></script>
+<script src="js/fechas.js?v=20261119f"></script>
+<script src="js/game.js?v=20261119f"></script>
+<script src="js/torneo.js?v=20261119f"></script>
+<script src="js/duelo.js?v=20261119f"></script>
+<script src="js/menu.js?v=20261119f"></script>
+<script src="js/avisos.js?v=20261119f"></script>
+<script src="js/cuenta.js?v=20261119f"></script>
+<script src="js/perfil.js?v=20261119f"></script>
+<script src="js/main.js?v=20261119f"></script>
 <!-- El banco va el ÚLTIMO y con defer: son 67 KB, el 59% del JavaScript, y el menú ya
      no lo necesita para dibujarse (sus claves salen de js/theme.js). Así la primera
      pantalla se pinta sin esperarlo. Nada de lo que corre al arrancar usa ALL_Q; quien
      lo usa es buildPool(), y eso no pasa hasta que alguien toca una categoría. -->
-<script defer src="js/data/questions.js?v=20261118b"></script>
+<script defer src="js/data/questions.js?v=20261119f"></script>
 </body>
 </html>

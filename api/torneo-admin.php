@@ -78,7 +78,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') {
         $pdo,
         'SELECT t.id, t.slug, t.titulo, t.tema, t.empieza_en, t.acaba_en, t.borrador,
                 (SELECT COUNT(*) FROM torneo_preguntas p WHERE p.torneo_id = t.id) AS preguntas,
-                (SELECT COUNT(*) FROM torneo_partidas j WHERE j.torneo_id = t.id) AS jugadores,
+                (SELECT COUNT(*) FROM torneo_partidas j WHERE j.torneo_id = t.id AND j.nombre NOT LIKE \'~p~%\' AND j.nombre NOT LIKE \'~s~%\') AS jugadores,
                 (t.borrador = 0 AND t.empieza_en <= UTC_TIMESTAMP() AND t.acaba_en > UTC_TIMESTAMP()) AS activo
          FROM torneos t ORDER BY t.empieza_en DESC LIMIT 50'
     )->fetchAll();

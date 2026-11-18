@@ -5,7 +5,7 @@
 // origen; desde GitHub Pages es cruzada y la resuelve el CORS de ranking.php.
 // Si algún día cambia el dominio, este es el único sitio donde tocarlo.
 // Dirección principal: geoquiz.tunegocioconestrategia.com; la temporal de Hostinger sigue viva.
-const GQ_API=/^(geoquiz\.tunegocioconestrategia\.com|mediumturquoise-dugong-529601\.hostingersite\.com)$/.test(location.hostname)
+const GQ_API=/^(geoquiz\.tunegocioconestrategia\.com|mediumturquoise-dugong-529601\.hostingersite\.com|localhost|127\.0\.0\.1)$/.test(location.hostname)
   ?'/api/ranking.php'
   :'https://geoquiz.tunegocioconestrategia.com/api/ranking.php';
 const GQ_TIMEOUT=8000;

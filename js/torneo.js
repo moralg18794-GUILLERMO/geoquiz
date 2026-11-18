@@ -22,6 +22,16 @@ let torneoToken = '';           // el testigo que demuestra que la partida es de
 let torneoEnVuelo = false;      // hay una petición abierta: no mandar otra encima
 let torneoModoPrevio = '';      // el modo que estaba elegido en el menú antes del torneo
 let torneoEstado = '';          // qué dice el servidor del mote de este móvil: libre/enCurso/terminado
+let torneoPractica = false;     // la partida en curso es una repetición de práctica: no puntúa
+let torneoNombreReal = '';      // el nombre con el que se jugó de verdad (la práctica va con un alias interno)
+let torneoRep = null;           // el torneo que se está repitiendo (puede no ser el vigente); null si se juega en serio
+let torneoRepes = [];           // las mejores repeticiones del torneo cerrado que enseña la pestaña Torneo
+let torneoTextoRepeticion = ''; // el mensaje de invitación que sale en el resultado de una repetición
+
+// El torneo que se está jugando ahora mismo: el que se repite, o el vigente. Todo lo que pinta la
+// partida y su resultado (título, GTA, texto para compartir) tiene que leerlo de aquí y no de `torneo`,
+// que es el vigente y puede ser otro.
+function torneoJugando() { return torneoRep || torneo; }
 
 // Devuelve el menú como estaba antes de entrar al torneo.
 function torneoSoltarModo() {
@@ -182,8 +192,8 @@ function torneoRotulo() {
 
 // La línea de «no oficial» solo tiene sentido cuando el torneo habla del juego de Rockstar:
 // GeoQuiz no está afiliado a Rockstar Games ni a Take-Two. Cualquier otra semana no sale.
-function torneoEsGTA() {
-  return !!torneo && /gta|rockstar|grand theft|vice city|leonida/i.test(`${torneo.titulo} ${torneo.tema || ''}`);
+function torneoEsGTA(t = torneo) {
+  return !!t && /gta|rockstar|grand theft|vice city|leonida/i.test(`${t.titulo} ${t.tema || ''}`);
 }
 
 function pintarAvisoTorneo() {
@@ -191,7 +201,7 @@ function pintarAvisoTorneo() {
   if (!caja || !torneo) return;
   const tt = document.getElementById('ta-titulo'); tt.textContent = torneo.titulo; tt.classList.toggle('ta-gta', torneoEsGTA());
   document.getElementById('ta-tema').textContent = torneo.tema || '';
-  document.getElementById('ta-npreg').textContent = torneo.n_preguntas ? `${torneo.n_preguntas} preguntas · 1 intento` : '';
+  document.getElementById('ta-npreg').textContent = torneo.n_preguntas ? `${torneo.n_preguntas} preguntas · 1 intento que puntúa` : '';
   document.getElementById('ta-legal').style.display = torneoEsGTA() ? '' : 'none';
 
   const yaJugo = torneoJugadoAqui(torneo.slug);
@@ -228,6 +238,19 @@ function pintarAvisoTorneo() {
     btn.onclick = jugarTorneo;
   }
 
+  // Quien ya jugó puede repetirlo de práctica: no puntúa ni cambia su marca.
+  let rb = document.getElementById('ta-repetir');
+  if (!rb) {
+    rb = document.createElement('button');
+    rb.id = 'ta-repetir';
+    rb.className = 'invitar-btn';
+    btn.insertAdjacentElement('afterend', rb);
+  }
+  const puedeRepetir = !cerrado && torneoEstado !== 'enCurso' && !!yaJugo;
+  rb.style.display = puedeRepetir ? '' : 'none';
+  rb.textContent = '🔁 Volver a jugar (sin puntuar)';
+  rb.onclick = () => repetirTorneo(null, false, torneo);
+
   // El aviso se enseña una vez por torneo; después queda el botón del menú de navegación.
   if (!torneoAvisoVisto(torneo.slug) || yaJugo) caja.classList.add('show');
 }
@@ -244,6 +267,7 @@ async function jugarTorneo() {
   // Las preguntas ya no vienen en este objeto: las sirve el servidor de una en una cuando
   // la partida ha empezado. Aquí solo se sabe cuántas son.
   if (!torneo.n_preguntas) { toast('El torneo no tiene preguntas'); return; }
+  torneoPractica = false; torneoNombreReal = ''; torneoRep = null;
 
   const previo = torneoJugadoAqui(torneo.slug) || torneoMiMote();
   const aviso = torneoEstado === 'enCurso'
@@ -267,6 +291,11 @@ async function jugarTorneo() {
     const yo = res.cuerpo.yo;
     toast(yo ? `«${nombre}» ya jugó: ${yo.pos}º con ${Number(yo.puntos).toLocaleString()}` : `«${nombre}» ya jugó este torneo`);
     torneoTabla = res.cuerpo.clasificacion || torneoTabla;
+    // El intento que puntúa ya está gastado, pero se puede jugar otra vez de práctica.
+    if (res.cuerpo.puede_repetir && confirm(`«${nombre}» ya jugó este torneo y solo puntúa la primera partida.\n\n¿Quieres volver a jugarlo como PRÁCTICA? No puntúa ni cambia tu marca.`)) {
+      await repetirTorneo(nombre, true, torneo);
+      return;
+    }
     showTab('torneo');
     return;
   }
@@ -283,7 +312,7 @@ async function jugarTorneo() {
     return;
   }
 
-  if (res.cuerpo.token) torneoGuardarToken(torneo.slug, res.cuerpo.token);
+  if (res.cuerpo.token && !torneoPractica) torneoGuardarToken(torneo.slug, res.cuerpo.token);
   torneoToken = res.cuerpo.token || '';
 
   if (res.cuerpo.reanudado) {
@@ -302,10 +331,131 @@ async function jugarTorneo() {
   arrancarTorneo();
 }
 
+// Repetir un torneo SIN puntuar. El servidor monta una partida aparte (con un alias interno) que no sale
+// en la clasificación, con las mismas preguntas y la misma corrección. `t` es el torneo a repetir:
+//   · abierto: solo quien ya lo jugó; la práctica se borra al terminar.
+//   · cerrado: cualquiera (también quien viene de una invitación); al terminar se queda anotada como
+//     «repetición», aparte del podio, que ya no se mueve.
+async function repetirTorneo(nombre, yaConfirmado, t) {
+  t = t || torneo;
+  if (!t) { toast('No hay ningún torneo que repetir.'); return; }
+  const cerrado = t.estado !== 'activo';
+  nombre = (nombre || (!cerrado && torneoJugadoAqui(t.slug)) || torneoMiMote() || '').trim();
+  if (!nombre) nombre = (prompt(cerrado ? '¿Con qué nombre quieres jugarlo?' : '¿Con qué nombre jugaste el torneo?', '') || '').trim();
+  if (!nombre) return;
+  const aviso = cerrado
+    ? `Vas a jugar «${t.titulo}» fuera de concurso.\n\nEl torneo ya cerró: no puntúa ni cambia la clasificación, pero tu resultado se queda anotado como repetición.\n\n¿Empezar?`
+    : 'Vas a jugar el torneo otra vez como PRÁCTICA.\n\nNo puntúa, no cambia tu marca ni la clasificación: es solo para jugarlo de nuevo.\n\n¿Empezar?';
+  if (!yaConfirmado && !confirm(aviso)) return;
+  const res = await gqFetch(GQ_TORNEO_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accion: 'empezar', slug: t.slug, nombre, repetir: true }),
+  });
+  if (!res.ok) {
+    toast((res.cuerpo && res.cuerpo.mensaje) || 'No se pudo preparar la repetición. Revisa la conexión.');
+    return;
+  }
+  // Nada de esto se guarda como si fuera la partida de verdad: ni su testigo ni su alias.
+  torneoPractica = true;
+  torneoRep = t;
+  torneoNombreReal = nombre;
+  torneoToken = res.cuerpo.token || '';
+  torneoNombre = res.cuerpo.nombre;
+  toast(cerrado ? 'Repetición: esta partida no puntúa.' : 'Modo práctica: esta partida no puntúa.');
+  arrancarTorneo();
+}
+
+// Una franja fija arriba de la partida para que no haya duda de que esta no cuenta.
+function torneoBannerPractica(on) {
+  let b = document.getElementById('torneo-practica');
+  if (!on) { if (b) b.remove(); return; }
+  if (!b) {
+    b = document.createElement('div');
+    b.id = 'torneo-practica';
+    b.style.cssText = 'margin:0 0 10px;padding:10px 14px;border-radius:12px;text-align:center;font:700 13px "Inter",sans-serif;'
+      + 'background:rgba(255,200,60,.14);border:1px solid rgba(255,200,60,.55);color:#ffd36a';
+    document.getElementById('screen-game').prepend(b);
+  }
+  b.textContent = torneoRep && torneoRep.estado !== 'activo'
+    ? '🔁 REPETICIÓN · el torneo ya cerró: esta partida no puntúa'
+    : '🧪 MODO PRÁCTICA · esta partida no puntúa ni cambia tu marca';
+}
+
+// ── REPETIR UN TORNEO CERRADO E INVITAR A OTROS ───────────────────────────
+// Desde el Perfil se puede volver a jugar cualquier torneo del historial, y mandar un enlace
+// (?torneo=<slug>) a quien no estuvo. Como el podio ya está cerrado, nada de esto lo mueve: la
+// partida se queda aparte, como «repetición» del torneo.
+async function torneoPorSlug(slug) {
+  const res = await gqFetch(GQ_TORNEO_API + '?slug=' + encodeURIComponent(slug), { method: 'GET' });
+  return res.ok && res.cuerpo && res.cuerpo.torneo ? res.cuerpo.torneo : null;
+}
+
+async function torneoRepetirSlug(slug) {
+  const t = await torneoPorSlug(slug);
+  if (!t) { toast('No se encuentra ese torneo.'); return; }
+  await repetirTorneo(null, false, t);
+}
+
+// El mensaje de invitación a un torneo cerrado: dice que no puntúa y lleva el enlace directo.
+function textoInvitacionTorneo(t) {
+  const base = window.location.href.split(/[?#]/)[0];
+  const url = `${base}?torneo=${encodeURIComponent(t.slug)}`;
+  return `🏆 ${t.titulo}\n${t.tema ? t.tema + '\n' : ''}\nEste torneo ya cerró, pero puedes jugarlo igualmente: son las mismas ${t.n_preguntas || 15} preguntas que tuvieron los demás. `
+    + `No puntúa en la clasificación; mira si habrías quedado en el podio.\n\n${url}`;
+}
+
+async function torneoInvitar(slug) {
+  const t = await torneoPorSlug(slug);
+  if (!t) { toast('No se encuentra ese torneo.'); return; }
+  // Si sigue abierto, invitar es retar a jugarlo en serio, que es lo que ya hace el reto de siempre.
+  if (t.estado === 'activo' && torneo && torneo.slug === t.slug) { retarAlTorneo(); return; }
+  compartirWhatsApp(textoInvitacionTorneo(t));
+}
+
+// El enlace ?torneo=<slug>: si es uno cerrado, enseña de qué va y ofrece jugarlo. Se llama al
+// arrancar, después de pedir el torneo vigente.
+async function checkTorneoInvite() {
+  let slug = '';
+  try { slug = new URLSearchParams(window.location.search).get('torneo') || ''; } catch {}
+  if (!/^\d{4}-\d{2}-\d{2}-[a-z0-9-]+$/.test(slug)) return;
+  const t = await torneoPorSlug(slug);
+  // Se quita de la dirección DESPUÉS de resolverla (no antes): mientras está puesta, la bienvenida
+  // sabe que esta persona viene a algo concreto y no se le pone delante; y al quitarla, recargar la
+  // página no vuelve a lanzar la invitación.
+  try { history.replaceState(null, '', window.location.pathname + window.location.hash); } catch {}
+  if (!t) { toast('Ese torneo ya no está disponible.'); return; }
+  if (t.estado === 'activo') return;   // el vigente ya se anuncia solo, con el aviso de siempre
+  if (!confirm(`🏆 ${t.titulo}\n\n${t.tema || ''}\n\nEste torneo ya cerró: puedes jugarlo igualmente, pero no puntúa ni cambia la clasificación. Tu resultado se queda anotado como repetición.\n\n¿Jugarlo ahora?`)) return;
+  await repetirTorneo(null, true, t);
+}
+
+// Las mejores repeticiones de un torneo cerrado, con las mismas filas que la clasificación.
+function repeticionesHTML(lista, yo) {
+  if (!lista || !lista.length) return '';
+  const mio = (yo || '').toLowerCase();
+  const fila = e => `<div class="tn-fila${mio && String(e.nombre).toLowerCase() === mio ? ' yo' : ''}">
+    <div class="tn-pos">${esc(e.pos)}</div>
+    <div class="tn-nom"><div class="tn-n">${esc(e.nombre)}</div><div class="tn-sub">${esc(e.correctas)}/${esc(e.total)} · ${esc(tiempoCorto(e.segundos))}</div></div>
+    <div class="tn-pts">${esc(Number(e.puntos).toLocaleString())}</div>
+  </div>`;
+  return `<p class="section-label tn-titulo-sec" style="margin-top:22px">Repeticiones · fuera de concurso</p>
+    <div class="tn-lista">${lista.map(fila).join('')}</div>
+    <p style="text-align:center;color:var(--muted);font-size:12px;margin:8px 0 14px">Gente que ha jugado este torneo después de cerrar. No cuentan en el podio.</p>`;
+}
+
 async function arrancarTorneo() {
+  torneoBannerPractica(torneoPractica);
   playStart();
   pararCronometros();
-  cerrarAvisoTorneo();
+  if (torneoRep) {
+    // Se repite otro torneo (o uno cerrado): el aviso se esconde, pero no se da por «visto» el del vigente.
+    const caja = document.getElementById('torneo-aviso');
+    if (caja) caja.classList.remove('show');
+  } else {
+    cerrarAvisoTorneo();
+  }
+  const tj = torneoJugando();
 
   // El motor del juego se comporta como en modo solo (temporizador por pregunta,
   // multiplicador), pero lo que se guarda es una partida de torneo.
@@ -316,7 +466,7 @@ async function arrancarTorneo() {
   // los ignoraba. Y si era de 13 épocas, se guardaba como oficial en el ranking global.
   torneoModoPrevio = gameMode;
   gameMode = 'solo';
-  partida = { modo: 'torneo', dif: 'na', eje: 'n', nsel: 0, ntot: 0, cats: torneo.titulo, torneo: torneo.slug };
+  partida = { modo: 'torneo', dif: 'na', eje: 'n', nsel: 0, ntot: 0, cats: tj.titulo, torneo: tj.slug };
 
   // Restos de una partida de torneo anterior: sin esto, una segunda entrada que acabe en
   // una rama temprana pinta los puntos y el puesto de la primera como si fueran nuevos.
@@ -478,6 +628,31 @@ function mostrarResultadoTorneo() {
   const puntos = c.puntos !== undefined ? c.puntos : score;
   const pct = Math.round((aciertos / Math.max(total, 1)) * 100);
 
+  if (torneoPractica && torneoRep && torneoRep.estado !== 'activo') {
+    mostrarResultadoRepeticion(c, puntos, aciertos, total, pct);
+    return;
+  }
+  if (torneoPractica) {
+    // Una práctica no deja rastro: ni se apunta como jugada ni toca la marca del torneo.
+    if (c.clasificacion) torneoTabla = c.clasificacion;
+    torneoSoltarModo();
+    torneoBannerPractica(false);
+    document.getElementById('result-hero').classList.remove('evento');
+    document.getElementById('result-hero').innerHTML = `
+      <div style="font-size:40px;margin-bottom:0.5rem">🧪</div>
+      <div class="result-rank">Práctica terminada</div>
+      <div><span class="result-score-num">${puntos.toLocaleString()}</span></div>
+      <div class="rh-pts">puntos · ${aciertos} de ${total} correctas · ${pct}%</div>
+      <div class="result-msg"><strong>Esta partida no puntúa.</strong> Tu marca en el torneo no ha cambiado.</div>
+      <div class="result-actions" style="margin-top:1.5rem">
+        <button class="btn-secondary" onclick="repetirTorneo(torneoNombreReal, false, torneoJugando())">🔁 Otra vez</button>
+        <button class="btn-secondary" onclick="showTab('torneo')">🏆 Clasificación</button>
+        <button class="btn-primary ra-full" onclick="goMenu()">Volver al inicio</button>
+      </div>`;
+    showScreen('screen-result');
+    playFinish();
+    return;
+  }
   torneoApuntarJugado(partida.torneo, torneoNombre);
   if (c.clasificacion) torneoTabla = c.clasificacion;
   torneoSoltarModo();
@@ -521,6 +696,44 @@ function mostrarResultadoTorneo() {
   playFinish();
 }
 
+// Resultado de repetir un torneo CERRADO: la partida no puntúa, pero se queda como «repetición» y se
+// dice dónde habría quedado en el podio de verdad. Desde aquí se invita a otros a jugarlo.
+function mostrarResultadoRepeticion(c, puntos, aciertos, total, pct) {
+  const t = torneoRep;
+  const oficial = (c.clasificacion || torneoTabla || []).filter(f => !f.autor);
+  const habria = oficial.length
+    ? `Con esta marca habrías sido <strong>${oficial.filter(f => Number(f.puntos) > puntos).length + 1}º</strong> en el torneo (lo jugaron ${oficial.length} ${oficial.length === 1 ? 'persona' : 'personas'}).`
+    : '';
+  const mejor = c.mejor === undefined ? ''
+    : c.primera ? '✅ Anotada como tu primera repetición de este torneo.'
+    : c.record ? '🎉 <strong>Nuevo récord</strong> en tus repeticiones.'
+    : `Tu mejor repetición sigue siendo de <strong>${Number(c.mejor).toLocaleString()}</strong> puntos.`;
+  const hayPodioActual = torneo && torneo.slug === t.slug;
+  const texto = `🏆 ${t.titulo}\n🔁 He hecho ${puntos.toLocaleString('es-ES')} puntos · ${aciertos} de ${total} (el torneo ya cerró, esto es una repetición).\n\n`
+    + `¿Te atreves? Son las mismas preguntas y no puntúa en la clasificación.\n${window.location.href.split(/[?#]/)[0]}?torneo=${encodeURIComponent(t.slug)}`;
+  torneoSoltarModo();
+  torneoBannerPractica(false);
+  if (c.clasificacion && hayPodioActual) torneoTabla = c.clasificacion;
+  document.getElementById('result-hero').classList.remove('evento');
+  document.getElementById('result-hero').innerHTML = `
+    <div style="font-size:40px;margin-bottom:0.5rem">🔁</div>
+    <div class="result-rank">Repetición terminada</div>
+    <div class="rh-etiqueta">${esc(t.titulo)}</div>
+    <div><span class="result-score-num">${puntos.toLocaleString()}</span></div>
+    <div class="rh-pts">puntos · ${aciertos} de ${total} correctas · ${pct}%</div>
+    <div class="result-msg">${habria ? habria + '<br>' : ''}${mejor ? mejor + '<br>' : ''}<strong>Esta partida no puntúa</strong> ni cambia el podio: se queda anotada como repetición.</div>
+    <div class="result-actions" style="margin-top:1.5rem">
+      <button class="btn-whatsapp ra-full" onclick="compartirWhatsApp(torneoTextoRepeticion)">💬 Invitar a un amigo a jugarlo</button>
+      <button class="btn-secondary" onclick="repetirTorneo(torneoNombreReal, true, torneoJugando())">🔁 Otra vez</button>
+      ${hayPodioActual ? '<button class="btn-secondary" onclick="showTab(\'torneo\')">🏆 Podio</button>' : ''}
+      <button class="btn-primary ra-full" onclick="goMenu()">Volver al inicio</button>
+    </div>
+    ${repeticionesHTML((c.repeticiones || []).slice(0, 5), torneoNombreReal)}`;
+  torneoTextoRepeticion = texto;
+  showScreen('screen-result');
+  playFinish();
+}
+
 // El mensaje que manda el jugador al terminar. Va en primera persona y RETA a quien lo
 // recibe: es el que de verdad trae gente al torneo, porque pica más la nota de un amigo
 // que una invitación. Por eso dice la marca y luego desafía, en vez de solo informar.
@@ -540,6 +753,7 @@ async function renderTorneo() {
   if (res.ok && res.cuerpo && res.cuerpo.torneo) {
     torneo = res.cuerpo.torneo;
     torneoTabla = res.cuerpo.clasificacion || [];
+    torneoRepes = res.cuerpo.repeticiones || [];
   } else if (!torneo) {
     div.innerHTML = '<div class="no-records">No hay ningún torneo ahora mismo.</div>';
     return;
@@ -571,10 +785,14 @@ async function renderTorneo() {
     </div>
   </div>`;
 
-  // Mientras está abierto, lo útil es traer gente; cuando cierra, enseñar el podio.
+  // Mientras está abierto, lo útil es traer gente; cuando cierra, enseñar el podio. Un torneo cerrado
+  // también se puede volver a jugar (sin puntuar) y se puede invitar a quien no estuvo.
   const pie = activo
     ? '<button class="invitar-btn" onclick="retarAlTorneo()">💬 Retar a alguien por WhatsApp</button>'
-    : '<button class="clear-btn clear-oro" onclick="compartirWhatsApp(textoPodio())">🏆 Compartir el podio</button>';
+    : '<button class="clear-btn clear-oro" onclick="compartirWhatsApp(textoPodio())">🏆 Compartir el podio</button>'
+      + `<button class="invitar-btn" onclick="repetirTorneo(null, false, torneo)">🔁 Jugarlo otra vez (sin puntuar)</button>`
+      + `<button class="invitar-btn" onclick="torneoInvitar('${esc(torneo.slug)}')">📨 Invitar a alguien a jugarlo</button>`
+      + repeticionesHTML(torneoRepes, torneoMiMote());
 
   if (!torneoTabla.length) {
     div.innerHTML = cab + '<div class="no-records">Todavía no ha jugado nadie.<br>¡Sé el primero!</div>' + pie;

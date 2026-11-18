@@ -311,7 +311,7 @@ function showResult(){
   else{rank="Recluta sin instrucción";msg="El campo de batalla de la historia aún te resulta desconocido.";}
 
   // Ask name for ranking
-  const playerName=prompt('¿Tu nombre para el ranking? (deja vacío para no guardar)','');
+  const playerName=gqNombre('¿Tu nombre para el ranking? (deja vacío para no guardar)');
   if(playerName&&playerName.trim())saveRanking(playerName.trim(),score,pct);
   saveRecord({score,correct,total:correct+wrong,mode:partida.modo,diff:diffLabel(partida.dif),cats:partida.cats,date:new Date().toLocaleDateString('es-ES')});
 

@@ -174,7 +174,7 @@ function showFechasResult(){
   else if(pct>=30){rank="Aprendiz de Archivo";msg="Te suenan todos los eventos; los años son otra historia.";}
   else{rank="Despistado Temporal";msg="Los siglos te bailan. Eso se arregla jugando.";}
 
-  const playerName=prompt('¿Tu nombre para el ranking? (deja vacío para no guardar)','');
+  const playerName=gqNombre('¿Tu nombre para el ranking? (deja vacío para no guardar)');
   if(playerName&&playerName.trim())saveRanking(playerName.trim(),fechasScore,pct);
   saveRecord({score:fechasScore,correct:'-',total:fechasTotal+'r',mode:partida.modo,diff:'—',cats:partida.cats,date:new Date().toLocaleDateString('es-ES')});
 

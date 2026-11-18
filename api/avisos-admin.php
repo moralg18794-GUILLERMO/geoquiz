@@ -53,15 +53,21 @@ if (empty($d['enviar']) && empty($d['solo_a'])) {
 
 $enviados = 0;
 $fallos = 0;
+[$pieTxt, $pieHtml] = gq_pie_legal();
+$contacto = gq_correo_cfg()['contacto'];
 foreach ($filas as $f) {
     $baja = gq_enlace_aviso('baja', $f['token']);
-    $cuerpoTxt = $texto . "\n\n—\nRecibes esto porque pediste avisos de GeoQuiz. Para darte de baja: $baja\n";
+    $cuerpoTxt = $texto . "\n\n—\nRecibes esto porque pediste avisos de GeoQuiz. Para darte de baja: $baja\n" . $pieTxt;
     $cuerpoHtml = nl2br(htmlspecialchars($texto, ENT_QUOTES, 'UTF-8'))
         . '<hr><p style="font-size:12px;color:#666">Recibes esto porque pediste avisos de GeoQuiz. '
-        . '<a href="' . htmlspecialchars($baja, ENT_QUOTES, 'UTF-8') . '">Darme de baja</a></p>';
+        . '<a href="' . htmlspecialchars($baja, ENT_QUOTES, 'UTF-8') . '">Darme de baja</a></p>' . $pieHtml;
     $ok = gq_enviar_correo($f['email'], $asunto, $cuerpoHtml, $cuerpoTxt, [
-        'List-Unsubscribe' => '<' . $baja . '>',
+        // Baja nativa en Gmail/Outlook: por correo o con un clic (POST al mismo enlace).
+        'List-Unsubscribe'      => '<' . $baja . '>, <mailto:' . $contacto . '?subject=Baja%20de%20avisos>',
+        'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click',
     ]);
     $ok ? $enviados++ : $fallos++;
 }
-gq_json(200, ['ok' => true, 'enviados' => $enviados, 'fallos' => $fallos]);
+// Si hay más de 300 confirmados, el resto no ha recibido nada: se avisa en vez de callar.
+$total = (int) gq_consulta($pdo, "SELECT COUNT(*) FROM avisos WHERE estado = 'confirmado'")->fetchColumn();
+gq_json(200, ['ok' => true, 'enviados' => $enviados, 'fallos' => $fallos, 'sin_enviar' => empty($d['solo_a']) ? max(0, $total - count($filas)) : 0]);
