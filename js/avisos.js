@@ -18,7 +18,7 @@
   let activo = null; // null = sin comprobar todavía
 
   function leer(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
-  function guardar(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento: se volverá a ofrecer */ } refrescarPie(); }
+  function guardar(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento: se volverá a ofrecer */ } refrescarPie(); try { window.dispatchEvent(new Event('gq-avisos')); } catch (e) { /* nada */ } }
   const yaPedido = () => leer(CLAVE) === 'pedido' || leer(CLAVE) === 'confirmado';
 
   function estilo() {
@@ -293,6 +293,9 @@
     tarjetaMenu();
     enlaceBienvenida();
   }
+
+  // Lo que usa la pestaña Perfil (js/perfil.js) para enseñar y abrir la suscripción.
+  window.gqAvisos = { panel, estado: () => leer(CLAVE), disponible: () => activo === true };
 
   const original = window.showScreen;
   window.showScreen = function (id) {
