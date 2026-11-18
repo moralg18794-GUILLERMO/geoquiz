@@ -1,34 +1,49 @@
-// GeoQuiz — pestaña PERFIL (antes «Récords»): tu historial en este dispositivo.
+// GeoQuiz — pestaña PERFIL (antes «Récords»): tu historial, en tu cuenta o en este dispositivo.
 //
-// Muestra quién eres (el mote), cuántas partidas, torneos y duelos llevas, tu mejor partida y si
-// estás suscrito a los avisos por correo. Los récords de siempre siguen ahí, en una segunda
-// pestaña dentro de Perfil.
+// Muestra quién eres, cuántas partidas, torneos y duelos llevas, tu mejor partida, si estás suscrito a
+// los avisos por correo y cómo ponerlo en la pantalla de inicio. Los récords de siempre siguen ahí, en
+// una segunda pestaña dentro de Perfil.
+//
+// CON CUENTA (js/cuenta.js: nombre + correo + código por correo) el historial se guarda en el
+// servidor y se suma entre dispositivos. Para que dos móviles no se pisen, cada dispositivo guarda SU
+// parte (una «entrada» con su id y la hora de su último cambio) y lo que se enseña es la suma de todas.
+// Sin cuenta, solo cuenta la entrada de este dispositivo, como antes.
 //
 // Autónomo a propósito, como avisos.js: no edita las pantallas ni los otros scripts. Se engancha
-// envolviendo tres funciones que ya existen (saveRecord, mostrarResultadoDuelo, renderRecords) y
-// lleva su propio estilo.
-//
-// OJO CON LO QUE ES: todo se guarda en el navegador de este dispositivo. Si cambias de móvil o
-// borras los datos del navegador, empiezas de cero. Las partidas anteriores a la primera visita
-// con esta versión no se pueden contar (el juego no las apuntaba). Una cuenta de verdad, con el
-// historial en el servidor, sería otro paso.
+// envolviendo cuatro funciones que ya existen (saveRecord, mostrarResultadoDuelo,
+// mostrarResultadoTorneo, renderRecords) y lleva su propio estilo.
 (function () {
   const CLAVE = 'gq_stats';
   let subtab = 'perfil';
+  let remoto = { v: 2, dispositivos: {} }; // lo último que se sabe del servidor (solo con sesión)
 
   const PERFIL_MODOS = ['solo', 'blitz', 'survival', 'crono', 'fechas'];
+  const aleatorio = () => Array.from(crypto.getRandomValues(new Uint8Array(8))).map(b => b.toString(16).padStart(2, '0')).join('');
 
+  // ── La entrada de ESTE dispositivo ──
+  function nueva() {
+    return { dev: aleatorio(), desde: new Date().toISOString(), act: '', partidas: 0, modos: {}, hist: [], torneos: {}, duelos: { jugados: 0, ganados: 0, empatados: 0, perdidos: 0, contados: [], hist: [] } };
+  }
   function leer() {
     try {
       const s = JSON.parse(localStorage.getItem(CLAVE) || 'null');
-      if (s && typeof s === 'object') return s;
+      if (s && typeof s === 'object') {
+        if (!s.dev) s.dev = aleatorio();
+        if (!s.duelos) s.duelos = nueva().duelos;
+        s.modos = s.modos || {}; s.hist = s.hist || []; s.torneos = s.torneos || {};
+        return s;
+      }
     } catch (e) { /* se parte de cero */ }
-    return { desde: new Date().toISOString(), partidas: 0, modos: {}, hist: [], torneos: {}, duelos: { jugados: 0, ganados: 0, empatados: 0, perdidos: 0, contados: [], hist: [] } };
+    return nueva();
   }
-  function guardar(s) { try { localStorage.setItem(CLAVE, JSON.stringify(s)); } catch (e) { /* sin almacenamiento */ } }
+  function guardar(s) {
+    s.act = new Date().toISOString();
+    try { localStorage.setItem(CLAVE, JSON.stringify(s)); } catch (e) { /* sin almacenamiento */ }
+    sincronizarPronto();
+  }
 
-  // Torneos jugados: sale de las marcas que ya deja torneo.js (una por torneo y dispositivo), así
-  // que cuenta también los de antes de este perfil.
+  // Torneos jugados: salen de las marcas que ya deja torneo.js (una por torneo y dispositivo), así
+  // que cuentan también los de antes de este perfil.
   function torneosJugados() {
     const slugs = [];
     try {
@@ -39,6 +54,87 @@
     } catch (e) { /* nada */ }
     return slugs.sort();
   }
+
+  // La entrada tal como se sube al servidor: lo guardado más lo que se deduce del dispositivo.
+  function entradaLocal() {
+    const s = leer();
+    if (!s.act) s.act = new Date().toISOString();
+    return Object.assign({}, s, {
+      torneosJugados: torneosJugados(),
+      records: (typeof getRecords === 'function' ? getRecords() : []).slice(0, 10),
+    });
+  }
+
+  // ── Suma de todos los dispositivos ──
+  function vista() {
+    const mine = entradaLocal();
+    const disp = Object.assign({}, gqCuenta.iniciada() ? remoto.dispositivos : {}, { [mine.dev]: mine });
+    const v = { desde: '', partidas: 0, modos: {}, duelos: { jugados: 0, ganados: 0, empatados: 0, perdidos: 0, hist: [] }, hist: [], torneos: {}, slugs: [], records: [], dispositivos: 0 };
+    const slugs = new Set();
+    for (const e of Object.values(disp)) {
+      if (!e || typeof e !== 'object') continue;
+      v.dispositivos++;
+      if (e.desde && (!v.desde || e.desde < v.desde)) v.desde = e.desde;
+      v.partidas += Number(e.partidas) || 0;
+      for (const [m, n] of Object.entries(e.modos || {})) v.modos[m] = (v.modos[m] || 0) + (Number(n) || 0);
+      const d = e.duelos || {};
+      for (const k of ['jugados', 'ganados', 'empatados', 'perdidos']) v.duelos[k] += Number(d[k]) || 0;
+      v.duelos.hist = v.duelos.hist.concat(d.hist || []);
+      v.hist = v.hist.concat(e.hist || []);
+      (e.torneosJugados || []).forEach(sl => slugs.add(sl));
+      for (const [sl, t] of Object.entries(e.torneos || {})) {
+        slugs.add(sl);
+        if (!v.torneos[sl] || String(t.f) > String(v.torneos[sl].f)) v.torneos[sl] = t;
+      }
+      v.records = v.records.concat(e.records || []);
+    }
+    v.slugs = Array.from(slugs).sort();
+    v.hist.sort((a, b) => String(a.f).localeCompare(String(b.f)));
+    v.duelos.hist.sort((a, b) => String(a.f).localeCompare(String(b.f)));
+    v.records.sort((a, b) => (Number(b.score) || 0) - (Number(a.score) || 0));
+    return v;
+  }
+
+  // ── Sincronización con la cuenta ──
+  let temporizador = null;
+  function sincronizarPronto() {
+    if (!gqCuenta.iniciada()) return;
+    clearTimeout(temporizador);
+    temporizador = setTimeout(() => sincronizar(), 2500);
+  }
+  async function sincronizar(statsConocidas) {
+    const sesion = gqCuenta.sesion();
+    if (!sesion) return;
+    let base = statsConocidas;
+    if (base === undefined) {
+      const r = await gqCuenta.api('perfil', { sesion });
+      if (r.estado === 401) { gqCuenta.sesionInvalida(); return; }
+      if (!r.ok) return; // sin conexión: se intentará en la próxima
+      base = r.cuerpo.stats;
+    }
+    const rem = base && base.dispositivos ? base : { v: 2, dispositivos: {} };
+    const mine = entradaLocal();
+    const previa = rem.dispositivos[mine.dev];
+    if (!previa || String(previa.act || '') <= String(mine.act)) rem.dispositivos[mine.dev] = mine;
+    remoto = rem;
+    repintar();
+    const g = await gqCuenta.api('guardar', { sesion, stats: rem });
+    if (g.estado === 401) gqCuenta.sesionInvalida();
+  }
+  function repintar() {
+    const r = document.getElementById('screen-records');
+    if (r && r.classList.contains('active')) window.renderRecords();
+  }
+  gqCuenta.alEntrar = stats => { sincronizar(stats || null); };
+  gqCuenta.alSalir = (limpiar) => {
+    remoto = { v: 2, dispositivos: {} };
+    if (limpiar) {
+      // En un dispositivo compartido, al salir no debe quedar el perfil de la persona anterior.
+      try { localStorage.removeItem(CLAVE); } catch (e) { /* nada */ }
+      gqGuardarNombre('');
+    }
+    repintar();
+  };
 
   // ── Contadores ──
   const saveRecordOriginal = window.saveRecord;
@@ -83,7 +179,6 @@
       const c = (typeof torneoCierreDatos !== 'undefined' && torneoCierreDatos) || {};
       const slug = partida && partida.torneo;
       if (slug) {
-        s.torneos = s.torneos || {};
         s.torneos[slug] = { f: new Date().toISOString(), puntos: c.puntos !== undefined ? c.puntos : score, pos: c.pos || null, aciertos: c.aciertos !== undefined ? c.aciertos : correct, total: (typeof torneoTotal !== 'undefined' && torneoTotal) || c.total || 0 };
         guardar(s);
       }
@@ -95,19 +190,15 @@
   // Chrome/Edge en Android y escritorio avisan con 'beforeinstallprompt' y dejan lanzar la instalación
   // desde un botón; Safari de iPhone no tiene botón posible, solo se le pueden dar los pasos.
   let instalar = null;
-  window.addEventListener('beforeinstallprompt', ev => { ev.preventDefault(); instalar = ev; refrescarInstalar(); });
-  window.addEventListener('appinstalled', () => { instalar = null; refrescarInstalar(); });
+  window.addEventListener('beforeinstallprompt', ev => { ev.preventDefault(); instalar = ev; repintar(); });
+  window.addEventListener('appinstalled', () => { instalar = null; repintar(); });
   const yaInstalada = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
-  function refrescarInstalar() {
-    const r = document.getElementById('screen-records');
-    if (r && r.classList.contains('active')) window.renderRecords();
-  }
   window.gqInstalar = async function () {
     if (!instalar) return;
     instalar.prompt();
     try { await instalar.userChoice; } catch (e) { /* nada */ }
     instalar = null;
-    refrescarInstalar();
+    repintar();
   };
   function bloqueInstalar() {
     if (yaInstalada()) return '';
@@ -152,10 +243,8 @@
       .pf-nota{color:var(--muted);font-size:12px;line-height:1.5;margin-top:6px}
       .pf-suscr{border-color:rgba(201,168,76,.4);background:rgba(201,168,76,.08)}
       .pf-suscr.ok{border-color:rgba(120,220,150,.5);background:rgba(120,220,150,.08)}
-      .pf-nom{display:flex;gap:8px;margin-top:8px}
-      .pf-nom input{flex:1;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.22);background:rgba(0,0,0,.25);color:inherit;font:inherit}
-      .pf-nom button,.pf-link{padding:10px 14px;border-radius:10px;border:0;cursor:pointer;font:700 13px 'Inter',sans-serif;background:var(--oro,#c9a84c);color:#1b1405}
-      .pf-link{background:transparent;color:var(--muted);border:1px solid rgba(255,255,255,.2);font-weight:600;padding:6px 10px;margin-left:6px}
+      .pf-link{padding:6px 10px;border-radius:10px;cursor:pointer;font:600 13px 'Inter',sans-serif;background:transparent;
+        color:var(--muted);border:1px solid rgba(255,255,255,.2);margin:6px 6px 0 0}
       .pf-hist{font-size:13px}
       .pf-hist .pf-fila span:first-child{color:var(--muted)}
       .pf-vel{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto;
@@ -163,10 +252,8 @@
       .pf-caja{box-sizing:border-box;width:100%;max-height:92vh;overflow:auto;padding:20px;border-radius:18px;background:#161226;
         border:1px solid rgba(201,168,76,.4);font-size:14px;line-height:1.5}
       .pf-txt{color:var(--muted);margin-bottom:14px}
-      .pf-msg{color:#ffb4a8;font-size:13px;margin-top:6px}
-      .pf-msg:empty{display:none}
       .pf-sec{display:block;width:100%;border-radius:12px;padding:12px 16px;cursor:pointer;background:transparent;color:var(--text,#fff);
-        border:1px solid rgba(255,255,255,.28);font:600 14px 'Inter',sans-serif;margin-bottom:8px}
+        border:1px solid rgba(255,255,255,.28);font:600 14px 'Inter',sans-serif;margin-top:8px}
       .pf-sec:hover{background:rgba(255,255,255,.08)}
       .pf-bv{max-width:460px;text-align:center}
       .pf-bv .pf-bloque{text-align:left}
@@ -202,59 +289,88 @@
     return m ? `${m[3]}/${m[2]}/${m[1]} · ${m[4].replace(/-/g, ' ')}` : slug;
   }
   function dia(iso) { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }); }
-  function historial(s, torneos) {
+  function historial(v) {
     const out = [];
-    if (torneos.length) {
-      out.push('<div class="pf-bloque pf-hist"><h3>Historial de torneos</h3>' + torneos.slice().reverse().map(sl => {
-        const t = (s.torneos || {})[sl];
+    if (v.slugs.length) {
+      out.push('<div class="pf-bloque pf-hist"><h3>Historial de torneos</h3>' + v.slugs.slice().reverse().map(sl => {
+        const t = v.torneos[sl];
         const dato = t ? `${esc(Number(t.puntos).toLocaleString())} pts` + (t.pos ? ` · ${esc(t.pos)}º` : '') : 'jugado';
         return `<div class="pf-fila"><span>${esc(etiquetaTorneo(sl))}</span><span>${dato}</span></div>`;
       }).join('') + '</div>');
     }
-    const h = (s.hist || []).slice(-10).reverse();
+    const h = v.hist.slice(-10).reverse();
     if (h.length) {
       out.push('<div class="pf-bloque pf-hist"><h3>Últimas partidas</h3>' + h.map(e => `<div class="pf-fila"><span>${esc(dia(e.f))} · ${esc(modeLabel(e.modo))}</span><span>${esc(Number(e.puntos).toLocaleString())} pts</span></div>`).join('') + '</div>');
     }
-    const dh = ((s.duelos && s.duelos.hist) || []).slice(-10).reverse();
+    const dh = v.duelos.hist.slice(-10).reverse();
     if (dh.length) {
       out.push('<div class="pf-bloque pf-hist"><h3>Últimos duelos</h3>' + dh.map(e => `<div class="pf-fila"><span>${esc(dia(e.f))} · contra ${esc(e.rival)}</span><span>${e.res === 'gana' ? '🏆 ganado' : e.res === 'empate' ? '🤝 empate' : 'perdido'}</span></div>`).join('') + '</div>');
     }
     return out.join('');
   }
 
-  // Guardar / cambiar / quitar el nombre desde el Perfil.
-  window.gqPerfilNombre = function (guardar) {
-    if (!guardar) {
-      if (confirm('¿Quitar tu nombre de este dispositivo? Tu historial se conserva; la próxima vez te lo preguntarán de nuevo.')) { gqGuardarNombre(''); window.renderRecords(); }
-      return;
+  // ── Acciones de los botones del Perfil ──
+  window.gqPerfilAcceso = function (modo) { gqCuenta.abrir(modo, gqNombreGuardado()); };
+
+  window.gqPerfilNombre = async function () {
+    const n = prompt('Tu nombre de jugador:', gqNombreGuardado());
+    if (n === null) return;
+    if (gqCuenta.iniciada()) {
+      const r = await gqCuenta.cambiarNombre(n.trim());
+      if (r.ok) toast('Nombre cambiado: ' + r.cuerpo.nombre);
+      else toast((r.cuerpo && r.cuerpo.mensaje) || 'No se ha podido cambiar el nombre.');
+    } else {
+      const g = gqGuardarNombre(n);
+      if (g) toast('Nombre guardado: ' + g);
     }
-    const campo = document.getElementById('pf-nombre-in');
-    let n = campo ? campo.value : prompt('Tu nombre de jugador:', gqNombreGuardado());
-    n = gqGuardarNombre(n);
-    if (!n) { if (campo) campo.focus(); return; }
-    toast('Nombre guardado: ' + n);
-    window.renderRecords();
+    repintar();
+  };
+  window.gqPerfilQuitarNombre = function () {
+    if (confirm('¿Quitar tu nombre de este dispositivo? La próxima vez te lo preguntarán de nuevo.')) { gqGuardarNombre(''); repintar(); }
+  };
+  window.gqPerfilSalir = async function () {
+    if (!confirm('¿Cerrar sesión en este dispositivo? Tu historial se queda guardado en tu cuenta y vuelve cuando entres.')) return;
+    await gqCuenta.salir();
+    toast('Sesión cerrada');
+  };
+  window.gqPerfilBorrar = async function () {
+    if (!confirm('¿Borrar tu cuenta? Se eliminan tu correo, tu nombre y tu historial guardado. No se puede deshacer.')) return;
+    const r = await gqCuenta.borrar();
+    toast(r.ok ? 'Cuenta borrada' : 'No se ha podido borrar. Prueba más tarde.');
   };
 
+  function bloqueCuenta() {
+    if (gqCuenta.iniciada()) {
+      return `<div class="pf-bloque"><h3>☁️ Tu cuenta</h3>
+        <div>Sesión iniciada en este dispositivo. Tu historial se guarda en tu cuenta y se suma entre todos tus dispositivos.</div>
+        <button class="pf-link" type="button" onclick="gqPerfilSalir()">Cerrar sesión</button><button class="pf-link" type="button" onclick="gqPerfilBorrar()">Borrar mi cuenta</button></div>`;
+    }
+    return `<div class="pf-bloque pf-suscr"><h3>☁️ Guarda tu perfil</h3>
+      <div>Con tu nombre y tu correo guardamos tu historial y entras desde cualquier dispositivo. Sin contraseña: te mandamos un código.</div>
+      <button class="pf-btn" type="button" onclick="gqPerfilAcceso('crear')">Crear mi perfil</button>
+      <button class="pf-sec" type="button" onclick="gqPerfilAcceso('entrar')">Ya tengo perfil</button>
+      ${gqNombreGuardado() ? '' : '<div class="pf-nota">Si prefieres, también puedes <a href="#" onclick="gqPerfilNombre();return false" style="color:var(--accent)">guardar solo un nombre en este dispositivo</a>.</div>'}</div>`;
+  }
+
   function htmlPerfil() {
-    const s = leer();
+    const v = vista();
     const mote = gqNombreGuardado();
-    const torneos = torneosJugados();
-    const d = s.duelos;
-    const recs = typeof getRecords === 'function' ? getRecords() : [];
-    const mejor = recs[0];
-    const filaModo = m => s.modos[m] ? `<div class="pf-fila"><span>${esc(modeLabel(m))}</span><span>${esc(s.modos[m])}</span></div>` : '';
+    const d = v.duelos;
+    const mejor = v.records[0];
+    const nube = gqCuenta.iniciada();
+    const filaModo = m => v.modos[m] ? `<div class="pf-fila"><span>${esc(modeLabel(m))}</span><span>${esc(v.modos[m])}</span></div>` : '';
     const modos = PERFIL_MODOS.map(filaModo).join('');
     return `
       <div class="pf-cab">
         <div class="pf-avatar">${esc((mote || '?').trim().charAt(0).toUpperCase() || '?')}</div>
         <div><div class="pf-nombre">${esc(mote || 'Jugador sin nombre')}</div>
-        <div class="pf-desde">Contando desde el ${esc(fecha(s.desde))}${mote ? ' <button class="pf-link" type="button" onclick="gqPerfilNombre(true)">Cambiar</button><button class="pf-link" type="button" onclick="gqPerfilNombre(false)">Quitar</button>' : ''}</div></div>
+        <div class="pf-desde">${nube ? '☁️ Guardado en tu cuenta' : 'Solo en este dispositivo'}${v.desde ? ' · desde el ' + esc(fecha(v.desde)) : ''}</div>
+        ${mote ? `<button class="pf-link" type="button" onclick="gqPerfilNombre()">Cambiar nombre</button>${nube ? '' : '<button class="pf-link" type="button" onclick="gqPerfilQuitarNombre()">Quitar</button>'}` : ''}</div>
       </div>
-      ${mote ? '' : '<div class="pf-bloque"><h3>Elige tu nombre de jugador</h3><div class="pf-nota" style="margin:0">Se usará en el ranking, en los torneos y en los duelos, y quedará guardado en este dispositivo para no tener que escribirlo cada vez.</div><div class="pf-nom"><input id="pf-nombre-in" maxlength="24" placeholder="Tu nombre" autocomplete="nickname"><button type="button" onclick="gqPerfilNombre(true)">Guardar</button></div></div>'}
+      ${bloqueCuenta()}
       <div class="pf-grid">
-        <div class="pf-cifra"><b>${esc(s.partidas)}</b><span>partidas jugadas</span></div>
-        <div class="pf-cifra"><b>${esc(torneos.length)}</b><span>torneos jugados</span></div>
+        <div class="pf-cifra"><b>${esc(v.partidas)}</b><span>partidas jugadas</span></div>
+        <div class="pf-cifra"><b>${esc(v.slugs.length)}</b><span>torneos jugados</span></div>
         <div class="pf-cifra"><b>${esc(d.jugados)}</b><span>duelos jugados</span></div>
         <div class="pf-cifra"><b>${esc(d.ganados)}</b><span>duelos ganados</span></div>
       </div>
@@ -269,8 +385,10 @@
         <div class="pf-fila"><span>Ganados</span><span>${esc(d.ganados)}</span></div>
         <div class="pf-fila"><span>Empatados</span><span>${esc(d.empatados)}</span></div>
         <div class="pf-fila"><span>Perdidos</span><span>${esc(d.perdidos)}</span></div></div>` : ''}
-      ${historial(s, torneos)}
-      <div class="pf-nota">Estas cifras se guardan en este dispositivo: si cambias de móvil o borras los datos del navegador, empiezas de cero. Las partidas anteriores a la primera visita con esta versión no cuentan.</div>`;
+      ${historial(v)}
+      <div class="pf-nota">${nube
+        ? 'Tu historial se guarda en tu cuenta y se suma entre tus dispositivos. Las partidas anteriores a la primera visita con esta versión no cuentan.'
+        : 'Estas cifras se guardan solo en este dispositivo: si cambias de móvil o borras los datos del navegador, empiezas de cero. Crea tu perfil para no perderlas. Las partidas anteriores a la primera visita con esta versión no cuentan.'}</div>`;
   }
 
   const recordsOriginal = window.renderRecords;
@@ -285,19 +403,23 @@
     div.querySelectorAll('.pf-sub button').forEach(b => {
       b.onclick = () => { subtab = b.dataset.t; window.renderRecords(); };
     });
+    // Al abrir el Perfil con sesión se refresca desde el servidor (otro dispositivo puede haber jugado).
+    if (subtab === 'perfil' && gqCuenta.iniciada() && !window.renderRecords.sincronizando) {
+      window.renderRecords.sincronizando = true;
+      sincronizar().finally(() => { window.renderRecords.sincronizando = false; });
+    }
   };
 
-  // ── Pantalla de bienvenida: crear perfil o jugar sin registrarse ──
-  // Sale UNA vez, a quien aún no tiene nombre guardado. «Jugar sin registrarme» también cuenta como
-  // decisión y no se vuelve a preguntar (el Perfil sigue ofreciéndolo). No sale si la persona llega
-  // desde un reto o una invitación a duelo: esa gente viene a algo concreto.
+  // ── Pantalla de bienvenida: crear perfil, entrar en el que ya tienes o jugar sin registrarse ──
+  // Sale UNA vez, a quien no tiene sesión ni nombre guardado. «Jugar sin registrarme» también cuenta
+  // como decisión y no se vuelve a preguntar (el Perfil sigue ofreciendo crear el perfil). No sale si
+  // la persona llega desde un reto o una invitación a duelo: esa gente viene a algo concreto.
   function bienvenidaPerfil() {
     try { if (localStorage.getItem('gq_perfil_decidido')) return; } catch (e) { /* sin almacenamiento: se pregunta siempre */ }
-    if (gqNombreGuardado()) return;
+    if (gqCuenta.iniciada() || gqNombreGuardado()) return;
     const reto = document.getElementById('challenge-banner');
     if ((reto && reto.classList.contains('show')) || /[?&](challenge|duelo|codigo|d)=/.test(location.search)) return;
     estilo();
-    const decidir = () => { try { localStorage.setItem('gq_perfil_decidido', '1'); } catch (e) { /* nada */ } };
     // La bienvenida pequeña de siempre queda sustituida por esta.
     if (typeof cerrarBienvenida === 'function') cerrarBienvenida();
     const v = document.createElement('div');
@@ -310,35 +432,29 @@
         <div class="pf-txt">Preguntas de historia, guerras y política mundial para ponerte a prueba. Cada semana hay un <strong>torneo</strong>: las mismas preguntas para todos y una sola partida.</div>
         <div class="pf-bloque" style="margin-bottom:12px">
           <h3>Crea tu perfil</h3>
-          <div class="pf-nota" style="margin:0 0 4px">Elige un nombre y guardaremos tu historial de partidas, torneos y duelos. Jugarás siempre con él, como una sesión iniciada. Sin contraseña ni correo.</div>
-          <div class="pf-nom"><input id="pf-bv-nombre" maxlength="24" placeholder="Tu nombre de jugador" autocomplete="nickname"><button type="button" id="pf-bv-crear">Crear</button></div>
-          <div class="pf-msg" id="pf-bv-msg" role="status"></div>
+          <div class="pf-nota" style="margin:0">Con tu nombre y tu correo guardamos tu historial de partidas, torneos y duelos, y entras con tu nombre desde cualquier dispositivo. Sin contraseña: te mandamos un código al correo.</div>
+          <button class="pf-btn" type="button" id="pf-bv-crear">Crear mi perfil</button>
+          <button class="pf-sec" type="button" id="pf-bv-entrar">Ya tengo perfil</button>
         </div>
         <button class="pf-sec" type="button" id="pf-bv-sin">Jugar sin registrarme</button>
         <div class="pf-nota" style="text-align:center">Puedes crear tu perfil cuando quieras desde la pestaña Perfil.</div>
       </div>`;
     document.body.appendChild(v);
-    const cerrar = () => { decidir(); v.remove(); };
-    v.querySelector('#pf-bv-sin').onclick = cerrar;
-    const crear = () => {
-      const n = gqGuardarNombre(v.querySelector('#pf-bv-nombre').value);
-      if (!n) { v.querySelector('#pf-bv-msg').textContent = 'Escribe un nombre para crear tu perfil.'; return; }
-      cerrar();
-      toast('Perfil creado: ' + n);
-      const r = document.getElementById('screen-records');
-      if (r && r.classList.contains('active')) window.renderRecords();
+    v.querySelector('#pf-bv-sin').onclick = () => {
+      try { localStorage.setItem('gq_perfil_decidido', '1'); } catch (e) { /* nada */ }
+      v.remove();
     };
-    v.querySelector('#pf-bv-crear').onclick = crear;
-    v.querySelector('#pf-bv-nombre').addEventListener('keydown', ev => { if (ev.key === 'Enter') crear(); });
+    v.querySelector('#pf-bv-crear').onclick = () => gqCuenta.abrir('crear');
+    v.querySelector('#pf-bv-entrar').onclick = () => gqCuenta.abrir('entrar');
   }
   // Un momento después de cargar, para que main.js haya mirado si viene de un reto.
   setTimeout(bienvenidaPerfil, 700);
+  // Si ya hay sesión, al abrir el juego se trae lo último de la cuenta.
+  if (gqCuenta.iniciada()) setTimeout(() => sincronizar(), 1200);
+
   // La pestaña se llama Perfil: el botón de la barra decía «Récords».
   const etiqueta = document.querySelector('.nav-btn[onclick="showTab(\'records\')"] span');
   if (etiqueta) etiqueta.textContent = 'Perfil';
   // Cuando avisos.js cambia el estado de la suscripción, el perfil abierto se repinta.
-  window.addEventListener('gq-avisos', () => {
-    const r = document.getElementById('screen-records');
-    if (r && r.classList.contains('active')) window.renderRecords();
-  });
+  window.addEventListener('gq-avisos', repintar);
 })();
