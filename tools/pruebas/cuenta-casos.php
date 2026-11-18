@@ -145,5 +145,22 @@ $sb = $r['sesion'] ?? '';
 ok('borrar la cuenta responde bien', $h === 200, $r);
 ok('y no queda nada de ella', (int) db()->query("SELECT COUNT(*) FROM cuentas WHERE email = 'berta@prueba.es'")->fetchColumn() === 0);
 
+// 9. Suscribirse a los avisos al crear el perfil (casilla aparte, y solo tras verificar el código)
+olvidarEspera();
+post(['accion' => 'alta', 'nombre' => 'Carla', 'email' => 'carla@prueba.es', 'mayor' => true]);
+[$h, $r] = post(['accion' => 'verificar', 'email' => 'carla@prueba.es', 'codigo' => ultimoCodigo('carla@prueba.es')]);
+ok('sin marcar la casilla NO se apunta a los avisos', $h === 200 && ($r['avisos'] ?? true) === false
+    && (int) db()->query("SELECT COUNT(*) FROM avisos WHERE email = 'carla@prueba.es'")->fetchColumn() === 0, $r);
+olvidarEspera();
+post(['accion' => 'alta', 'nombre' => 'Dani', 'email' => 'dani@prueba.es', 'mayor' => true]);
+ok('pedir el código aún NO apunta a nadie', (int) db()->query("SELECT COUNT(*) FROM avisos WHERE email = 'dani@prueba.es'")->fetchColumn() === 0);
+[$h, $r] = post(['accion' => 'verificar', 'email' => 'dani@prueba.es', 'codigo' => ultimoCodigo('dani@prueba.es'), 'avisos' => true]);
+$fila = db()->query("SELECT estado, confirmado_en, texto_version FROM avisos WHERE email = 'dani@prueba.es'")->fetch(PDO::FETCH_ASSOC);
+ok('marcando la casilla y verificando el código queda suscrito y ya confirmado', $h === 200 && ($r['avisos'] ?? false) === true && $fila && $fila['estado'] === 'confirmado' && $fila['confirmado_en'] !== null, [$r, $fila]);
+olvidarEspera();
+post(['accion' => 'entrar', 'email' => 'dani@prueba.es']);
+post(['accion' => 'verificar', 'email' => 'dani@prueba.es', 'codigo' => ultimoCodigo('dani@prueba.es'), 'avisos' => true]);
+ok('hacerlo dos veces no duplica la fila', (int) db()->query("SELECT COUNT(*) FROM avisos WHERE email = 'dani@prueba.es'")->fetchColumn() === 1);
+
 echo "\nBIEN · $bien comprobaciones" . ($mal ? " · $mal FALLAN" : '') . "\n";
 exit($mal ? 1 : 0);

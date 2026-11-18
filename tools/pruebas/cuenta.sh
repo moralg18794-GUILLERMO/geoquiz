@@ -51,6 +51,7 @@ cat > "$TMP/esquema.php" <<EOF
 \$p = new PDO('sqlite:$TMPW/prueba.sqlite');
 \$p->exec('CREATE TABLE cuentas (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL UNIQUE, nombre TEXT NOT NULL COLLATE NOCASE UNIQUE, creada_en TEXT, ultimo_acceso TEXT, stats TEXT, stats_en TEXT)');
 \$p->exec('CREATE TABLE cuenta_codigos (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT, codigo_hash TEXT, nombre TEXT, intentos INTEGER DEFAULT 0, creado_en TEXT, expira_en TEXT, ip_hash TEXT)');
+\$p->exec('CREATE TABLE avisos (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT NOT NULL UNIQUE, estado TEXT, token TEXT, texto_version TEXT, ip_hash TEXT, pedido_en TEXT, confirmado_en TEXT)');
 \$p->exec('CREATE TABLE cuenta_sesiones (id INTEGER PRIMARY KEY AUTOINCREMENT, cuenta_id INTEGER, token_hash TEXT UNIQUE, creada_en TEXT, ultimo_uso TEXT)');
 EOF
 "$PHP" "${OPC[@]}" "$TMP/esquema.php"

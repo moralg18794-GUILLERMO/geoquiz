@@ -102,6 +102,7 @@
     const cerrar = () => v.remove();
     let email = '';
     let nombreElegido = nombre || '';
+    let quiereAvisos = false;
 
     const q = s => c.querySelector(s);
     const equis = '<button class="cu-x" type="button" aria-label="Cerrar">✕</button>';
@@ -118,7 +119,8 @@
         <input class="cu-in cu-email" type="email" inputmode="email" autocomplete="email" placeholder="tu@correo.com" maxlength="190" aria-label="Tu correo electrónico" value="${esc(email)}">
         <input class="cu-web" type="text" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;opacity:0">
         ${crear ? `<label class="cu-chk"><input class="cu-mayor" type="checkbox"><span>Tengo 14 años o más.</span></label>
-        <div class="cu-txt" style="font-size:12px;margin-bottom:12px">Usaremos tu correo solo para identificarte y guardar tu historial. <strong>No te apunta a los avisos por correo</strong>; eso es aparte. Responsable: Guillermo Moral Lozano. Más información en la <a href="${PRIVACIDAD}" target="_blank" rel="noopener" style="color:var(--accent)">política de privacidad</a>.</div>` : ''}
+        <label class="cu-chk"><input class="cu-avisos" type="checkbox"${quiereAvisos ? ' checked' : ''}><span>Quiero recibir por correo avisos de torneos, preguntas y modos de juego nuevos. <em style="color:var(--muted)">(Opcional. Puedo darme de baja cuando quiera.)</em></span></label>
+        <div class="cu-txt" style="font-size:12px;margin-bottom:12px">Usaremos tu correo para identificarte y guardar tu historial y, solo si marcas la casilla de arriba, para esos avisos. Responsable: Guillermo Moral Lozano. Más información en la <a href="${PRIVACIDAD}" target="_blank" rel="noopener" style="color:var(--accent)">política de privacidad</a>.</div>` : ''}
         <div class="cu-msg" role="status"></div>
         <button class="cu-btn cu-enviar" type="button">Enviar código</button>
         <div class="cu-pie">${crear
@@ -133,6 +135,7 @@
           nombreElegido = q('.cu-nombre').value.trim();
           if (!nombreElegido) { msg.textContent = 'Escribe un nombre de jugador.'; return; }
           if (!q('.cu-mayor').checked) { msg.textContent = 'Confirma que tienes 14 años o más.'; return; }
+          quiereAvisos = q('.cu-avisos').checked;
         }
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { msg.textContent = 'Ese correo no parece válido.'; return; }
         const b = q('.cu-enviar');
@@ -181,7 +184,7 @@
         b.disabled = true;
         msg.style.color = 'var(--muted)';
         msg.textContent = 'Comprobando…';
-        const r = await api('verificar', { email, codigo });
+        const r = await api('verificar', m === 'crear' && quiereAvisos ? { email, codigo, avisos: true } : { email, codigo });
         if (r.ok && r.cuerpo && r.cuerpo.sesion) {
           guardar(K_SESION, r.cuerpo.sesion);
           guardar(K_NOMBRE, r.cuerpo.nombre);
@@ -189,7 +192,8 @@
           cerrar();
           const w = document.getElementById('pf-vel');
           if (w) w.remove();
-          toast('Sesión iniciada: ' + r.cuerpo.nombre);
+          if (r.cuerpo.avisos) { guardar('gq_avisos', 'confirmado'); guardar('gq_avisos_feliz', '1'); try { window.dispatchEvent(new Event('gq-avisos')); } catch (e) { /* nada */ } }
+          toast(r.cuerpo.avisos ? 'Sesión iniciada y suscrito a los avisos: ' + r.cuerpo.nombre : 'Sesión iniciada: ' + r.cuerpo.nombre);
           if (gqCuenta.alEntrar) gqCuenta.alEntrar(r.cuerpo.stats);
           return;
         }

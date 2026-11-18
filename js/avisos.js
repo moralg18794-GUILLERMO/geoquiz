@@ -152,6 +152,7 @@
   }
 
   async function enviar(c) {
+    c.dataset.enviando = "1"; // para que el aviso de «estado cambiado» no retire esta tarjeta a mitad de envío
     const q = s => c.querySelector(s);
     const msg = q('.av-msg');
     const email = q('.av-email').value.trim();
@@ -180,7 +181,7 @@
       if (seg) { guardar(CLAVE_SEG, seg); vigilar(seg, c); }
       return;
     }
-    b.disabled = false;
+    b.disabled = false; delete c.dataset.enviando;
     msg.style.color = '';
     msg.textContent = (r.cuerpo && r.cuerpo.mensaje) || 'No se ha podido enviar. Prueba más tarde.';
   }
@@ -296,6 +297,20 @@
 
   // Lo que usa la pestaña Perfil (js/perfil.js) para enseñar y abrir la suscripción.
   window.gqAvisos = { panel, estado: () => leer(CLAVE), disponible: () => activo === true };
+
+  // Si el estado cambia desde fuera (al crear el perfil con la casilla de avisos marcada), se pone al día
+  // el botón fijo y se quitan las ofertas de apuntarse.
+  window.addEventListener('gq-avisos', () => {
+    refrescarPie();
+    if (yaPedido()) {
+      // Solo las OFERTAS: la tarjeta que ya enseña «casi listo» o la enhorabuena se queda como está.
+      document.querySelectorAll('.av-enlace').forEach(e => e.remove());
+      ['aviso-menu', 'aviso-caja'].forEach(id => {
+        const m = document.getElementById(id);
+        if (m && m.querySelector('.av-abrir, .av-email') && !m.dataset.enviando) m.remove();
+      });
+    }
+  });
 
   const original = window.showScreen;
   window.showScreen = function (id) {

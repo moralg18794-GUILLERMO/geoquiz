@@ -16,7 +16,8 @@
 //    averiguar quién tiene cuenta.
 //  · Del código solo se guarda un hash; dura 15 minutos y admite 5 intentos. De la sesión se guarda el
 //    hash del testigo, no el testigo.
-//  · Tener cuenta NO apunta a los avisos por correo: eso es otra casilla, otro permiso y otra tabla.
+//  · Tener cuenta NO apunta a los avisos por correo: eso es otra casilla, otro permiso y otra tabla. Solo si
+//    la persona marca esa casilla al crear el perfil (y verifica el código) se la apunta, ya confirmada.
 
 declare(strict_types=1);
 require __DIR__ . '/db.php';
@@ -132,6 +133,20 @@ function gq_cuenta_mandar_codigo(PDO $pdo, string $email, ?string $nombre, strin
     }
 }
 
+// Apunta el correo a los avisos por correo, YA confirmado: se llama solo después de verificar el código,
+// que demuestra que quien lo pide es el dueño del correo, así que no hace falta otro correo de
+// confirmación. La casilla es aparte de la de crear el perfil y viene desmarcada.
+function gq_cuenta_suscribir_avisos(PDO $pdo, string $email, string $ahora): void {
+    $fila = gq_consulta($pdo, 'SELECT estado FROM avisos WHERE email = ?', [$email])->fetch();
+    if (!$fila) {
+        gq_consulta($pdo,
+            'INSERT INTO avisos (email, estado, token, texto_version, ip_hash, pedido_en, confirmado_en) VALUES (?, \'confirmado\', ?, ?, ?, ?, ?)',
+            [$email, bin2hex(random_bytes(20)), GQ_TEXTO_VERSION, hash('sha256', 'avisos|' . gq_ip_hash()), $ahora, $ahora]);
+    } elseif ($fila['estado'] !== 'confirmado') {
+        gq_consulta($pdo, "UPDATE avisos SET estado = 'confirmado', confirmado_en = ?, texto_version = ? WHERE email = ?", [$ahora, GQ_TEXTO_VERSION, $email]);
+    }
+}
+
 function gq_cuenta_stats_json(?string $s) {
     if ($s === null || $s === '') {
         return null;
@@ -202,10 +217,14 @@ if ($accion === 'verificar') {
     } else {
         gq_consulta($pdo, 'UPDATE cuentas SET ultimo_acceso = ? WHERE id = ?', [$ahora, $cuenta['id']]);
     }
+    $avisos = ($d['avisos'] ?? false) === true;
+    if ($avisos) {
+        gq_cuenta_suscribir_avisos($pdo, $email, $ahora);
+    }
     $token = bin2hex(random_bytes(32));
     gq_consulta($pdo, 'INSERT INTO cuenta_sesiones (cuenta_id, token_hash, creada_en, ultimo_uso) VALUES (?, ?, ?, ?)',
         [$cuenta['id'], hash('sha256', $token), $ahora, $ahora]);
-    gq_json(200, ['ok' => true, 'sesion' => $token, 'nombre' => $cuenta['nombre'], 'stats' => gq_cuenta_stats_json($cuenta['stats'])]);
+    gq_json(200, ['ok' => true, 'sesion' => $token, 'nombre' => $cuenta['nombre'], 'avisos' => $avisos, 'stats' => gq_cuenta_stats_json($cuenta['stats'])]);
 }
 
 // ── Desde aquí hace falta una sesión ──────────────────────────────────────
