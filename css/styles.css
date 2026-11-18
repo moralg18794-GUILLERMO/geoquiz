@@ -421,3 +421,19 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 
 /* Título del torneo de GTA: letra gruesa de cartel (Titan One, fuente libre), no la del logotipo. */
 .ta-titulo.ta-gta{font-family:'Titan One','Arial Black',Impact,sans-serif;font-weight:400;text-transform:uppercase;font-size:30px;line-height:1.08;letter-spacing:0.01em;background:linear-gradient(180deg,#fff 10%,#ffd1e3 45%,#ff9a3c 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;filter:drop-shadow(0 3px 0 #7a1f4a);}
+
+/* ── MODOS EN TRES BLOQUES: preguntas, otros modos y duelo ── */
+.mode-row{display:block;margin-bottom:1.5rem;}
+.mode-grupo-t{font-size:11px;font-weight:600;letter-spacing:0.13em;text-transform:uppercase;color:var(--text);margin:0.9rem 0 0.45rem;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
+.mode-grupo-t:first-child{margin-top:0;}
+.mode-grupo-t small{font-size:10.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--muted);}
+.mode-fila{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.mode-fila-2{grid-template-columns:repeat(2,1fr);}
+.mode-fila-1{grid-template-columns:1fr;}
+.mode-duelo{display:grid;grid-template-columns:auto 1fr;grid-template-areas:"i n" "i d";column-gap:14px;align-items:center;text-align:left;padding:0.85rem 1rem;border-color:rgba(255,61,129,0.45);background:linear-gradient(135deg,rgba(255,61,129,0.14),rgba(255,154,60,0.08));color:var(--text);}
+.mode-duelo .mi{grid-area:i;margin:0;color:var(--neon-pink);}
+.mode-duelo .mi .ico{width:30px;height:30px;}
+.mode-duelo .mn{grid-area:n;font-size:15px;}
+.mode-duelo .md{grid-area:d;font-size:11px;opacity:0.8;margin-top:0;}
+.mode-duelo:hover{border-color:var(--neon-pink);}
+.mode-duelo.active{background:linear-gradient(135deg,rgba(255,61,129,0.28),rgba(255,154,60,0.16));border-color:var(--neon-pink);color:#fff;box-shadow:0 8px 22px -12px rgba(255,61,129,0.7);}
