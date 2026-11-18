@@ -1,0 +1,16 @@
+{
+  "name": "GeoQuiz",
+  "short_name": "GeoQuiz",
+  "description": "Preguntas de historia, guerras y política mundial, con torneo semanal.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0820",
+  "theme_color": "#0d0820",
+  "icons": [
+    { "src": "img/icono.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "img/icono.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

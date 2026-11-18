@@ -91,6 +91,40 @@
     return res;
   };
 
+  // ── Instalar en la pantalla de inicio ──
+  // Chrome/Edge en Android y escritorio avisan con 'beforeinstallprompt' y dejan lanzar la instalación
+  // desde un botón; Safari de iPhone no tiene botón posible, solo se le pueden dar los pasos.
+  let instalar = null;
+  window.addEventListener('beforeinstallprompt', ev => { ev.preventDefault(); instalar = ev; refrescarInstalar(); });
+  window.addEventListener('appinstalled', () => { instalar = null; refrescarInstalar(); });
+  const yaInstalada = () => (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  function refrescarInstalar() {
+    const r = document.getElementById('screen-records');
+    if (r && r.classList.contains('active')) window.renderRecords();
+  }
+  window.gqInstalar = async function () {
+    if (!instalar) return;
+    instalar.prompt();
+    try { await instalar.userChoice; } catch (e) { /* nada */ }
+    instalar = null;
+    refrescarInstalar();
+  };
+  function bloqueInstalar() {
+    if (yaInstalada()) return '';
+    const ua = navigator.userAgent || '';
+    const ios = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const android = /android/i.test(ua);
+    let pasos;
+    if (instalar) pasos = 'Pulsa el botón y GeoQuiz se añadirá a tu pantalla de inicio, sin descargar nada de ninguna tienda.';
+    else if (ios) pasos = 'En Safari, pulsa el botón <strong>Compartir</strong> (el cuadrado con la flecha hacia arriba) y elige <strong>«Añadir a pantalla de inicio»</strong>.';
+    else if (android) pasos = 'En Chrome, pulsa los tres puntos <strong>⋮</strong> y elige <strong>«Instalar aplicación»</strong> o <strong>«Añadir a pantalla de inicio»</strong>.';
+    else pasos = 'En Chrome o Edge, busca el icono de instalar en la barra de direcciones, o abre el menú y elige <strong>«Instalar GeoQuiz»</strong>.';
+    return `<div class="pf-bloque"><h3>📲 Ponlo en tu pantalla de inicio</h3>
+      <div>Entra a GeoQuiz con un toque, como una app, a pantalla completa y sin buscar la dirección.</div>
+      <div class="pf-nota">${pasos}</div>
+      ${instalar ? '<button class="pf-btn" type="button" onclick="gqInstalar()">Instalar GeoQuiz</button>' : ''}</div>`;
+  }
+
   // ── Pintado ──
   function estilo() {
     if (document.getElementById('pf-estilo')) return;
@@ -225,6 +259,7 @@
         <div class="pf-cifra"><b>${esc(d.ganados)}</b><span>duelos ganados</span></div>
       </div>
       ${bloqueSuscripcion()}
+      ${bloqueInstalar()}
       ${mejor ? `<div class="pf-bloque"><h3>Tu mejor partida</h3>
         <div class="pf-fila"><span>Puntos</span><span>${esc(Number(mejor.score).toLocaleString())}</span></div>
         <div class="pf-fila"><span>Modo</span><span>${esc(modeLabel(mejor.mode))}</span></div>
