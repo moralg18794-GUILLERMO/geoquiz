@@ -39,7 +39,7 @@ async function crearDuelo() {
   const cats = [...selectedCats];
   if (!cats.length) { toast('Elige al menos una categoría.'); return; }
 
-  const nombre = (prompt('¿Con qué nombre juegas el duelo?', '') || '').trim();
+  const nombre = (gqNombre('¿Con qué nombre juegas el duelo?') || '').trim();
   if (!nombre) return;
 
   const res = await gqFetch(GQ_DUELO_API, {
@@ -96,7 +96,7 @@ async function sondearEsperaDuelo() {
 async function pedirCodigoUnirse(prefill) {
   const codigo = ((prefill || prompt('Código del duelo (6 caracteres):', '') || '').trim()).toUpperCase();
   if (!codigo) return;
-  const nombre = (prompt('¿Con qué nombre juegas el duelo?', '') || '').trim();
+  const nombre = (gqNombre('¿Con qué nombre juegas el duelo?') || '').trim();
   if (!nombre) return;
 
   const res = await gqFetch(GQ_DUELO_API, {

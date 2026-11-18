@@ -142,3 +142,23 @@ async function compartirImagen() {
     toast('No se pudo crear la imagen');
   }
 }
+
+// ── NOMBRE DE JUGADOR ─────────────────────────────────────────────────────
+// El nombre se guarda UNA vez en este dispositivo y se usa solo en el ranking, los duelos y como
+// relleno del torneo, igual que una sesión iniciada. Es el mismo valor que ya usaba el torneo
+// ('gq_torneo_mote'), así que quien ya había jugado uno lo conserva. Se cambia o se quita desde la
+// pestaña Perfil. Si no hay nombre guardado se pregunta como siempre y, si responde algo, se queda.
+function gqNombreGuardado(){
+  try{return localStorage.getItem('gq_torneo_mote')||'';}catch{return '';}
+}
+function gqGuardarNombre(n){
+  n=String(n||'').replace(/\s+/g,' ').trim().slice(0,24);
+  try{if(n)localStorage.setItem('gq_torneo_mote',n);else localStorage.removeItem('gq_torneo_mote');}catch{}
+  return n;
+}
+function gqNombre(pregunta){
+  const n=gqNombreGuardado();
+  if(n)return n;
+  const r=(prompt(pregunta,'')||'').trim();
+  return r?gqGuardarNombre(r):'';
+}
