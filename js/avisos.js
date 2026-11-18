@@ -18,7 +18,7 @@
   let activo = null; // null = sin comprobar todavía
 
   function leer(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
-  function guardar(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento: se volverá a ofrecer */ } }
+  function guardar(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento: se volverá a ofrecer */ } refrescarPie(); }
   const yaPedido = () => leer(CLAVE) === 'pedido' || leer(CLAVE) === 'confirmado';
 
   function estilo() {
@@ -51,6 +51,15 @@
       .av-legal a{color:var(--accent,#c9a84c)}
       .av-msg{min-height:0;margin-bottom:10px;font-size:13px;color:#ffb4a8}
       .av-msg:empty{display:none}
+      .av-pie{display:flex;justify-content:center;margin:18px 0 4px}
+      .av-pie button{display:inline-flex;gap:8px;align-items:center;padding:9px 16px;border-radius:999px;cursor:pointer;
+        background:rgba(255,255,255,.06);color:inherit;border:1px solid rgba(255,255,255,.22);font:600 13px 'Inter',sans-serif}
+      .av-pie button:hover{background:rgba(255,255,255,.12)}
+      .av-pie.ok button{border-color:rgba(120,220,150,.55);color:#bdf2cc}
+      .av-vel{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;
+        background:rgba(5,3,14,.72);backdrop-filter:blur(3px)}
+      .av-vel .av-caja{width:100%;max-width:440px;max-height:90vh;overflow:auto;background:#161226;position:relative}
+      .av-cerrar{position:absolute;top:8px;right:10px;background:transparent;border:0;color:var(--muted);font-size:20px;cursor:pointer;line-height:1}
       .av-enlace{display:block;width:100%;margin:12px 0 0;padding:11px 16px;border-radius:12px;cursor:pointer;
         background:rgba(255,255,255,.06);color:inherit;border:1px solid rgba(255,255,255,.28);font:600 14px 'Inter',sans-serif}
       .av-enlace:hover{background:rgba(255,255,255,.12)}
@@ -58,8 +67,60 @@
     document.head.appendChild(s);
   }
 
-  const HTML_ESPERA = '<div class="av-titulo">✅ Casi listo</div><div class="av-txt" style="margin:0">Te hemos mandado un correo: pulsa el botón que trae para confirmar. Si no lo ves, mira en spam. Esta tarjeta se actualizará sola cuando lo confirmes.</div>';
+  const HTML_ESPERA = '<div class="av-titulo">✅ Casi listo</div><div class="av-txt" style="margin:0">Te hemos mandado un correo: si es tu primera vez, pulsa el botón que trae para confirmar; si ya estabas suscrito, te dirá que sí. Si no lo ves, mira en spam. Esta tarjeta se actualizará sola cuando lo confirmes.</div>';
   const HTML_FELIZ = '<div class="av-titulo">🎉 ¡Enhorabuena, ya estás suscrito!</div><div class="av-txt" style="margin:0">Te avisaremos de los torneos semanales, las preguntas nuevas y los nuevos modos de juego. Puedes darte de baja cuando quieras desde cualquier correo que te mandemos.</div>';
+
+  // ── Botón fijo, siempre a la vista, encima del pie de página: dice en qué estás y abre el panel ──
+  function textoPie() {
+    const e = leer(CLAVE);
+    if (e === 'confirmado') return '✅ Suscrito a los avisos';
+    if (e === 'pedido') return '⏳ Falta confirmar tu correo';
+    return '📬 Suscríbete a los avisos por correo';
+  }
+  function refrescarPie() {
+    const p = document.getElementById('av-pie');
+    if (!p) return;
+    p.classList.toggle('ok', leer(CLAVE) === 'confirmado');
+    p.querySelector('button').textContent = textoPie();
+  }
+  function pie() {
+    if (document.getElementById('av-pie')) return;
+    const ref = document.querySelector('footer.firma');
+    if (!ref) return;
+    estilo();
+    const p = document.createElement('div');
+    p.id = 'av-pie';
+    p.className = 'av-pie';
+    p.innerHTML = '<button type="button"></button>';
+    p.querySelector('button').onclick = panel;
+    ref.insertAdjacentElement('beforebegin', p);
+    refrescarPie();
+  }
+  function panel() {
+    if (document.getElementById('av-vel')) return;
+    estilo();
+    const v = document.createElement('div');
+    v.id = 'av-vel';
+    v.className = 'av-vel';
+    const c = document.createElement('div');
+    c.className = 'av-caja';
+    v.appendChild(c);
+    const cerrar = () => v.remove();
+    v.addEventListener('click', ev => { if (ev.target === v) cerrar(); });
+    document.body.appendChild(v);
+    const e = leer(CLAVE);
+    const x = '<button class="av-cerrar" type="button" aria-label="Cerrar">✕</button>';
+    if (e === 'confirmado') {
+      c.innerHTML = x + '<div class="av-titulo">✅ Estás suscrito</div><div class="av-txt" style="margin:0">Te avisaremos de los torneos semanales, las preguntas nuevas y los nuevos modos de juego. Para darte de baja, usa el enlace que lleva cada correo o escribe a comunicaciones@tunegocioconestrategia.com.</div>';
+    } else {
+      formulario(c, null);
+      const t = c.querySelector('.av-txt');
+      if (e === 'pedido' && t) t.textContent = 'Te apuntaste en este dispositivo y falta confirmar el correo. Si ya lo confirmaste, ya estás suscrito. Si no estás seguro, escribe tu correo otra vez: si ya estabas apuntado, te mandamos un mensaje que lo confirma.';
+      else if (t) t.textContent = 'Torneos semanales, preguntas nuevas y modos de juego nuevos, directos a tu correo. Si ya te apuntaste y no estás seguro, escribe tu correo otra vez: te mandamos un mensaje que lo confirma. Es opcional.';
+      c.insertAdjacentHTML('afterbegin', x);
+    }
+    c.querySelector('.av-cerrar').onclick = cerrar;
+  }
 
   async function estaActivo() {
     if (activo !== null) return activo;
@@ -203,6 +264,7 @@
   // se ofrece. Si ya está suscrito, solo se le da la enhorabuena una vez.
   async function arrancar() {
     if (!(await estaActivo())) return;
+    pie();
     const estado = leer(CLAVE), seg = leer(CLAVE_SEG);
     if (estado === 'confirmado') return;
     if (estado === 'pedido' && seg) {
