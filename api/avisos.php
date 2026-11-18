@@ -66,8 +66,16 @@ if ($metodo === 'GET' && isset($_GET['seg'])) {
     if (preg_match('/^[a-f0-9]{32}$/', $seg) !== 1) {
         gq_error(400, 'peticion', 'Petición no válida.');
     }
-    $e = gq_consulta($pdo, "SELECT estado FROM avisos WHERE LEFT(SHA2(CONCAT('seg|', token), 256), 32) = ?", [$seg])->fetchColumn();
-    gq_json(200, ['ok' => true, 'estado' => $e === false ? 'ninguno' : (string) $e]);
+    // El hash se calcula en PHP y no en MySQL (SHA2 daba un error de colación en este servidor). La
+    // tabla es pequeña, así que recorrerla es barato.
+    $estado = 'ninguno';
+    foreach (gq_consulta($pdo, 'SELECT estado, token FROM avisos LIMIT 20000')->fetchAll() as $fila) {
+        if (hash_equals(substr(hash('sha256', 'seg|' . $fila['token']), 0, 32), $seg)) {
+            $estado = (string) $fila['estado'];
+            break;
+        }
+    }
+    gq_json(200, ['ok' => true, 'estado' => $estado]);
 }
 
 // ── GET ───────────────────────────────────────────────────────────────────
