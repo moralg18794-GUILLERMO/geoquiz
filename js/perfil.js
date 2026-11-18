@@ -178,7 +178,8 @@
       const s = leer();
       const c = (typeof torneoCierreDatos !== 'undefined' && torneoCierreDatos) || {};
       const slug = partida && partida.torneo;
-      if (slug) {
+      // Una práctica no puntúa ni se apunta en el historial.
+      if (slug && !(typeof torneoPractica !== 'undefined' && torneoPractica)) {
         s.torneos[slug] = { f: new Date().toISOString(), puntos: c.puntos !== undefined ? c.puntos : score, pos: c.pos || null, aciertos: c.aciertos !== undefined ? c.aciertos : correct, total: (typeof torneoTotal !== 'undefined' && torneoTotal) || c.total || 0 };
         guardar(s);
       }

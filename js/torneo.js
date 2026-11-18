@@ -22,6 +22,8 @@ let torneoToken = '';           // el testigo que demuestra que la partida es de
 let torneoEnVuelo = false;      // hay una petición abierta: no mandar otra encima
 let torneoModoPrevio = '';      // el modo que estaba elegido en el menú antes del torneo
 let torneoEstado = '';          // qué dice el servidor del mote de este móvil: libre/enCurso/terminado
+let torneoPractica = false;     // la partida en curso es una repetición de práctica: no puntúa
+let torneoNombreReal = '';      // el nombre con el que se jugó de verdad (la práctica va con un alias interno)
 
 // Devuelve el menú como estaba antes de entrar al torneo.
 function torneoSoltarModo() {
@@ -191,7 +193,7 @@ function pintarAvisoTorneo() {
   if (!caja || !torneo) return;
   const tt = document.getElementById('ta-titulo'); tt.textContent = torneo.titulo; tt.classList.toggle('ta-gta', torneoEsGTA());
   document.getElementById('ta-tema').textContent = torneo.tema || '';
-  document.getElementById('ta-npreg').textContent = torneo.n_preguntas ? `${torneo.n_preguntas} preguntas · 1 intento` : '';
+  document.getElementById('ta-npreg').textContent = torneo.n_preguntas ? `${torneo.n_preguntas} preguntas · 1 intento que puntúa` : '';
   document.getElementById('ta-legal').style.display = torneoEsGTA() ? '' : 'none';
 
   const yaJugo = torneoJugadoAqui(torneo.slug);
@@ -228,6 +230,19 @@ function pintarAvisoTorneo() {
     btn.onclick = jugarTorneo;
   }
 
+  // Quien ya jugó puede repetirlo de práctica: no puntúa ni cambia su marca.
+  let rb = document.getElementById('ta-repetir');
+  if (!rb) {
+    rb = document.createElement('button');
+    rb.id = 'ta-repetir';
+    rb.className = 'invitar-btn';
+    btn.insertAdjacentElement('afterend', rb);
+  }
+  const puedeRepetir = !cerrado && torneoEstado !== 'enCurso' && !!yaJugo;
+  rb.style.display = puedeRepetir ? '' : 'none';
+  rb.textContent = '🔁 Volver a jugar (sin puntuar)';
+  rb.onclick = () => repetirTorneo();
+
   // El aviso se enseña una vez por torneo; después queda el botón del menú de navegación.
   if (!torneoAvisoVisto(torneo.slug) || yaJugo) caja.classList.add('show');
 }
@@ -244,6 +259,7 @@ async function jugarTorneo() {
   // Las preguntas ya no vienen en este objeto: las sirve el servidor de una en una cuando
   // la partida ha empezado. Aquí solo se sabe cuántas son.
   if (!torneo.n_preguntas) { toast('El torneo no tiene preguntas'); return; }
+  torneoPractica = false; torneoNombreReal = '';
 
   const previo = torneoJugadoAqui(torneo.slug) || torneoMiMote();
   const aviso = torneoEstado === 'enCurso'
@@ -267,6 +283,11 @@ async function jugarTorneo() {
     const yo = res.cuerpo.yo;
     toast(yo ? `«${nombre}» ya jugó: ${yo.pos}º con ${Number(yo.puntos).toLocaleString()}` : `«${nombre}» ya jugó este torneo`);
     torneoTabla = res.cuerpo.clasificacion || torneoTabla;
+    // El intento que puntúa ya está gastado, pero se puede jugar otra vez de práctica.
+    if (res.cuerpo.puede_repetir && confirm(`«${nombre}» ya jugó este torneo y solo puntúa la primera partida.\n\n¿Quieres volver a jugarlo como PRÁCTICA? No puntúa ni cambia tu marca.`)) {
+      await repetirTorneo(nombre, true);
+      return;
+    }
     showTab('torneo');
     return;
   }
@@ -283,7 +304,7 @@ async function jugarTorneo() {
     return;
   }
 
-  if (res.cuerpo.token) torneoGuardarToken(torneo.slug, res.cuerpo.token);
+  if (res.cuerpo.token && !torneoPractica) torneoGuardarToken(torneo.slug, res.cuerpo.token);
   torneoToken = res.cuerpo.token || '';
 
   if (res.cuerpo.reanudado) {
@@ -302,7 +323,48 @@ async function jugarTorneo() {
   arrancarTorneo();
 }
 
+// Repetir el torneo SIN puntuar. El servidor monta una partida aparte (con un alias interno) que no sale
+// en la clasificación y se borra al terminar, con las mismas preguntas y la misma corrección.
+async function repetirTorneo(nombre, yaConfirmado) {
+  if (!torneo || torneo.estado !== 'activo') { toast('Este torneo ya ha terminado.'); return; }
+  nombre = (nombre || torneoJugadoAqui(torneo.slug) || torneoMiMote() || '').trim();
+  if (!nombre) nombre = (prompt('¿Con qué nombre jugaste el torneo?', '') || '').trim();
+  if (!nombre) return;
+  if (!yaConfirmado && !confirm('Vas a jugar el torneo otra vez como PRÁCTICA.\n\nNo puntúa, no cambia tu marca ni la clasificación: es solo para jugarlo de nuevo.\n\n¿Empezar?')) return;
+  const res = await gqFetch(GQ_TORNEO_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accion: 'empezar', slug: torneo.slug, nombre, repetir: true }),
+  });
+  if (!res.ok) {
+    toast((res.cuerpo && res.cuerpo.mensaje) || 'No se pudo preparar la práctica. Revisa la conexión.');
+    return;
+  }
+  // Nada de la práctica se guarda como si fuera la partida de verdad: ni su testigo ni su alias.
+  torneoPractica = true;
+  torneoNombreReal = nombre;
+  torneoToken = res.cuerpo.token || '';
+  torneoNombre = res.cuerpo.nombre;
+  toast('Modo práctica: esta partida no puntúa.');
+  arrancarTorneo();
+}
+
+// Una franja fija arriba de la partida para que no haya duda de que esta no cuenta.
+function torneoBannerPractica(on) {
+  let b = document.getElementById('torneo-practica');
+  if (!on) { if (b) b.remove(); return; }
+  if (!b) {
+    b = document.createElement('div');
+    b.id = 'torneo-practica';
+    b.style.cssText = 'margin:0 0 10px;padding:10px 14px;border-radius:12px;text-align:center;font:700 13px "Inter",sans-serif;'
+      + 'background:rgba(255,200,60,.14);border:1px solid rgba(255,200,60,.55);color:#ffd36a';
+    b.textContent = '🧪 MODO PRÁCTICA · esta partida no puntúa ni cambia tu marca';
+    document.getElementById('screen-game').prepend(b);
+  }
+}
+
 async function arrancarTorneo() {
+  torneoBannerPractica(torneoPractica);
   playStart();
   pararCronometros();
   cerrarAvisoTorneo();
@@ -478,6 +540,27 @@ function mostrarResultadoTorneo() {
   const puntos = c.puntos !== undefined ? c.puntos : score;
   const pct = Math.round((aciertos / Math.max(total, 1)) * 100);
 
+  if (torneoPractica) {
+    // Una práctica no deja rastro: ni se apunta como jugada ni toca la marca del torneo.
+    if (c.clasificacion) torneoTabla = c.clasificacion;
+    torneoSoltarModo();
+    torneoBannerPractica(false);
+    document.getElementById('result-hero').classList.remove('evento');
+    document.getElementById('result-hero').innerHTML = `
+      <div style="font-size:40px;margin-bottom:0.5rem">🧪</div>
+      <div class="result-rank">Práctica terminada</div>
+      <div><span class="result-score-num">${puntos.toLocaleString()}</span></div>
+      <div class="rh-pts">puntos · ${aciertos} de ${total} correctas · ${pct}%</div>
+      <div class="result-msg"><strong>Esta partida no puntúa.</strong> Tu marca en el torneo no ha cambiado.</div>
+      <div class="result-actions" style="margin-top:1.5rem">
+        <button class="btn-secondary" onclick="repetirTorneo(torneoNombreReal)">🔁 Otra vez</button>
+        <button class="btn-secondary" onclick="showTab('torneo')">🏆 Clasificación</button>
+        <button class="btn-primary ra-full" onclick="goMenu()">Volver al inicio</button>
+      </div>`;
+    showScreen('screen-result');
+    playFinish();
+    return;
+  }
   torneoApuntarJugado(partida.torneo, torneoNombre);
   if (c.clasificacion) torneoTabla = c.clasificacion;
   torneoSoltarModo();

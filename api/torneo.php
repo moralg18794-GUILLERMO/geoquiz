@@ -85,6 +85,22 @@ function gq_t_barajar(): string {
 }
 
 
+// ── REPETIR UN TORNEO YA JUGADO, SIN PUNTUAR ──────────────────────────────
+// Quien ya jugó puede volver a jugarlo «de práctica»: las preguntas y la corrección son las mismas,
+// pero la partida va a una fila aparte (el nombre con un prefijo reservado) que NO sale en la
+// clasificación, no cuenta como jugador y se borra al terminar. La marca de verdad no se toca.
+// Es lo que permite repetir sin romper la regla del único intento: lo que puntúa sigue siendo la
+// primera partida.
+const GQ_T_PREFIJO_PRACTICA = '~p~';
+
+function gq_t_es_practica(string $nombre): bool {
+    return strncmp($nombre, GQ_T_PREFIJO_PRACTICA, strlen(GQ_T_PREFIJO_PRACTICA)) === 0;
+}
+
+function gq_t_alias_practica(string $nombre): string {
+    return GQ_T_PREFIJO_PRACTICA . gq_recortar($nombre, 24 - strlen(GQ_T_PREFIJO_PRACTICA));
+}
+
 function gq_t_clasificacion(PDO $pdo, int $torneoId, int $limite = GQ_T_TOPE_LISTA): array {
     $limite = max(1, min($limite, GQ_T_TOPE_LISTA));
 
@@ -112,7 +128,7 @@ function gq_t_clasificacion(PDO $pdo, int $torneoId, int $limite = GQ_T_TOPE_LIS
     $filas = gq_consulta(
         $pdo,
         "SELECT nombre, puntos, correctas, total, segundos, creado_en, ($marca) AS autor
-         FROM torneo_partidas WHERE torneo_id = ? AND terminado = 1
+         FROM torneo_partidas WHERE torneo_id = ? AND terminado = 1 AND nombre NOT LIKE '~p~%'
          ORDER BY autor ASC, puntos DESC, id ASC LIMIT " . $limite,
         $params
     )->fetchAll();
@@ -274,7 +290,7 @@ if ($metodo === 'GET') {
         'estado'     => $t['estado'],
         'empieza_en' => gq_iso((string) $t['empieza_en']),
         'acaba_en'   => gq_iso((string) $t['acaba_en']),
-        'jugadores'  => (int) gq_consulta($pdo, 'SELECT COUNT(*) FROM torneo_partidas WHERE torneo_id = ?', [$id])->fetchColumn(),
+        'jugadores'  => (int) gq_consulta($pdo, 'SELECT COUNT(*) FROM torneo_partidas WHERE torneo_id = ? AND nombre NOT LIKE \'~p~%\'', [$id])->fetchColumn(),
         // Qué número de torneo es, para que el aviso pueda decir "Torneo semanal III" sin
         // que haya que escribirlo a mano cada semana ni guardar un contador. Se cuenta
         // cuántos torneos publicados empezaron antes o a la vez que este, así que se
@@ -360,13 +376,50 @@ gq_t_frenar($pdo, 'torneo-post', GQ_T_PETICIONES_HORA, $ipHash);
 // en la clasificación. No lo impide del todo —una ventana de incógnito sigue valiendo—,
 // pero obliga a quererlo de verdad.
 if ($accion === 'empezar') {
+    $repetir = ($datos['repetir'] ?? false) === true;
+    // El prefijo de las partidas de práctica no se puede reservar a mano como nombre de jugador.
+    if (gq_t_es_practica($nombre)) {
+        gq_error(400, 'nombre_vacio', 'Ese nombre no es válido.');
+    }
     $fila = gq_t_fila_jugador($pdo, $torneoId, $nombre);
+    if ($repetir) {
+        // Solo se repite lo ya jugado: así la práctica no sirve para ver las preguntas antes de jugar.
+        if ($fila === null || (int) $fila['terminado'] !== 1) {
+            gq_error(409, 'no_jugado', 'Solo puedes repetir un torneo que ya has terminado.');
+        }
+        gq_t_frenar($pdo, 'torneo-empezar', GQ_T_PARTIDAS_HORA, $ipHash);
+        $alias = gq_t_alias_practica((string) $fila['nombre']);
+        // Las prácticas abandonadas a medias se limpian aquí, y la anterior de este mismo jugador se descarta.
+        gq_consulta($pdo, "DELETE FROM torneo_partidas WHERE torneo_id = ? AND nombre LIKE '~p~%' AND (nombre = ? OR terminado = 0 AND empezado_en < (UTC_TIMESTAMP() - INTERVAL 1 DAY))", [$torneoId, $alias]);
+        gq_consulta(
+            $pdo,
+            'INSERT INTO torneo_partidas
+               (torneo_id, nombre, puntos, correctas, total, segundos, empezado_en, terminado, ip_hash, creado_en)
+             VALUES (?, ?, 0, 0, ?, 0, UTC_TIMESTAMP(), 0, ?, UTC_TIMESTAMP())',
+            [$torneoId, $alias, $nPreguntas, $ipHash]
+        );
+        $filaP = gq_t_fila_jugador($pdo, $torneoId, $alias);
+        if ($filaP === null) { gq_error(500, 'sin_reserva', 'No se ha podido preparar la práctica.'); }
+        $tokenP = gq_t_token_emitir($pdo, (int) $filaP['id']);
+        gq_json(200, [
+            'ok'          => true,
+            'practica'    => true,
+            'reanudado'   => false,
+            'nombre'      => $alias,
+            'token'       => $tokenP,
+            'siguiente'   => 1,
+            'n_preguntas' => $nPreguntas,
+            'puntos'      => 0,
+            'aciertos'    => 0,
+        ]);
+    }
     if ($fila !== null && (int) $fila['terminado'] === 1) {
         $clasificacion = gq_t_clasificacion($pdo, $torneoId);
         gq_json(409, [
             'ok'            => false,
             'error'         => 'ya_jugado',
-            'mensaje'       => 'Ese nombre ya ha jugado este torneo. Solo vale un intento.',
+            'mensaje'       => 'Ese nombre ya ha jugado este torneo. Solo vale un intento que puntúe; puedes repetirlo de práctica.',
+            'puede_repetir' => true,
             'yo'            => gq_t_buscar($clasificacion, (string) $fila['nombre']),
             'clasificacion' => $clasificacion,
         ]);
@@ -566,6 +619,7 @@ if ($accion === 'responder') {
     }
 
     $ultima = $orden >= $nPreguntas;
+    $practica = gq_t_es_practica((string) $fila['nombre']);
 
     // En la última pregunta son DOS escrituras —guardar la respuesta y cerrar la partida—
     // y tienen que ir juntas. Sueltas, si el proceso moría entre una y otra (un timeout
@@ -590,7 +644,12 @@ if ($accion === 'responder') {
 
         $prog = gq_t_progreso($pdo, $partidaId);
         if ($ultima) {
-            gq_t_cerrar_partida($pdo, $partidaId, $prog, $nPreguntas);
+            if ($practica) {
+                // La práctica no se queda: se borra con todo lo suyo (respuestas y testigo caen en cascada).
+                gq_consulta($pdo, 'DELETE FROM torneo_partidas WHERE id = ?', [$partidaId]);
+            } else {
+                gq_t_cerrar_partida($pdo, $partidaId, $prog, $nPreguntas);
+            }
             $pdo->commit();
         }
     } catch (Throwable $e) {
@@ -614,10 +673,11 @@ if ($accion === 'responder') {
         'tardado'  => $tardado,
         'ultima'   => $ultima,
     ];
+    if ($practica) { $salida['practica'] = true; }
     if ($ultima) {
         $clasificacion = gq_t_clasificacion($pdo, $torneoId);
         $salida['clasificacion'] = $clasificacion;
-        $salida['yo'] = gq_t_buscar($clasificacion, (string) $fila['nombre']);
+        $salida['yo'] = $practica ? null : gq_t_buscar($clasificacion, (string) $fila['nombre']);
         $salida['pos'] = $salida['yo']['pos'] ?? null;
     }
     gq_json(200, $salida);
