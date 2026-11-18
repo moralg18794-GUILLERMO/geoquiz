@@ -10,14 +10,16 @@
 // lleva su propio estilo (inyectado una vez) para no pisar el del rediseño.
 (function () {
   const BASE = GQ_API.replace(/ranking\.php$/, 'avisos.php');
-  const CLAVE = 'gq_avisos';          // 'pedido' = ya se apuntó en este dispositivo
+  const CLAVE = 'gq_avisos';          // 'pedido' = apuntado, falta confirmar · 'confirmado' = ya suscrito
+  const CLAVE_SEG = 'gq_avisos_seg';  // código de seguimiento que dio la API al hacer el alta
+  const CLAVE_FELIZ = 'gq_avisos_feliz'; // ya se le dio la enhorabuena
   const CLAVE_NO = 'gq_avisos_no';    // 'no' = rechazó el recuadro de resultado
   const PRIVACIDAD = 'privacidad.html';
   let activo = null; // null = sin comprobar todavía
 
   function leer(k) { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }
   function guardar(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* sin almacenamiento: se volverá a ofrecer */ } }
-  const yaPedido = () => leer(CLAVE) === 'pedido';
+  const yaPedido = () => leer(CLAVE) === 'pedido' || leer(CLAVE) === 'confirmado';
 
   function estilo() {
     if (document.getElementById('av-estilo')) return;
@@ -55,6 +57,9 @@
     `;
     document.head.appendChild(s);
   }
+
+  const HTML_ESPERA = '<div class="av-titulo">✅ Casi listo</div><div class="av-txt" style="margin:0">Te hemos mandado un correo: pulsa el botón que trae para confirmar. Si no lo ves, mira en spam. Esta tarjeta se actualizará sola cuando lo confirmes.</div>';
+  const HTML_FELIZ = '<div class="av-titulo">🎉 ¡Enhorabuena, ya estás suscrito!</div><div class="av-txt" style="margin:0">Te avisaremos de los torneos semanales, las preguntas nuevas y los nuevos modos de juego. Puedes darte de baja cuando quieras desde cualquier correo que te mandemos.</div>';
 
   async function estaActivo() {
     if (activo !== null) return activo;
@@ -109,12 +114,32 @@
     if (r.ok) {
       guardar(CLAVE, 'pedido');
       document.querySelectorAll('.av-caja').forEach(o => { if (o !== c) o.remove(); });
-      c.innerHTML = '<div class="av-titulo">✅ Casi listo</div><div class="av-txt" style="margin:0">Te hemos mandado un correo: pulsa el botón que trae para confirmar. Si no lo ves, mira en spam.</div>';
+      c.innerHTML = HTML_ESPERA;
+      const seg = r.cuerpo && r.cuerpo.seg;
+      if (seg) { guardar(CLAVE_SEG, seg); vigilar(seg, c); }
       return;
     }
     b.disabled = false;
     msg.style.color = '';
     msg.textContent = (r.cuerpo && r.cuerpo.mensaje) || 'No se ha podido enviar. Prueba más tarde.';
+  }
+
+  // Pregunta a la API cada pocos segundos si ya se confirmó el correo (máx. 15 minutos) y, cuando
+  // pasa, cambia la tarjeta por la enhorabuena. Solo se preocupa de esta tarjeta mientras exista.
+  async function vigilar(seg, c) {
+    for (let i = 0; i < 225 && c.isConnected; i++) {
+      await new Promise(r => setTimeout(r, 4000));
+      if (!c.isConnected) return;
+      const r = await gqFetch(BASE + '?seg=' + seg, { method: 'GET' });
+      const e = r.ok && r.cuerpo && r.cuerpo.estado;
+      if (e === 'confirmado') {
+        guardar(CLAVE, 'confirmado');
+        guardar(CLAVE_FELIZ, '1');
+        c.innerHTML = HTML_FELIZ;
+        return;
+      }
+      if (e === 'ninguno') { guardar(CLAVE, ''); return; } // caducó o se dio de baja
+    }
   }
 
   // ── Tarjeta fija del menú: cerrada enseña una frase y un botón; abierta, el formulario ──
@@ -174,8 +199,35 @@
     formulario(c, () => { guardar(CLAVE_NO, 'no'); c.remove(); });
   }
 
+  // Al abrir el juego: si estaba pendiente de confirmar, se mira cómo va; si no se había apuntado,
+  // se ofrece. Si ya está suscrito, solo se le da la enhorabuena una vez.
   async function arrancar() {
-    if (yaPedido() || !(await estaActivo())) return;
+    if (!(await estaActivo())) return;
+    const estado = leer(CLAVE), seg = leer(CLAVE_SEG);
+    if (estado === 'confirmado') return;
+    if (estado === 'pedido' && seg) {
+      const r = await gqFetch(BASE + '?seg=' + seg, { method: 'GET' });
+      const e = r.ok && r.cuerpo && r.cuerpo.estado;
+      if (e === 'confirmado') {
+        guardar(CLAVE, 'confirmado');
+        if (leer(CLAVE_FELIZ) !== '1') {
+          guardar(CLAVE_FELIZ, '1');
+          tarjetaMenu();
+          const c = document.getElementById('aviso-menu');
+          if (c) c.innerHTML = HTML_FELIZ;
+        }
+        return;
+      }
+      if (e === 'pendiente') {
+        tarjetaMenu();
+        const c = document.getElementById('aviso-menu');
+        if (c) { c.innerHTML = HTML_ESPERA; vigilar(seg, c); }
+        return;
+      }
+      guardar(CLAVE, ''); // caducó o se dio de baja: vuelve a ofrecerse
+    } else if (estado === 'pedido') {
+      return;
+    }
     tarjetaMenu();
     enlaceBienvenida();
   }

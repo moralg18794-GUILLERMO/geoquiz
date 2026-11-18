@@ -58,6 +58,18 @@ $ahora = gmdate('Y-m-d H:i:s');
 // Un correo sin confirmar no se guarda para siempre: a la semana se borra, y su enlace deja de valer.
 gq_consulta($pdo, "DELETE FROM avisos WHERE estado = 'pendiente' AND pedido_en < ?", [gmdate('Y-m-d H:i:s', time() - GQ_AVISOS_PENDIENTE_DIAS * 86400)]);
 
+// Seguimiento: el navegador que hizo el alta recibe un código que NO sirve para confirmar (eso solo
+// lo hace el enlace del correo) y con él pregunta si ya se confirmó. Sale de aplicar un hash al
+// token, así que no hace falta una columna nueva y del código no se puede sacar el token.
+if ($metodo === 'GET' && isset($_GET['seg'])) {
+    $seg = (string) $_GET['seg'];
+    if (preg_match('/^[a-f0-9]{32}$/', $seg) !== 1) {
+        gq_error(400, 'peticion', 'Petición no válida.');
+    }
+    $e = gq_consulta($pdo, "SELECT estado FROM avisos WHERE LEFT(SHA2(CONCAT('seg|', token), 256), 32) = ?", [$seg])->fetchColumn();
+    gq_json(200, ['ok' => true, 'estado' => $e === false ? 'ninguno' : (string) $e]);
+}
+
 // ── GET ───────────────────────────────────────────────────────────────────
 if ($metodo === 'GET') {
     $a = (string) ($_GET['a'] ?? '');
@@ -137,15 +149,18 @@ if ($porIp >= GQ_AVISOS_POR_IP_HORA || $global >= GQ_AVISOS_GLOBAL_HORA) {
 $fila = gq_consulta($pdo, 'SELECT estado, pedido_en FROM avisos WHERE email = ?', [$email])->fetch();
 $token = bin2hex(random_bytes(20));
 $enviar = false;
+$seg = bin2hex(random_bytes(16)); // código falso salvo que sea un alta o reenvío nuevo: así no se puede averiguar si un correo ya está apuntado
 if (!$fila) {
     gq_consulta($pdo,
         'INSERT INTO avisos (email, estado, token, texto_version, ip_hash, pedido_en) VALUES (?, \'pendiente\', ?, ?, ?, ?)',
         [$email, $token, GQ_TEXTO_VERSION, $ip, $ahora]);
     $enviar = true;
+    $seg = substr(hash('sha256', 'seg|' . $token), 0, 32);
 } elseif ($fila['estado'] === 'pendiente' && strtotime($fila['pedido_en'] . ' UTC') < time() - GQ_AVISOS_REENVIO_MIN * 60) {
     gq_consulta($pdo, 'UPDATE avisos SET token = ?, texto_version = ?, ip_hash = ?, pedido_en = ? WHERE email = ?',
         [$token, GQ_TEXTO_VERSION, $ip, $ahora, $email]);
     $enviar = true;
+    $seg = substr(hash('sha256', 'seg|' . $token), 0, 32);
 }
 // Si ya estaba confirmado, o se pidió hace menos de 10 minutos, no se envía nada y se responde igual.
 
@@ -167,4 +182,4 @@ if ($enviar) {
         gq_error(502, 'envio', 'No hemos podido enviar el correo de confirmación. Prueba más tarde.');
     }
 }
-gq_json(200, ['ok' => true]);
+gq_json(200, ['ok' => true, 'seg' => $seg]);
