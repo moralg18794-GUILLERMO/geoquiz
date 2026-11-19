@@ -26,7 +26,7 @@ if ($txt === false) {
 // Solo estas claves se convierten a JSON ("clave": en vez de clave:), y solo cuando
 // van pegadas a un { o una , que abre campo. Así no hay riesgo de tocar un texto de
 // pregunta que por casualidad contuviera alguna de estas palabras seguida de ":".
-$claves = ['cat', 'diff', 'pts', 'q', 'opts', 'ans', 'hint', 'exp', 't'];
+$claves = ['cat', 'diff', 'pts', 'q', 'opts', 'ans', 'hint', 'exp', 't', 'g'];
 $patron = '/([{,])(' . implode('|', $claves) . '):/';
 
 $preguntas = [];
