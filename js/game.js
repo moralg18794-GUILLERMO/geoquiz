@@ -19,9 +19,9 @@ function startGame(){
     lastCat=firstCat;
     renderQuestion();
   };
-  // Jugando por temáticas se salta de época en casi cada pregunta: la cortinilla
-  // de época no aporta nada y retrasa 900 ms cada ronda.
-  if(filterMode==='tematicas')arrancar();
+  // Jugando por temáticas o por geografía se salta de época en casi cada pregunta: la
+  // cortinilla de época no aporta nada y retrasa 900 ms cada ronda.
+  if(filterMode==='tematicas'||filterMode==='geografia')arrancar();
   else showCatTransition(firstCat,arrancar);
 }
 
@@ -148,7 +148,7 @@ function renderQuestion(){
   // Tampoco hay cortinilla de época en ninguno de los dos: las preguntas saltan de
   // época constantemente, así que saldría en casi todas y añadiría segundos muertos a
   // una partida cronometrada. Es el mismo motivo por el que no sale jugando por temáticas.
-  const catChanged=filterMode!=='tematicas'&&partida.modo!=='torneo'&&partida.modo!=='duel'&&q.cat!==lastCat&&lastCat!=='';
+  const catChanged=filterMode==='epocas'&&partida.modo!=='torneo'&&partida.modo!=='duel'&&q.cat!==lastCat&&lastCat!=='';
 
   const doRender=()=>{
     setHeaderStyle(q.cat);lastCat=q.cat;

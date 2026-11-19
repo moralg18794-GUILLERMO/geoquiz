@@ -9,16 +9,12 @@ const CAT_STYLES={
   "II Guerra Mundial":   {bg:"linear-gradient(135deg,#0a0a0a,#1a1a1a 40%,#2a1010 70%,#0a0505)",label:"Segunda Guerra Mundial"},
   "Guerra Fría":         {bg:"linear-gradient(135deg,#0a0a1a,#0d1b3e 40%,#1a0a2e 70%,#050510)",label:"Guerra Fría"},
   "Conflictos Modernos": {bg:"linear-gradient(135deg,#0d1117,#1a2332 40%,#0f2027 70%,#0d1117)",label:"Conflictos modernos"},
-  "Geopolítica":         {bg:"linear-gradient(135deg,#0f0c29,#302b63 40%,#24243e 70%,#0f0c29)",label:"Geopolítica global"},
-  "Asia y Pacífico":     {bg:"linear-gradient(135deg,#0a1a0a,#0d3b1a 40%,#1a5c2e 70%,#051005)",label:"Asia y Pacífico"},
-  "África y Oriente Medio":{bg:"linear-gradient(135deg,#1a0a00,#3d1e00 40%,#7a3c00 70%,#2a1000)",label:"África y Oriente Medio"},
-  "Américas":            {bg:"linear-gradient(135deg,#00001a,#001a3d 40%,#002b5c 70%,#00000f)",label:"Continente americano"},
 };
 // Cabecera de la portada: sobria y azulada, para que el naranja y el magenta del torneo
 // destaquen debajo. Las épocas conservan sus degradados mientras se juega.
 const MENU_STYLE={bg:"linear-gradient(135deg,#0d1b2a,#16263d 45%,#1d1a3a 100%)",label:""};
 const DEFAULT_STYLE={bg:"linear-gradient(135deg,#1a1209,#3d2b0a 40%,#7a5c1e 70%,#2a1f06)",label:""};
-const CAT_ICONS={"Antigüedad":"⚱️","Edad Media":"🏰","S. XVI–XVIII":"⚓","Era Napoleónica":"🎖️","S. XIX":"🏭","I Guerra Mundial":"🪖","II Guerra Mundial":"✈️","Guerra Fría":"☢️","Conflictos Modernos":"🌍","Geopolítica":"🗺️","Asia y Pacífico":"🌏","África y Oriente Medio":"🏜️","Américas":"🌎"};
+const CAT_ICONS={"Antigüedad":"⚱️","Edad Media":"🏰","S. XVI–XVIII":"⚓","Era Napoleónica":"🎖️","S. XIX":"🏭","I Guerra Mundial":"🪖","II Guerra Mundial":"✈️","Guerra Fría":"☢️","Conflictos Modernos":"🌍"};
 
 // ── TEMÁTICAS ─────────────────────────────────────────────────────────────
 // Transversales a las categorías: una pregunta de Antigüedad y otra de Guerra Fría
@@ -34,6 +30,24 @@ const THEMES={
   esp:{name:"Espionaje e inteligencia",icon:"🕵️"},
   eco:{name:"Economía y recursos",icon:"💰"},
   atr:{name:"Crímenes y atrocidades",icon:"🕯️"},
+};
+
+// ── GEOGRAFÍA ─────────────────────────────────────────────────────────────
+// El tercer eje. Las nueve categorías de arriba son épocas y las nueve temáticas de
+// debajo son transversales a ellas; estas seis dicen DÓNDE pasó. El código de dos
+// letras es el que se guarda en el campo `g` de cada pregunta, en js/data/questions.js.
+// Una pregunta puede llevar dos cuando el hecho es de dos continentes a la vez (Aníbal
+// cruzando los Alpes es África y Europa), y `gl` es para lo que no es de ningún sitio
+// concreto: la ONU, el TNP, la gripe de 1918.
+// Oceanía va dentro de Asia y Pacífico a propósito: suelta no reúne ni las diez
+// preguntas que hacen falta para una partida, así que la tarjeta no se podría jugar.
+const GEOS={
+  eu:{name:"Europa",            icon:"⚜️",bg:"linear-gradient(135deg,#0b1a2b,#17304d 40%,#2a4a6b 70%,#081320)",label:"Europa"},
+  as:{name:"Asia y Pacífico",   icon:"🌏",bg:"linear-gradient(135deg,#0a1a0a,#0d3b1a 40%,#1a5c2e 70%,#051005)",label:"Asia y Pacífico"},
+  af:{name:"África",            icon:"🏜️",bg:"linear-gradient(135deg,#1a0a00,#3d1e00 40%,#7a3c00 70%,#2a1000)",label:"África"},
+  me:{name:"Oriente Medio",     icon:"🕌",bg:"linear-gradient(135deg,#1f1403,#4a3108 40%,#8a6418 70%,#2a1c04)",label:"Oriente Medio"},
+  am:{name:"América",           icon:"🌎",bg:"linear-gradient(135deg,#00001a,#001a3d 40%,#002b5c 70%,#00000f)",label:"América"},
+  gl:{name:"Mundial",           icon:"🌐",bg:"linear-gradient(135deg,#0f0c29,#302b63 40%,#24243e 70%,#0f0c29)",label:"Alcance mundial"},
 };
 
 // ── HEADER ────────────────────────────────────────────────────────────────

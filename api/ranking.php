@@ -4,7 +4,7 @@
 //   GET  /api/ranking.php?tema=bat     devuelve la clasificación de una temática
 //   POST /api/ranking.php              envía una puntuación (JSON en el cuerpo)
 //
-// El ranking de portada lista solo PARTIDAS OFICIALES: modo solo con las 13 épocas
+// El ranking de portada lista solo PARTIDAS OFICIALES: modo solo con las nueve épocas
 // seleccionadas. Todo lo demás (blitz, supervivencia, cronológico, fechas y las selecciones
 // parciales) va a una segunda lista, para que nadie desaparezca por jugar a otra cosa.
 //
@@ -61,10 +61,17 @@ const GQ_MODOS = ['solo', 'blitz', 'survival', 'duel', 'crono', 'fechas'];
 // Códigos, no etiquetas: lo que se pinta se traduce en el cliente (diffLabel en
 // js/storage.js). 'na' es "no aplica", que es lo que mandan cronológico y fechas.
 const GQ_DIFS = ['all', 'facil', 'medio', 'dificil', 'na'];
-const GQ_EJES = ['e', 't', 'n'];
+const GQ_EJES = ['e', 't', 'g', 'n'];
 // Mínimo de épocas para que una partida cuente como oficial. Es >= y no == para que
-// el día que el banco gane una 14ª categoría, una partida de 14/14 siga siendo oficial.
-const GQ_EPOCAS_MIN = 13;
+// el día que el banco gane una época más, una partida completa siga siendo oficial.
+//
+// Bajado de 13 a 9 el 19/11/2026, al separar las categorías en tres ejes: cuatro de las
+// trece de antes no eran épocas (Asia y Pacífico, África y Oriente Medio, Américas y
+// Geopolítica) y se fueron al eje de geografía o al de temáticas, así que las épocas
+// pasaron a ser nueve. Sin bajar este número, NINGUNA partida volvería a contar como
+// oficial: el cliente manda ntot=9 y aquí se exigían 13. El ranking global se habría
+// quedado congelado sin que nada diera error.
+const GQ_EPOCAS_MIN = 9;
 
 // Partidas por temática que se conservan de cada jugador EN CADA TEMÁTICA. Son menos que
 // las diez de la lista general porque hay nueve temáticas: a diez cada una serían noventa

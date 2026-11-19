@@ -32,8 +32,10 @@ function pararSondeoDuelo() {
 
 // ── CREAR ─────────────────────────────────────────────────────────────────
 async function crearDuelo() {
-  if (filterMode === 'tematicas') {
-    toast('El duelo se juega por épocas, no por temáticas. Cambia el filtro arriba.');
+  // El duelo manda al servidor la lista de épocas elegidas, que es la que él usa para
+  // sortear las preguntas de los dos jugadores. Los otros dos ejes no los entiende.
+  if (filterMode !== 'epocas') {
+    toast('El duelo se juega por épocas. Cambia el filtro de arriba a «Por épocas».');
     return;
   }
   const cats = [...selectedCats];

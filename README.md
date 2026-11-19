@@ -12,19 +12,26 @@ Se abre haciendo doble clic en `index.html` y se publica subiendo la carpeta tal
 
 ## Estado del proyecto
 
-- **521 preguntas** tipo test repartidas en **13 categorías**: Antigüedad, Edad Media,
-  S. XVI–XVIII, Era Napoleónica, S. XIX, I Guerra Mundial, II Guerra Mundial, Guerra Fría,
-  Conflictos Modernos, Geopolítica, Asia y Pacífico, África y Oriente Medio, Américas.
-  Todas con pista y explicación. El reparto está igualado: entre 38 y 42 por categoría.
-- **Dos ejes de filtrado excluyentes**, elegibles con el selector del menú:
-  - **Por épocas** — las 13 categorías cronológicas de siempre.
+- **521 preguntas** tipo test, todas con pista y explicación. Cada una está clasificada
+  por las tres cosas a la vez —cuándo, de qué y dónde—, así que la misma pregunta aparece
+  en los tres ejes: Pearl Harbor es II Guerra Mundial, Batallas y Asia y Pacífico.
+- **Tres ejes de filtrado excluyentes**, elegibles con el selector del menú:
+  - **Por épocas** — las 9 categorías cronológicas: Antigüedad, Edad Media, S. XVI–XVIII,
+    Era Napoleónica, S. XIX, I Guerra Mundial, II Guerra Mundial, Guerra Fría y
+    Conflictos Modernos. Entre 40 y 114 preguntas cada una; las dos últimas son las más
+    gordas porque el banco mira mucho al siglo XX.
   - **Por temáticas** — 9 etiquetas transversales que cruzan todas las épocas:
-    Batallas y asedios, Líderes y estrategas, Tratados y diplomacia, Imperios y
-    colonización, Revoluciones y golpes, Tecnología y armamento, Espionaje e
+    Batallas y asedios, Líderes y estrategas, Diplomacia y geopolítica, Imperios y
+    colonización, Revoluciones y golpes, Ciencia, tecnología y armas, Espionaje e
     inteligencia, Economía y recursos, y Crímenes y atrocidades.
     Funcionan con Solo, Blitz y Supervivencia, así que se puede jugar por ejemplo una
-    partida Blitz solo de espionaje, saltando de la Antigüedad a la Guerra Fría. El
-    Duelo online se juega siempre por épocas, nunca por temáticas.
+    partida Blitz solo de espionaje, saltando de la Antigüedad a la Guerra Fría.
+  - **Por geografía** — 6 continentes: Europa (261), América (84), Asia y Pacífico (72),
+    Oriente Medio (59), África (43) y Mundial (27), esta última para lo que no es de
+    ningún sitio concreto (la ONU, el TNP, la gripe de 1918). Una pregunta puede llevar
+    dos cuando el hecho es de dos continentes a la vez. Oceanía va dentro de Asia y
+    Pacífico: suelta no reúne ni las diez preguntas de una partida.
+    El Duelo online se juega siempre por épocas, nunca por temáticas ni por geografía.
 - **Dificultad y puntos:** fácil = 100 pts, medio = 200 pts, difícil = 300 pts.
 - **102 eventos históricos** para el modo Cronológico.
 - **6 modos de juego:**
@@ -103,12 +110,12 @@ Tras editar un archivo, recarga con `Ctrl+F5` (recarga forzada, para saltarse la
 Una pregunta = **una línea** al final del array de `js/data/questions.js`:
 
 ```js
-{cat:"Guerra Fría",diff:"medio",pts:200,q:"¿Pregunta?",opts:["A","B","C","D"],ans:1,hint:"Pista.",exp:"Explicación.",t:["esp","dip"]},
+{cat:"Guerra Fría",diff:"medio",pts:200,q:"¿Pregunta?",opts:["A","B","C","D"],ans:1,hint:"Pista.",exp:"Explicación.",t:["esp","dip"],g:["eu"]},
 ```
 
-- `cat` debe coincidir **exactamente** con una de las 13 categorías (las tarjetas del menú
-  se generan a partir de los valores que aparezcan aquí: un `cat` mal escrito crea una
-  categoría nueva sin color ni icono).
+- `cat` debe coincidir **exactamente** con una de las 9 épocas declaradas en `CAT_STYLES`
+  (`js/theme.js`): un `cat` mal escrito deja la pregunta sin color ni icono de cabecera, y
+  la prueba del banco lo caza.
 - `pts` debe ir en pareja con `diff`: facil→100, medio→200, dificil→300.
 - `ans` es el índice (0-3) de la opción correcta dentro de `opts`. No importa en qué posición
   la pongas: las opciones se mezclan al renderizar cada pregunta (`shuffleOptions()` en `js/utils.js`).
@@ -117,6 +124,12 @@ Una pregunta = **una línea** al final del array de `js/data/questions.js`:
   `rev` revoluciones, `tec` tecnología, `esp` espionaje, `eco` economía, `atr` atrocidades.
   Etiqueta por lo que la pregunta **evalúa**, no por palabras sueltas del enunciado.
   `t:[]` es válido: esa pregunta simplemente no aparece jugando por temáticas.
+- `g` es el continente, y es **obligatorio**: sin él la pregunta no sale nunca jugando por
+  geografía. Códigos de dos letras definidos en `GEOS` (`js/theme.js`): `eu` Europa,
+  `as` Asia y Pacífico, `af` África, `me` Oriente Medio, `am` América, `gl` mundial.
+  El criterio es **dónde pasó**, y se ponen dos cuando el hecho es de dos continentes a la
+  vez (Aníbal cruzando los Alpes es `["af","eu"]`). `gl` es para lo que no es de ningún
+  sitio concreto: organismos internacionales, tratados globales, pandemias.
 - **La línea debe terminar en `},`**, incluida la última del array. Si falta la coma, el
   archivo entero deja de cargar y el juego se queda en blanco.
 - No uses comillas dobles dentro de los textos: el archivo no las escapa.
@@ -175,7 +188,7 @@ reintentar cuando MySQL dice que la tabla no existe (42S02), no cuando falta una
 (42S22), así que un `ALTER` fallido habría dejado todos los envíos en 500 hasta entrar a
 phpMyAdmin a mano. La tabla vieja `ranking` se queda ahí, sin usarse.
 
-**Partida oficial.** El ranking de portada lista solo las partidas de modo solo con las 13
+**Partida oficial.** El ranking de portada lista solo las partidas de modo solo con las nueve
 épocas seleccionadas, con la dificultad a la vista. Fija el modo y el temario, **no la
 dificultad**: una pregunta vale 100, 200 o 300 puntos según sea fácil, media o difícil, así
 que el techo de una partida perfecta es 2.730 en Fácil, 5.460 en Medio y 8.190 en Difícil y
@@ -185,8 +198,8 @@ homogénea en temario, no en puntuación. El resto —blitz, supervivencia, cron
 parciales— va a una segunda lista, para que nadie desaparezca por jugar a otra cosa. En cada
 lista se enseña una fila por jugador: su mejor partida de esa lista.
 
-**Qué se guarda.** Nombre, puntos, porcentaje, modo, dificultad, eje de selección (épocas o
-temáticas) y cuántas de cuántas. Nunca el nombre de las categorías: no cabe en la tabla y
+**Qué se guarda.** Nombre, puntos, porcentaje, modo, dificultad, eje de selección (épocas,
+temáticas o geografía) y cuántas de cuántas. Nunca el nombre de las categorías: no cabe en la tabla y
 sería texto libre escrito por cualquiera y pintado en el navegador de todos. De la IP solo un
 hash con sal, que sirve para limitar envíos sin almacenar la IP en claro.
 
@@ -262,7 +275,7 @@ llegar los dos a 0 vidas en el mismo instante, así que no hace falta desempate 
 tiempo ni por aciertos.
 
 **Cómo se juega.** Quien crea el duelo elige las categorías (siempre por épocas, nunca
-por temáticas) y la dificultad para los dos. El servidor devuelve un código de 6
+por temáticas ni por geografía) y la dificultad para los dos. El servidor devuelve un código de 6
 caracteres sin `O`/`0`/`I`/`1` (se confunden al leerlos o copiarlos de un mensaje), y el
 botón de WhatsApp manda un enlace que lo lleva dentro (`?duelo=CODIGO`): un toque y
 dentro. El servidor corrige cada respuesta, igual que el torneo: la pregunta se sirve

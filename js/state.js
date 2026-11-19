@@ -1,17 +1,18 @@
 // GeoQuiz — estado global de la partida.
 // ── STATE ─────────────────────────────────────────────────────────────────
 let selectedCats=new Set(),selectedDiff='all',gameMode='solo';
-// Cómo se filtra el banco: por categoría cronológica ('epocas') o por temática ('tematicas').
-let filterMode='epocas',selectedThemes=new Set();
+// Cómo se filtra el banco, con tres ejes excluyentes entre sí: por época ('epocas'),
+// por temática transversal ('tematicas') o por continente ('geografia').
+let filterMode='epocas',selectedThemes=new Set(),selectedGeos=new Set();
 
 // Ajustes CONGELADOS al pulsar Empezar. Lo que se guarda en el ranking tiene que ser
 // la partida que se jugó, no lo que hubiera seleccionado en el menú al terminarla: la
 // barra Jugar/Récords/Ranking sigue visible durante la partida y showTab() no detiene
 // los cronómetros, así que se podía empezar en Fácil, volver al menú a mitad, marcar
-// Difícil y las 13 épocas, y dejar que el tiempo se agotara para guardar una partida
+// Difícil y las nueve épocas, y dejar que el tiempo se agotara para guardar una partida
 // farmeada en Fácil con la etiqueta de Difícil.
 //   modo/dif  códigos, nunca etiquetas: 'solo', 'dificil', 'na'
-//   eje       'e' épocas, 't' temáticas, 'n' no aplica (cronológico y fechas)
+//   eje       'e' épocas, 't' temáticas, 'g' geografía, 'n' no aplica (cronológico y fechas)
 //   nsel/ntot cuántas de cuántas, que es lo único de la selección que viaja al servidor
 //   cats      el texto largo, solo para los récords de este dispositivo
 //   torneo    el slug si la partida es de torneo, y cadena vacía si no

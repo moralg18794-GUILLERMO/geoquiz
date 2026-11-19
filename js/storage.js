@@ -23,6 +23,7 @@ function fechaCorta(f){
 function selLabel(eje,nsel,ntot){
   if(!ntot)return'';
   if(eje==='t')return`${nsel}/${ntot} temáticas`;
+  if(eje==='g')return nsel>=ntot?'todo el mundo':`${nsel}/${ntot} continentes`;
   return nsel>=ntot?'todas las épocas':`${nsel}/${ntot} épocas`;
 }
 
@@ -101,7 +102,7 @@ function renderRecords(){
   recDiv.innerHTML=`<p class="section-label">Tus mejores partidas en este dispositivo.</p><div style="overflow-x:auto"><table class="records-table"><thead><tr><th>#</th><th>Puntos</th><th>Correctas</th><th>Modo</th><th>Dificultad</th><th>Selección</th><th>Fecha</th></tr></thead><tbody>${recs.map((r,i)=>`<tr><td>${MEDALLAS[i]||i+1}</td><td style="color:var(--accent);font-weight:600">${esc(Number(r.score).toLocaleString())}</td><td>${esc(r.correct)}/${esc(r.total)}</td><td>${esc(modeLabel(r.mode))}</td><td>${esc(r.diff||'—')}</td><td style="font-size:11px;color:var(--muted)">${esc(r.cats)}</td><td style="font-size:11px;color:var(--muted)">${esc(r.date)}</td></tr>`).join('')}</tbody></table></div><button class="clear-btn" onclick="clearRecords()">🗑 Borrar récords</button>`;
 }
 
-// Ranking de portada: solo PARTIDAS OFICIALES, es decir, modo solo con las 13 épocas
+// Ranking de portada: solo PARTIDAS OFICIALES, es decir, modo solo con las nueve épocas
 // puestas. Todas las filas jugaron el mismo temario y el mismo formato; la dificultad NO
 // está fijada y sí multiplica los puntos (ver el comentario largo de api/ranking.php), por
 // eso se pinta en su propia columna: es el dato que explica por qué dos filas no valen lo
@@ -134,7 +135,7 @@ function detalleOtras(e){
 }
 
 function htmlOficial(r){
-  const cab='<p class="section-label">🏆 Ranking global — partida oficial: las 13 épocas, modo solo.</p>';
+  const cab='<p class="section-label">🏆 Ranking global — partida oficial: las nueve épocas, modo solo.</p>';
   if(!r.length)return cab+'<div class="no-records">Todavía no hay ninguna partida oficial.<br>¡Sé el primero!</div>';
   return cab+htmlTabla(r,null);
 }

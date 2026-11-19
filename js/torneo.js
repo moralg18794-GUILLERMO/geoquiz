@@ -463,7 +463,7 @@ async function arrancarTorneo() {
   // El modo elegido en el menú se guarda para devolverlo al salir. Antes se pisaba y no se
   // restauraba: quien tenía marcado Duelo, jugaba el torneo y volvía, veía Duelo resaltado
   // y los nombres puestos, pero al pulsar Empezar arrancaba una partida en solitario que
-  // los ignoraba. Y si era de 13 épocas, se guardaba como oficial en el ranking global.
+  // los ignoraba. Y si era de todas las épocas, se guardaba como oficial en el ranking global.
   torneoModoPrevio = gameMode;
   gameMode = 'solo';
   partida = { modo: 'torneo', dif: 'na', eje: 'n', nsel: 0, ntot: 0, cats: tj.titulo, torneo: tj.slug };
