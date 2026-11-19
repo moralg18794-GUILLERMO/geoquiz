@@ -37,10 +37,49 @@ const THEMES={
 };
 
 // ── HEADER ────────────────────────────────────────────────────────────────
+// Foto de cada época en la cabecera (img/epocas/, 1200×300, todas de dominio público:
+// autores y enlaces en docs/fotos-epocas.md). Se pide solo la de la época que toca, nunca
+// en la portada, y se funde con la anterior. Si el navegador pide ahorrar datos, no se usa.
+const CAT_FOTO={"Antigüedad":"antiguedad","Edad Media":"edad-media","S. XVI–XVIII":"s16-18","Era Napoleónica":"napoleonica","S. XIX":"s19","I Guerra Mundial":"i-guerra","II Guerra Mundial":"ii-guerra","Guerra Fría":"guerra-fria","Conflictos Modernos":"conflictos","Geopolítica":"geopolitica","Asia y Pacífico":"asia","África y Oriente Medio":"africa-oriente","Américas":"americas"};
+const FOTO_V='1';
+const FOTO_CARGADA={};   // época -> true cuando la foto ya está descargada
+let fotoActiva=null,fotoCapa=0,fotoCapas=null;
+function fotoUrl(cat){return 'img/epocas/'+CAT_FOTO[cat]+'.jpg?v='+FOTO_V;}
+function fotosPermitidas(){
+  try{const c=navigator.connection;if(c&&(c.saveData||/(^|-)2g$/.test(c.effectiveType||'')))return false;}catch(e){}
+  return true;
+}
+function fotoCapasCrear(h){
+  if(fotoCapas)return fotoCapas;
+  fotoCapas=[0,1].map(()=>{const d=document.createElement('div');d.className='hd-foto';d.setAttribute('aria-hidden','true');h.insertBefore(d,h.firstChild);return d;});
+  return fotoCapas;
+}
+function setHeaderFoto(cat){
+  const h=document.getElementById('site-header');
+  if(!h)return;
+  const quiere=(CAT_FOTO[cat]&&fotosPermitidas())?cat:null;
+  if(quiere===fotoActiva)return;
+  fotoActiva=quiere;
+  const capas=fotoCapasCrear(h);
+  if(!quiere){capas.forEach(c=>c.classList.remove('on'));return;}
+  const poner=()=>{
+    if(fotoActiva!==quiere)return;   // mientras cargaba, ya cambió la época
+    fotoCapa=1-fotoCapa;
+    const nueva=capas[fotoCapa],vieja=capas[1-fotoCapa];
+    nueva.style.backgroundImage='url("'+fotoUrl(quiere)+'")';
+    nueva.classList.add('on');vieja.classList.remove('on');
+  };
+  if(FOTO_CARGADA[quiere]){poner();return;}
+  const im=new Image();
+  im.onload=()=>{FOTO_CARGADA[quiere]=true;poner();};
+  im.onerror=()=>{};   // sin foto se queda el degradado de siempre
+  im.src=fotoUrl(quiere);
+}
 function setHeaderStyle(cat){
   const s=cat==='menu'?MENU_STYLE:(CAT_STYLES[cat]||DEFAULT_STYLE);
   document.getElementById('site-header').style.background=s.bg;
   document.getElementById('era-label').textContent=s.label;
+  try{setHeaderFoto(cat);}catch(e){}
 }
 function flashHeader(color){
   const f=document.getElementById('header-flash');
@@ -56,7 +95,10 @@ function showCatTransition(cat,callback){
     document.getElementById('ct-icon').textContent=CAT_ICONS[cat]||'⚔️';
     document.getElementById('ct-name').textContent=cat;
     document.getElementById('ct-era').textContent=s.label;
-    overlay.style.background=s.bg;
+    // Con foto solo si ya está descargada (la cabecera la pide antes); si no, el degradado.
+    overlay.style.background=(FOTO_CARGADA[cat]&&CAT_FOTO[cat])
+      ?'linear-gradient(rgba(8,6,20,0.62),rgba(8,6,20,0.78)),url("'+fotoUrl(cat)+'") center/cover no-repeat, '+s.bg
+      :s.bg;
     overlay.classList.add('show');
     setTimeout(()=>{overlay.classList.remove('show');if(callback)callback();},900);
   }catch(e){if(callback)callback();}

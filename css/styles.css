@@ -610,3 +610,12 @@ body .pf-sec{border-radius:14px;}
   .records-table tr:has(td:nth-child(5):last-child) td:nth-child(4)::after{content:' jugados';}
   .records-table tr:has(td:nth-child(5):last-child) td:nth-child(5)::after{content:' aciertos';}
 }
+
+/* ══ PUNTO 4: foto de la época en la cabecera mientras se juega ══
+   Dos capas que se funden (js/theme.js). Encima de la foto va un degradado oscuro para que
+   el título y la época se lean siempre; en la portada no hay foto. */
+.site-header>.hd-foto{position:absolute;inset:0;z-index:0;opacity:0;pointer-events:none;background-size:cover;background-position:center;background-repeat:no-repeat;transition:opacity 0.7s ease;}
+.site-header>.hd-foto.on{opacity:1;}
+.site-header>.hd-foto::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,6,20,0.86) 0%,rgba(8,6,20,0.52) 55%,rgba(8,6,20,0.22) 100%),linear-gradient(180deg,rgba(8,6,20,0.05),rgba(8,6,20,0.3));}
+.site-header:has(.hd-foto.on) h1,.site-header:has(.hd-foto.on) .era-label{text-shadow:0 2px 10px rgba(0,0,0,0.75);}
+@media(prefers-reduced-motion:reduce){.site-header>.hd-foto{transition:none;}}
