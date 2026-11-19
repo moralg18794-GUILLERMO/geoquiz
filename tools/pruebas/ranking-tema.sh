@@ -39,6 +39,11 @@ rm -f "$TMP/api/correo-config.php"
 TMPW="$TMP"
 command -v cygpath >/dev/null 2>&1 && TMPW="$(cygpath -m "$TMP")"
 
+# ranking.php habla MySQL (UTC_TIMESTAMP(), INTERVAL): se engancha el traductor a SQLite en la
+# COPIA de db.php, igual que hace tools/pruebas/torneo-repeticion.sh. El api/ de verdad no se toca.
+cp tools/pruebas/lib/sqlite-mysql.php "$TMP/api/sqlite-mysql.php"
+sed -i "s|\$pdo = new PDO((string) \$cfg\['dsn'\]|require_once __DIR__ . '/sqlite-mysql.php'; \$pdo = new GQPdoSqliteMysql((string) \$cfg['dsn']|" "$TMP/api/db.php"
+
 cat > "$TMP/api/config.php" <<EOF
 <?php
 return [
