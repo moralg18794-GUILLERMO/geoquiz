@@ -58,7 +58,7 @@ async function crearSala() {
   }
   const cats = [...selectedCats];
   if (!cats.length) { toast('Elige al menos una categoría.'); return; }
-  const nombre = (gqNombre('¿Con qué nombre juegas el torneo?') || '').trim();
+  const nombre = ((await gqNombreAsync('¿Con qué nombre juegas el torneo?')) || '').trim();
   if (!nombre) return;
 
   const res = await gqFetch(GQ_SALA_API, {
@@ -81,7 +81,7 @@ async function unirseSala(codigo) {
   let nombre, token = '';
   if (g && g.codigo === codigo) { nombre = g.nombre; token = g.token; }
   else {
-    nombre = (gqNombre('¿Con qué nombre juegas el torneo?') || '').trim();
+    nombre = ((await gqNombreAsync('¿Con qué nombre juegas el torneo?')) || '').trim();
     if (!nombre) return;
   }
   const res = await gqFetch(GQ_SALA_API, {
@@ -309,11 +309,11 @@ async function refrescarTras(res) {
 async function empezarSala()      { await refrescarTras(await salaPost('empezar')); }
 async function confirmarEstoyAqui() { await refrescarTras(await salaPost('listo')); }
 async function expulsarDeSala(nombre) {
-  if (!confirm(`¿Echar a ${nombre} del torneo?`)) return;
+  if (!(await gqConfirmPropio(`¿Echar a ${nombre} del torneo?`, 'Echarlo', 'Cancelar'))) return;
   await refrescarTras(await salaPost('expulsar', { objetivo: nombre }));
 }
 async function cancelarSala() {
-  if (!confirm('¿Cancelar el torneo para todos?')) return;
+  if (!(await gqConfirmPropio('¿Cancelar el torneo para todos?', 'Cancelar torneo', 'Seguir'))) return;
   await salaPost('cancelar');
   cerrarSala();
 }

@@ -46,7 +46,7 @@ async function crearDuelo(abierto) {
   const cats = [...selectedCats];
   if (!cats.length) { toast('Elige al menos una categoría.'); return; }
 
-  const nombre = (gqNombre('¿Con qué nombre juegas el duelo?') || '').trim();
+  const nombre = ((await gqNombreAsync('¿Con qué nombre juegas el duelo?')) || '').trim();
   if (!nombre) return;
 
   const res = await gqFetch(GQ_DUELO_API, {
@@ -139,9 +139,9 @@ document.addEventListener('visibilitychange', () => {
 
 // ── UNIRSE ────────────────────────────────────────────────────────────────
 async function pedirCodigoUnirse(prefill) {
-  const codigo = ((prefill || prompt('Código del duelo (6 caracteres):', '') || '').trim()).toUpperCase();
+  const codigo = ((prefill || (await gqPedir({ titulo: 'Unirte al duelo', texto: 'Escribe el código de 6 caracteres que te han pasado.', placeholder: 'ABC123', si: 'Unirme', max: 6, mayus: true })) || '').trim()).toUpperCase();
   if (!codigo) return;
-  const nombre = (gqNombre('¿Con qué nombre juegas el duelo?') || '').trim();
+  const nombre = ((await gqNombreAsync('¿Con qué nombre juegas el duelo?')) || '').trim();
   if (!nombre) return;
 
   const res = await gqFetch(GQ_DUELO_API, {

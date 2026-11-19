@@ -207,6 +207,18 @@ ok('se borra del todo al terminar', cuenta("SELECT COUNT(*) FROM torneo_partidas
 ok('la marca de Eva en el abierto no cambió', nombres($c['clasificacion'] ?? []) === ['Eva'] && ($c['clasificacion'][0]['correctas'] ?? 0) === 2, $c['clasificacion'] ?? []);
 ok('el abierto sigue sin repeticiones y con 1 jugador', !isset($c['repeticiones']) && ($c['torneo']['jugadores'] ?? 0) === 1, $c);
 
+// ── 4b. La lista de torneos publicados (para jugar los anteriores) ────────
+[$h, $r] = get('?lista=1');
+$lis = $r['torneos'] ?? [];
+ok('?lista=1 responde con los torneos publicados, del más reciente al más antiguo', $h === 200 && array_column($lis, 'slug') === [$SLUG_A, $SLUG_C], $lis);
+ok('no salen el borrador ni el que aún no ha empezado', !in_array('2026-11-25-prueba-borrador', array_column($lis, 'slug'), true) && !in_array('2026-12-01-prueba-futuro', array_column($lis, 'slug'), true), $lis);
+ok('cada uno dice si está abierto o cerrado', ($lis[0]['estado'] ?? '') === 'activo' && ($lis[1]['estado'] ?? '') === 'cerrado', $lis);
+ok('con su número, de más antiguo a más reciente (el cerrado es el 1.º y el abierto el 2.º)', ($lis[1]['numero'] ?? 0) === 1 && ($lis[0]['numero'] ?? 0) === 2, $lis);
+ok('y el número de preguntas', ($lis[0]['n_preguntas'] ?? 0) === 3 && ($lis[1]['n_preguntas'] ?? 0) === 3, $lis);
+ok('«jugadores» cuenta solo los que terminaron de verdad, sin repeticiones (cerrado: Ana y Beto; abierto: Eva)', ($lis[1]['jugadores'] ?? -1) === 2 && ($lis[0]['jugadores'] ?? -1) === 1, $lis);
+ok('la lista no lleva preguntas ni respuestas', strpos(json_encode($lis), 'P1-buena') === false && !isset($lis[0]['preguntas']), $lis);
+ok('las fechas salen en ISO', preg_match('/^\d{4}-\d{2}-\d{2}T/', (string) ($lis[0]['empieza_en'] ?? '')) === 1, $lis);
+
 // ── 5. Un cliente viejo (sin slug de torneo cerrado) no cuela nada ────────
 [$h, $r] = post(['accion' => 'empezar', 'nombre' => 'Fran']);
 ok('un envío sin slug se rechaza', $h === 409, [$h, $r]);

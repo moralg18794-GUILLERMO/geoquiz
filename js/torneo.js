@@ -251,6 +251,18 @@ function pintarAvisoTorneo() {
   rb.textContent = '🔁 Volver a jugar (sin puntuar)';
   rb.onclick = () => repetirTorneo(null, false, torneo);
 
+  // Quien llega nuevo puede jugar también los torneos anteriores (solo hay si este no es el primero).
+  let ab = document.getElementById('ta-anteriores');
+  if (!ab) {
+    ab = document.createElement('button');
+    ab.id = 'ta-anteriores';
+    ab.className = 'invitar-btn';
+    rb.insertAdjacentElement('afterend', ab);
+  }
+  ab.style.display = Number(torneo.numero) > 1 ? '' : 'none';
+  ab.textContent = '📚 Jugar los torneos anteriores';
+  ab.onclick = irATorneosAnteriores;
+
   // El aviso se enseña una vez por torneo; después queda el botón del menú de navegación.
   if (!torneoAvisoVisto(torneo.slug) || yaJugo) caja.classList.add('show');
 }
@@ -273,7 +285,7 @@ async function jugarTorneo() {
   const aviso = torneoEstado === 'enCurso'
     ? '¿Con qué nombre juegas el torneo?\nTienes una partida a medias: escribe el mismo mote para seguirla.'
     : '¿Con qué nombre juegas el torneo?\nSe reserva ahora y solo vale un intento.';
-  const nombre = (prompt(aviso, previo || '') || '').trim();
+  const nombre = ((await gqPromptPropio(aviso, previo || '', { si: 'Entrar', placeholder: 'Tu nombre o mote', max: 24 })) || '').trim();
   if (!nombre) return;
 
   // El mote se RESERVA antes de enseñar ninguna pregunta. Si se reservara al terminar, se
@@ -292,7 +304,7 @@ async function jugarTorneo() {
     toast(yo ? `«${nombre}» ya jugó: ${yo.pos}º con ${Number(yo.puntos).toLocaleString()}` : `«${nombre}» ya jugó este torneo`);
     torneoTabla = res.cuerpo.clasificacion || torneoTabla;
     // El intento que puntúa ya está gastado, pero se puede jugar otra vez de práctica.
-    if (res.cuerpo.puede_repetir && confirm(`«${nombre}» ya jugó este torneo y solo puntúa la primera partida.\n\n¿Quieres volver a jugarlo como PRÁCTICA? No puntúa ni cambia tu marca.`)) {
+    if (res.cuerpo.puede_repetir && await gqConfirmPropio(`«${nombre}» ya jugó este torneo y solo puntúa la primera partida.\n\n¿Quieres volver a jugarlo como PRÁCTICA? No puntúa ni cambia tu marca.`, 'Jugar de práctica', 'No, gracias')) {
       await repetirTorneo(nombre, true, torneo);
       return;
     }
@@ -341,12 +353,12 @@ async function repetirTorneo(nombre, yaConfirmado, t) {
   if (!t) { toast('No hay ningún torneo que repetir.'); return; }
   const cerrado = t.estado !== 'activo';
   nombre = (nombre || (!cerrado && torneoJugadoAqui(t.slug)) || torneoMiMote() || '').trim();
-  if (!nombre) nombre = (prompt(cerrado ? '¿Con qué nombre quieres jugarlo?' : '¿Con qué nombre jugaste el torneo?', '') || '').trim();
+  if (!nombre) nombre = ((await gqPromptPropio(cerrado ? '¿Con qué nombre quieres jugarlo?' : '¿Con qué nombre jugaste el torneo?', '', { si: 'Jugar', placeholder: 'Tu nombre o mote', max: 24 })) || '').trim();
   if (!nombre) return;
   const aviso = cerrado
     ? `Vas a jugar «${t.titulo}» fuera de concurso.\n\nEl torneo ya cerró: no puntúa ni cambia la clasificación, pero tu resultado se queda anotado como repetición.\n\n¿Empezar?`
     : 'Vas a jugar el torneo otra vez como PRÁCTICA.\n\nNo puntúa, no cambia tu marca ni la clasificación: es solo para jugarlo de nuevo.\n\n¿Empezar?';
-  if (!yaConfirmado && !confirm(aviso)) return;
+  if (!yaConfirmado && !(await gqConfirmPropio(aviso, 'Empezar', 'Ahora no'))) return;
   const res = await gqFetch(GQ_TORNEO_API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -426,7 +438,7 @@ async function checkTorneoInvite() {
   try { history.replaceState(null, '', window.location.pathname + window.location.hash); } catch {}
   if (!t) { toast('Ese torneo ya no está disponible.'); return; }
   if (t.estado === 'activo') return;   // el vigente ya se anuncia solo, con el aviso de siempre
-  if (!confirm(`🏆 ${t.titulo}\n\n${t.tema || ''}\n\nEste torneo ya cerró: puedes jugarlo igualmente, pero no puntúa ni cambia la clasificación. Tu resultado se queda anotado como repetición.\n\n¿Jugarlo ahora?`)) return;
+  if (!(await gqConfirmPropio(`🏆 ${t.titulo}\n\n${t.tema || ''}\n\nEste torneo ya cerró: puedes jugarlo igualmente, pero no puntúa ni cambia la clasificación. Tu resultado se queda anotado como repetición.\n\n¿Jugarlo ahora?`, 'Jugarlo', 'No'))) return;
   await repetirTorneo(null, true, t);
 }
 
@@ -795,7 +807,8 @@ async function renderTorneo() {
       + repeticionesHTML(torneoRepes, torneoMiMote());
 
   if (!torneoTabla.length) {
-    div.innerHTML = cab + '<div class="no-records">Todavía no ha jugado nadie.<br>¡Sé el primero!</div>' + pie;
+    div.innerHTML = cab + '<div class="no-records">Todavía no ha jugado nadie.<br>¡Sé el primero!</div>' + pie + '<div id="tn-anteriores"></div>';
+    torneosAnteriores();
     return;
   }
 
@@ -833,7 +846,58 @@ async function renderTorneo() {
   div.innerHTML = cab
     + (top.length ? `<p class="section-label tn-titulo-sec">Clasificación</p>${podio}` : '')
     + (resto.length ? `<div class="tn-lista">${resto.map(fila).join('')}</div>` : '')
-    + pie;
+    + pie
+    + '<div id="tn-anteriores"></div>';
+  torneosAnteriores();
+}
+
+// ── TORNEOS ANTERIORES ────────────────────────────────────────────────────
+// Para quien llega nuevo: todos los torneos que ya cerraron, con «Jugar» (sin puntuar, se anota como
+// repetición) e «Invitar». Sin esto, repetir un torneo solo aparecía en el historial de quien ya lo había
+// jugado. La lista la sirve el servidor (?lista=1) y se pinta debajo del torneo de la pestaña.
+function torneosAnterioresEstilo() {
+  if (document.getElementById('tn-estilo')) return;
+  const s = document.createElement('style');
+  s.id = 'tn-estilo';
+  s.textContent = `
+    .tn-mini{flex:none;border:0;border-radius:10px;padding:8px 14px;cursor:pointer;font:700 13px 'Inter',sans-serif;background:var(--sunset);color:#1a0626}
+    .tn-mini:active{transform:scale(.97)}
+    .tn-mini-g{background:transparent;border:1px solid var(--border);color:var(--muted);padding:7px 10px;font-weight:600}
+    .tn-ant-nota{color:var(--muted);font-size:12px;line-height:1.5;margin:0 0 10px}`;
+  document.head.appendChild(s);
+}
+
+async function torneosAnteriores() {
+  const caja = document.getElementById('tn-anteriores');
+  if (!caja) return;
+  const res = await gqFetch(GQ_TORNEO_API + '?lista=1', { method: 'GET' });
+  if (!res.ok || !res.cuerpo || !Array.isArray(res.cuerpo.torneos)) return;
+  // Los cerrados, menos el que ya enseña la cabecera de la pestaña (si está cerrado, ya trae sus botones).
+  const lista = res.cuerpo.torneos.filter(t => t.estado === 'cerrado' && !(torneo && t.slug === torneo.slug));
+  if (!lista.length) return;
+  torneosAnterioresEstilo();
+  const fecha = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }); };
+  const fila = t => `<div class="tn-fila">
+    <div class="tn-pos" style="width:34px">${esc(romano(t.numero) || '·')}</div>
+    <div class="tn-nom"><div class="tn-n">${esc(t.titulo)}</div><div class="tn-sub">${esc(fecha(t.empieza_en))} · ${esc(t.jugadores)} ${t.jugadores === 1 ? 'jugó' : 'jugaron'}${torneoJugadoAqui(t.slug) ? ' · ya lo jugaste' : ''}</div></div>
+    <button class="tn-mini" type="button" onclick="torneoRepetirSlug('${esc(t.slug)}')">Jugar</button>
+    <button class="tn-mini tn-mini-g" type="button" title="Invitar a alguien a jugarlo" aria-label="Invitar a alguien a jugarlo" onclick="torneoInvitar('${esc(t.slug)}')">📨</button>
+  </div>`;
+  caja.innerHTML = `<p class="section-label tn-titulo-sec" style="margin-top:26px">Torneos anteriores</p>
+    <p class="tn-ant-nota">Los torneos que ya cerraron. Puedes jugarlos cuando quieras: no puntúan ni cambian ninguna clasificación, pero tu resultado se anota como repetición y ves en qué puesto habrías quedado.</p>
+    <div class="tn-lista">${lista.map(fila).join('')}</div>`;
+}
+
+// Desde el aviso de la portada: lleva a la pestaña Torneo y baja hasta la lista de los anteriores.
+function irATorneosAnteriores() {
+  cerrarAvisoTorneo();
+  showTab('torneo');
+  let n = 0;
+  const t = setInterval(() => {
+    const el = document.getElementById('tn-anteriores');
+    if (el && el.firstElementChild) { clearInterval(t); el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    else if (++n > 25) clearInterval(t);
+  }, 200);
 }
 
 // El final del torneo es lo que vende el siguiente, así que el podio sale listo para pegar.

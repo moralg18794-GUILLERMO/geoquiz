@@ -162,3 +162,87 @@ function gqNombre(pregunta){
   const r=(prompt(pregunta,'')||'').trim();
   return r?gqGuardarNombre(r):'';
 }
+
+// ── CUADROS PROPIOS (sustituyen a prompt() y confirm()) ───────────────────
+// Algunos navegadores incrustados (el de Instagram, TikTok, etc.) bloquean las ventanitas nativas:
+// el torneo se quedaba sin poder pedir el nombre. Estos cuadros viven dentro de la página, devuelven
+// una promesa y se cierran con Intro, Escape o tocando fuera. El texto se pinta con textContent
+// (nunca como HTML), así que un título de torneo o un nombre no pueden colar nada.
+//   gqPedir({titulo, texto, previo, placeholder, boton, max, mayus}) → texto escrito, o null si cancela
+//   gqConfirmar({titulo, texto, si, no}) → true / false
+function gqCuadro(opc){
+  return new Promise(resolve=>{
+    let cerrado=false;
+    const previoFoco=document.activeElement;
+    const velo=document.createElement('div');velo.className='gq-velo';
+    const caja=document.createElement('div');caja.className='gq-caja';
+    caja.setAttribute('role','dialog');caja.setAttribute('aria-modal','true');
+    const t=document.createElement('div');t.className='gq-titulo';t.textContent=opc.titulo||'';
+    const p=document.createElement('div');p.className='gq-texto';p.textContent=opc.texto||'';
+    caja.appendChild(t);if(opc.texto)caja.appendChild(p);
+    let campo=null;
+    if(opc.pedir){
+      campo=document.createElement('input');campo.className='gq-campo';campo.type='text';
+      campo.value=opc.previo||'';campo.placeholder=opc.placeholder||'';
+      campo.maxLength=opc.max||24;campo.autocomplete='off';campo.setAttribute('autocapitalize',opc.mayus?'characters':'sentences');
+      campo.setAttribute('aria-label',opc.titulo||'Escribe aquí');
+      caja.appendChild(campo);
+    }
+    const fila=document.createElement('div');fila.className='gq-botones';
+    const no=document.createElement('button');no.type='button';no.className='gq-no';no.textContent=opc.no||'Cancelar';
+    const si=document.createElement('button');si.type='button';si.className='gq-si';si.textContent=opc.si||'Aceptar';
+    fila.appendChild(no);fila.appendChild(si);caja.appendChild(fila);
+    velo.appendChild(caja);
+    function cerrar(valor){
+      if(cerrado)return;cerrado=true;
+      document.removeEventListener('keydown',tecla,true);
+      velo.remove();
+      try{if(previoFoco&&previoFoco.focus)previoFoco.focus();}catch{}
+      resolve(valor);
+    }
+    function aceptar(){
+      if(!opc.pedir){cerrar(true);return;}
+      let v=campo.value.replace(/\s+/g,' ').trim();
+      if(opc.mayus)v=v.toUpperCase();
+      cerrar(v);
+    }
+    function tecla(e){
+      if(e.key==='Escape'){e.preventDefault();cerrar(opc.pedir?null:false);}
+      else if(e.key==='Enter'&&e.target!==no){e.preventDefault();aceptar();}
+      else if(e.key==='Tab'){
+        const f=[campo,no,si].filter(Boolean),i=f.indexOf(document.activeElement);
+        e.preventDefault();f[(i+(e.shiftKey?-1:1)+f.length)%f.length].focus();
+      }
+    }
+    no.addEventListener('click',()=>cerrar(opc.pedir?null:false));
+    si.addEventListener('click',aceptar);
+    velo.addEventListener('mousedown',e=>{if(e.target===velo)cerrar(opc.pedir?null:false);});
+    document.addEventListener('keydown',tecla,true);
+    document.body.appendChild(velo);
+    (campo||si).focus();
+    if(campo)campo.select();
+  });
+}
+function gqPedir(opc){return gqCuadro(Object.assign({pedir:true,si:'Aceptar'},opc||{}));}
+function gqConfirmar(opc){return gqCuadro(Object.assign({pedir:false},opc||{}));}
+
+// Igual que gqNombre, pero con cuadro propio. Si ya hay nombre guardado, lo devuelve sin preguntar.
+async function gqNombreAsync(pregunta){
+  const n=gqNombreGuardado();
+  if(n)return n;
+  const r=await gqPedir({titulo:'Tu nombre',texto:pregunta,placeholder:'Tu nombre o mote',boton:'Aceptar',max:24});
+  return r?gqGuardarNombre(r):'';
+}
+
+// Adaptadores con la misma forma que prompt() y confirm(), para cambiar cada llamada sin tocar el resto.
+// Un texto con salto de línea se parte en título (primera línea) y cuerpo (el resto).
+function gqPartir(texto){
+  const t=String(texto||''),i=t.indexOf('\n');
+  return i<0?{titulo:t,texto:''}:{titulo:t.slice(0,i).trim(),texto:t.slice(i+1).trim()};
+}
+async function gqPromptPropio(texto,previo,opc){
+  return gqPedir(Object.assign(gqPartir(texto),{previo:previo||'',placeholder:'Escribe aquí',si:'Aceptar'},opc||{}));
+}
+async function gqConfirmPropio(texto,si,no){
+  return gqConfirmar(Object.assign(gqPartir(texto),{si:si||'Aceptar',no:no||'Cancelar'}));
+}
