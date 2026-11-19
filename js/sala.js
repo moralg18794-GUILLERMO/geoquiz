@@ -51,8 +51,9 @@ function salaPost(accion, extra) {
 
 // ── ABRIR UN TORNEO / APUNTARSE ───────────────────────────────────────────
 async function crearSala() {
-  if (filterMode === 'tematicas') {
-    toast('El torneo se juega por épocas, no por temáticas. Cambia el filtro arriba.');
+  // Como el duelo: el servidor solo entiende épocas; los otros ejes de filtro no le sirven.
+  if (filterMode !== 'epocas') {
+    toast('El torneo se juega por épocas. Cambia el filtro de arriba a «Por épocas».');
     return;
   }
   const cats = [...selectedCats];

@@ -1,13 +1,17 @@
-// GeoQuiz — pantalla de menú: épocas, temáticas, dificultad y modos.
-// El banco se puede filtrar de dos formas excluyentes entre sí: por categoría
-// cronológica (las 13 de siempre) o por temática transversal (campo `t` de cada
-// pregunta). La variable global filterMode dice cuál está activa.
+// GeoQuiz — pantalla de menú: épocas, temáticas, geografía, dificultad y modos.
+// El banco se puede filtrar de tres formas excluyentes entre sí: por época (las nueve
+// categorías cronológicas), por temática transversal (campo `t` de cada pregunta) o por
+// continente (campo `g`). La variable global filterMode dice cuál está activa.
+// Los tres ejes clasifican las mismas 521 preguntas por cuándo, por qué y por dónde, así
+// que cada pregunta aparece en los tres: Pearl Harbor es II Guerra Mundial, Batallas y
+// Asia y Pacífico a la vez. Antes vivía solo en «Asia y Pacífico» y no salía nunca
+// jugando a la II Guerra Mundial.
 
 // ── REJILLA DE ÉPOCAS ─────────────────────────────────────────────────────
 // Las claves salen de CAT_STYLES (js/theme.js) y NO de recorrer las 521 preguntas.
 // Dibujar el menú obligaba antes a tener el banco entero descargado y parseado: 67 KB,
 // el 59% del JavaScript, de los que aquí solo se leían `cat` y `t` —el 7%— y todo ello
-// antes de que el jugador pudiera pulsar nada. Son las mismas 13 claves, en el mismo
+// antes de que el jugador pudiera pulsar nada. Son las mismas nueve claves, en el mismo
 // orden, y cada una tiene su color y su icono declarados en ese archivo: una categoría
 // nueva en el banco sin entrada allí saldría igualmente sin estilo, así que la lista
 // buena es esa.
@@ -39,6 +43,20 @@ THEME_KEYS.forEach(code=>{
 // Si todavía no hay ninguna pregunta etiquetada, el selector no tendría sentido.
 if(!THEME_KEYS.length)document.getElementById('filter-switch').style.display='none';
 
+// ── REJILLA DE GEOGRAFÍA ──────────────────────────────────────────────────
+// Igual que las dos de arriba: las seis salen de GEOS (js/theme.js), sin recorrer el
+// banco. Cada tarjeta lleva el degradado de su continente, como las épocas.
+const GEO_KEYS=Object.keys(GEOS);
+const geoGrid=document.getElementById('geo-grid');
+GEO_KEYS.forEach(code=>{
+  const card=document.createElement('div');
+  card.className='cat-card';card.dataset.geo=code;
+  card.innerHTML=`<div class="cat-check">✓</div><div class="cat-icon">${GEOS[code].icon}</div><div class="cat-name">${GEOS[code].name}</div>`;
+  card.style.setProperty('--era',GEOS[code].bg);
+  card.addEventListener('click',()=>toggleGeo(code,card));
+  geoGrid.appendChild(card);
+});
+
 // El banco llega después de pintar el menú (va con defer, al final de index.html). Cuando
 // está, se repasa que cada temática tenga preguntas de verdad y se esconde la que no: es
 // la red que antes daba el recuento, ahora sin bloquear nada. Y se refresca el botón de
@@ -52,25 +70,40 @@ document.addEventListener('DOMContentLoaded',()=>{
     const card=themeGrid.querySelector(`[data-theme="${code}"]`);
     if(card)card.style.display='none';
   });
+  // La misma red para los continentes: uno sin preguntas no se muestra.
+  const geoVistas=new Set();
+  ALL_Q.forEach(q=>(q.g||[]).forEach(g=>geoVistas.add(g)));
+  GEO_KEYS.forEach(code=>{
+    if(geoVistas.has(code))return;
+    const card=geoGrid.querySelector(`[data-geo="${code}"]`);
+    if(card)card.style.display='none';
+  });
   updateStartBtn();
 });
 
-// ── SELECTOR ÉPOCAS / TEMÁTICAS ───────────────────────────────────────────
+// ── SELECTOR ÉPOCAS / TEMÁTICAS / GEOGRAFÍA ───────────────────────────────
 document.getElementById('filter-switch').addEventListener('click',e=>{
   const b=e.target.closest('.fs-btn');if(!b||b.dataset.filter===filterMode)return;
   document.querySelectorAll('.fs-btn').forEach(x=>x.classList.remove('active'));
   b.classList.add('active');filterMode=b.dataset.filter;
   const esTema=filterMode==='tematicas';
-  catGrid.style.display=esTema?'none':'grid';
+  catGrid.style.display=filterMode==='epocas'?'grid':'none';
   themeGrid.style.display=esTema?'grid':'none';
-  document.getElementById('grid-label').textContent=esTema?'Temáticas':'Categorías';
+  geoGrid.style.display=filterMode==='geografia'?'grid':'none';
+  document.getElementById('grid-label').textContent=
+    esTema?'Temáticas':filterMode==='geografia'?'Continentes':'Categorías';
+  // El aviso de que con una sola temática la partida entra en el ranking de esa temática.
+  // Sin decirlo aquí, nadie lo descubre: la diferencia entre elegir una y elegir tres no se
+  // ve en ninguna parte hasta que la partida ya está enviada.
+  const info=document.getElementById('tema-info');
+  if(info)info.style.display=esTema?'block':'none';
   updateSelectAllBtn();updateStartBtn();
 });
 
 // ── SELECCIÓN ─────────────────────────────────────────────────────────────
-function currentKeys(){return filterMode==='tematicas'?THEME_KEYS:CAT_KEYS;}
-function currentSelection(){return filterMode==='tematicas'?selectedThemes:selectedCats;}
-function currentCards(){return document.querySelectorAll(filterMode==='tematicas'?'#theme-grid .cat-card':'#cat-grid .cat-card');}
+function currentKeys(){return filterMode==='tematicas'?THEME_KEYS:filterMode==='geografia'?GEO_KEYS:CAT_KEYS;}
+function currentSelection(){return filterMode==='tematicas'?selectedThemes:filterMode==='geografia'?selectedGeos:selectedCats;}
+function currentCards(){return document.querySelectorAll(filterMode==='tematicas'?'#theme-grid .cat-card':filterMode==='geografia'?'#geo-grid .cat-card':'#cat-grid .cat-card');}
 
 function updateSelectAllBtn(){
   const sel=currentSelection();
@@ -98,23 +131,37 @@ function toggleTheme(code,card){
   updateSelectAllBtn();updateStartBtn();
 }
 
+function toggleGeo(code,card){
+  if(selectedGeos.has(code)){selectedGeos.delete(code);card.classList.remove('selected');}
+  else{selectedGeos.add(code);card.classList.add('selected');}
+  updateSelectAllBtn();updateStartBtn();
+}
+
 // Texto de la selección activa, para los récords y para compartir resultado.
 function selectionLabel(){
   if(gameMode==='crono')return'Todos los periodos';
   if(gameMode==='fechas')return'Eventos y fechas';
-  return filterMode==='tematicas'
-    ?[...selectedThemes].map(t=>THEMES[t]?THEMES[t].name:t).join(', ')
-    :[...selectedCats].join(', ');
+  if(filterMode==='tematicas')return[...selectedThemes].map(t=>THEMES[t]?THEMES[t].name:t).join(', ');
+  if(filterMode==='geografia')return[...selectedGeos].map(g=>GEOS[g]?GEOS[g].name:g).join(', ');
+  return[...selectedCats].join(', ');
 }
 
 // Resumen numérico de la selección, que es lo que viaja al ranking global. No se manda
 // el nombre de las categorías por dos motivos: no cabe en la tabla, y sería texto libre
 // escrito por cualquiera y pintado en el navegador de todos los demás.
+//
+// La única excepción es `tema`, y solo cuando hay UNA temática elegida: ahí sí viaja, pero
+// como código de tres letras ('bat', 'esp'), que el servidor comprueba contra su propia
+// lista cerrada (GQ_TEMAS en api/db.php). Es lo que mete la partida en el ranking de esa
+// temática; con dos o más elegidas no hay un ranking al que pertenecer y la partida va a la
+// lista de otras partidas, como siempre.
 function selectionCode(){
   if(gameMode==='crono'||gameMode==='fechas')return{eje:'n',nsel:0,ntot:0};
-  return filterMode==='tematicas'
-    ?{eje:'t',nsel:selectedThemes.size,ntot:THEME_KEYS.length}
-    :{eje:'e',nsel:selectedCats.size,ntot:CAT_KEYS.length};
+  if(filterMode==='epocas')return{eje:'e',nsel:selectedCats.size,ntot:CAT_KEYS.length};
+  if(filterMode==='geografia')return{eje:'g',nsel:selectedGeos.size,ntot:GEO_KEYS.length};
+  const cod={eje:'t',nsel:selectedThemes.size,ntot:THEME_KEYS.length};
+  if(selectedThemes.size===1)cod.tema=[...selectedThemes][0];
+  return cod;
 }
 
 // Congela en `partida` lo que se ha elegido en el menú. Lo llaman los tres arranques
@@ -158,6 +205,8 @@ document.getElementById('mode-row').addEventListener('click',e=>{
 function buildPool(){
   const base=filterMode==='tematicas'
     ?ALL_Q.filter(q=>(q.t||[]).some(t=>selectedThemes.has(t)))
+    :filterMode==='geografia'
+    ?ALL_Q.filter(q=>(q.g||[]).some(g=>selectedGeos.has(g)))
     :ALL_Q.filter(q=>selectedCats.has(q.cat));
   return base.filter(q=>selectedDiff==='all'||q.diff===selectedDiff);
 }
@@ -176,7 +225,7 @@ function updateStartBtn(){
   }
   if(!currentSelection().size){
     btn.disabled=true;
-    btn.textContent=filterMode==='tematicas'?'Selecciona al menos una temática':'Selecciona al menos una categoría';
+    btn.textContent=filterMode==='tematicas'?'Selecciona al menos una temática':filterMode==='geografia'?'Selecciona al menos un continente':'Selecciona al menos una categoría';
     return;
   }
   // El banco ya no bloquea el menú, así que en el instante entre que se pinta y que

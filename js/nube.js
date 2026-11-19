@@ -40,6 +40,13 @@ function cargarRankingGlobal(limite){
   return gqFetch(`${GQ_API}?split=1&limit=${limite||100}`,{method:'GET'});
 }
 
+// La clasificación de UNA temática. Se pide aparte y solo cuando se abre esa pestaña: son
+// nueve y traerlas todas cada vez que alguien entra al ranking sería nueve veces el trabajo
+// para enseñar una sola tabla.
+function cargarRankingTema(codigo,limite){
+  return gqFetch(`${GQ_API}?tema=${encodeURIComponent(codigo)}&limit=${limite||100}`,{method:'GET'});
+}
+
 function enviarPuntuacionGlobal(datos){
   return gqFetch(GQ_API,{
     method:'POST',

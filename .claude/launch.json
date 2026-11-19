@@ -6,6 +6,12 @@
       "runtimeExecutable": "php",
       "runtimeArgs": ["-S", "localhost:8000"],
       "port": 8000
+    },
+    {
+      "name": "manu-panel-referencia",
+      "runtimeExecutable": "php",
+      "runtimeArgs": ["-S", "localhost:8899", "-t", "C:\\Users\\juanm\\Desktop\\CAMPOS\\PANEL DE CONTROL\\panel-web"],
+      "port": 8899
     }
   ]
 }

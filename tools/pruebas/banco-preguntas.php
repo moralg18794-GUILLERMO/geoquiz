@@ -95,16 +95,50 @@ $temasOk = [];
 if (preg_match_all('/^\s*([a-z]{3})\s*:\s*\{/m', $bloque($temaJs, 'const THEMES='), $m)) {
     $temasOk = $m[1];
 }
-gq_p_es('theme.js declara 13 categorías', 13, count($catsOk));
+$geosOk = [];
+if (preg_match_all('/^\s*([a-z]{2})\s*:\s*\{/m', $bloque($temaJs, 'const GEOS='), $m)) {
+    $geosOk = $m[1];
+}
+gq_p_es('theme.js declara 9 categorías (épocas)', 9, count($catsOk));
 gq_p_es('theme.js declara 9 temáticas', 9, count($temasOk));
+gq_p_es('theme.js declara 6 continentes', 6, count($geosOk));
+
+// El ranking de portada solo acepta como oficial una partida con TODAS las épocas, y el
+// servidor lo decide con su propio número (GQ_EPOCAS_MIN en api/ranking.php) porque el
+// recuento lo manda el navegador y no se puede fiar de él. Si las dos cifras se separan,
+// el fallo es mudo y de los peores: el cliente manda ntot=9, el servidor exige otra cosa
+// y ninguna partida vuelve a entrar en el ranking global, sin un solo error por ningún
+// lado. Pasó justo al separar las categorías en tres ejes, cuando las épocas bajaron de
+// 13 a 9 y este número se quedó en 13.
+$epocasMin = null;
+if (preg_match('/const GQ_EPOCAS_MIN = (\d+);/', gq_p_leer('api/ranking.php'), $m)) {
+    $epocasMin = (int) $m[1];
+}
+gq_p_es('GQ_EPOCAS_MIN (api/ranking.php) es el número de épocas de theme.js', count($catsOk), $epocasMin);
+
+// El servidor tiene su propia lista cerrada de temáticas (GQ_TEMAS en api/db.php) porque el
+// código llega del navegador y acaba en la tabla que ven todos. Si las dos listas se separan,
+// el fallo es mudo y de los malos: las partidas de la temática que falte en el servidor se
+// rechazan en silencio y caen en la lista de "otras partidas", y nadie entiende por qué esa
+// temática no tiene ranking. Aquí se comparan las dos.
+$temasServidor = [];
+if (preg_match("/const GQ_TEMAS = \[(.*?)\];/s", gq_p_leer('api/db.php'), $m)
+    && preg_match_all("/'([a-z]{3})'/", $m[1], $m2)) {
+    $temasServidor = $m2[1];
+}
+sort($temasServidor);
+$temasOrdenados = $temasOk;
+sort($temasOrdenados);
+gq_p_es('GQ_TEMAS (api/db.php) dice lo mismo que THEMES (js/theme.js)', $temasOrdenados, $temasServidor);
 
 // ── Recorrer pregunta a pregunta ──────────────────────────────────────────
 const GQ_P_PTS_POR_DIFF = ['facil' => 100, 'medio' => 200, 'dificil' => 300];
 
 $malOpts = []; $malAns = []; $optsRepes = []; $malCat = []; $malDiff = [];
 $malPts = []; $malTema = []; $sinExp = []; $sinTema = [];
+$malGeo = [];
 $vistos = []; $duplicadas = [];
-$porCat = []; $porTema = [];
+$porCat = []; $porTema = []; $porGeo = [];
 
 foreach ($preguntas as $p) {
     $ln = $p['_linea'];
@@ -150,6 +184,18 @@ foreach ($preguntas as $p) {
         }
     }
 
+    // El continente es obligatorio, al contrario que la temática: una pregunta sin `g` no
+    // sale NUNCA jugando por geografía, y el eje entero depende de que estén las 521.
+    $g = $p['g'] ?? null;
+    if (!is_array($g) || $g === []) {
+        $malGeo[] = "$ln (sin campo g)";
+    } else {
+        foreach ($g as $cod) {
+            if (!in_array($cod, $geosOk, true)) { $malGeo[] = "$ln ($cod)"; }
+            else { $porGeo[$cod] = ($porGeo[$cod] ?? 0) + 1; }
+        }
+    }
+
     if (trim((string) ($p['exp'] ?? '')) === '') { $sinExp[] = $ln; }
 
     // Enunciados duplicados entre preguntas: en una partida pueden salir las dos y parece
@@ -173,12 +219,16 @@ gq_p_es('todas las dificultades son facil/medio/dificil', [], $malDiff);
 gq_p_es('los puntos concuerdan con la dificultad (100/200/300)', [], $malPts);
 gq_p_es('todas las categorías existen en theme.js', [], $malCat);
 gq_p_es('todas las temáticas existen en theme.js', [], $malTema);
+gq_p_es('todas las preguntas tienen continente y existe en theme.js', [], $malGeo);
 
 // ── Avisos: no rompen el despliegue, pero conviene verlos ─────────────────
-// Las 74 preguntas con t:[] son inalcanzables en el modo Temáticas: el 14% del banco no se
-// puede jugar por ahí. Está fijado para que no crezca sin que nadie se dé cuenta; el día que
-// se etiqueten, este número baja y se actualiza aquí.
-gq_p_es('siguen siendo 74 las preguntas sin temática (inalcanzables en modo Temáticas)', 74, count($sinTema));
+// Las preguntas con t:[] son inalcanzables en el modo Temáticas. Eran 74 —el 14% del banco—
+// hasta que se etiquetaron el 19/11/2026; quedan 4 que no encajan en ninguna de las nueve
+// temáticas: dos de religión (la Contrarreforma y el cisma de 1054) y dos pandemias (la Peste
+// Negra y la gripe de 1918). Esperan a que exista una temática que las acoja. El número está
+// fijado para que no crezca sin que nadie se dé cuenta: si se añaden preguntas nuevas sin
+// temática, esta prueba falla y hay que etiquetarlas o actualizar el número aquí.
+gq_p_es('siguen siendo 4 las preguntas sin temática (inalcanzables en modo Temáticas)', 4, count($sinTema));
 if ($sinTema !== []) {
     gq_p_aviso(count($sinTema) . ' preguntas con t:[] no salen nunca en el modo Temáticas. '
         . 'Primeras líneas: ' . implode(', ', array_slice($sinTema, 0, 12)) . '...');
@@ -200,5 +250,6 @@ foreach ($temasOk as $c) {
 
 echo "  reparto por categoría: " . json_encode($porCat, JSON_UNESCAPED_UNICODE) . "\n";
 echo "  reparto por temática:  " . json_encode($porTema, JSON_UNESCAPED_UNICODE) . "\n";
+echo "  reparto por continente: " . json_encode($porGeo, JSON_UNESCAPED_UNICODE) . "\n";
 
 gq_p_final();

@@ -82,6 +82,32 @@ function gq_crear_tablas(PDO $pdo): void {
             KEY idx_jugador (nombre, oficial, puntos DESC)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
     );
+    // `partidas_tema` guarda las partidas OFICIALES DE UNA TEMÁTICA: modo solo con una sola
+    // temática elegida. Tabla aparte y no una columna `tema` en `partidas` por la misma razón
+    // que explica el comentario de arriba: gq_consulta() solo sabe reaccionar cuando falta la
+    // tabla entera (SQLSTATE 42S02), no cuando falta una columna (42S22), así que un ALTER
+    // dejaría todos los envíos en error 500 hasta entrar a phpMyAdmin a mano. Una tabla nueva
+    // se crea sola en la primera petición, como las demás.
+    //
+    // No lleva `modo`, `eje` ni recuentos: por definición es modo solo, eje de temáticas y una
+    // temática. Lo único que varía y hace falta guardar es CUÁL, y va como código de tres
+    // letras de GQ_TEMAS, nunca como el nombre que se pinta: cambiar "Tratados y diplomacia"
+    // por "Diplomacia y geopolítica" no deja huérfana ninguna fila.
+    $pdo->exec(
+        'CREATE TABLE IF NOT EXISTS partidas_tema (
+            id        INT UNSIGNED NOT NULL AUTO_INCREMENT,
+            nombre    VARCHAR(24)  NOT NULL,
+            tema      CHAR(3)      NOT NULL,
+            puntos    INT UNSIGNED NOT NULL,
+            pct       TINYINT UNSIGNED NOT NULL,
+            dif       VARCHAR(8)   NOT NULL DEFAULT "",
+            ip_hash   CHAR(64)     NOT NULL,
+            creado_en DATETIME     NOT NULL,
+            PRIMARY KEY (id),
+            KEY idx_tema (tema, puntos DESC, id),
+            KEY idx_jugador (nombre, tema, puntos DESC)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
+    );
     $pdo->exec(
         'CREATE TABLE IF NOT EXISTS ranking (
             id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -491,6 +517,16 @@ const GQ_MAX_NOMBRE = 24;
 // la gracia. No es un secreto y por eso vive aquí y no en config.php. La comparación la
 // hace MySQL con la colación de la columna, así que da igual cómo se escriba.
 const GQ_AUTORES = ['Weedllermo'];
+
+// Las nueve temáticas transversales, por su código de tres letras. Tiene que decir lo mismo
+// que THEMES en js/theme.js: si aquí falta una, las partidas de esa temática se rechazan y
+// acaban en la lista de "otras partidas" sin que nadie entienda por qué. Lo comprueba
+// tools/pruebas/banco-preguntas.php, que compara las dos listas y falla si se separan.
+//
+// Es una lista cerrada y no un recorte del texto recibido a propósito: lo que llega del
+// navegador acaba en una consulta y en la tabla que ven todos los demás jugadores, así que
+// solo se admite lo que ya está escrito aquí.
+const GQ_TEMAS = ['bat', 'lid', 'dip', 'imp', 'rev', 'tec', 'esp', 'eco', 'atr'];
 
 const GQ_ORIGENES = [
     'https://geoquiz.tunegocioconestrategia.com',
