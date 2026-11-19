@@ -429,3 +429,17 @@ body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(
 .mode-grupo-t small{font-size:10.5px;font-weight:500;letter-spacing:0;text-transform:none;color:var(--muted);}
 .mode-fila{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
 .mode-fila-2{grid-template-columns:repeat(2,1fr);}
+
+/* ── CUADROS PROPIOS (gqPedir / gqConfirmar) ── */
+.gq-velo{position:fixed;inset:0;z-index:10000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(8,4,20,0.74);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);}
+.gq-caja{width:100%;max-width:380px;background:linear-gradient(180deg,#1c1440 0%,var(--surface) 100%);border:1px solid rgba(255,255,255,0.16);border-radius:var(--radius-lg);padding:20px 18px 16px;box-shadow:0 24px 60px -20px rgba(0,0,0,0.85);}
+.gq-titulo{font-family:'Libre Baskerville',serif;font-weight:700;font-size:1.15rem;line-height:1.25;margin-bottom:8px;color:#fff;}
+.gq-titulo:empty{display:none;}
+.gq-texto{font-size:0.9rem;line-height:1.5;color:var(--muted);white-space:pre-line;margin-bottom:14px;}
+.gq-campo{width:100%;box-sizing:border-box;padding:0.8rem 0.9rem;border-radius:var(--radius);border:1px solid var(--border2);background:rgba(0,0,0,0.3);color:#fff;font:inherit;font-size:16px;margin-bottom:14px;}
+.gq-campo:focus{outline:none;border-color:var(--neon-pink);box-shadow:0 0 0 3px rgba(255,61,129,0.25);}
+.gq-botones{display:flex;gap:10px;}
+.gq-botones button{flex:1;padding:0.8rem 0.6rem;border-radius:var(--radius);font:inherit;font-weight:700;font-size:0.95rem;cursor:pointer;}
+.gq-no{background:transparent;border:1px solid var(--border2);color:var(--text);}
+.gq-si{border:0;background:linear-gradient(135deg,var(--neon-pink),var(--neon-orange));color:#1a0b2e;}
+.gq-botones button:focus-visible{outline:2px solid #fff;outline-offset:2px;}

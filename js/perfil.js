@@ -355,7 +355,7 @@
   };
 
   window.gqPerfilNombre = async function () {
-    const n = prompt('Tu nombre de jugador:', gqNombreGuardado());
+    const n = await gqPedir({ titulo: 'Tu nombre de jugador', previo: gqNombreGuardado(), placeholder: 'Tu nombre o mote', si: 'Guardar', max: 24 });
     if (n === null) return;
     if (gqCuenta.iniciada()) {
       const r = await gqCuenta.cambiarNombre(n.trim());
@@ -367,16 +367,16 @@
     }
     repintar();
   };
-  window.gqPerfilQuitarNombre = function () {
-    if (confirm('¿Quitar tu nombre de este dispositivo? La próxima vez te lo preguntarán de nuevo.')) { gqGuardarNombre(''); repintar(); }
+  window.gqPerfilQuitarNombre = async function () {
+    if (await gqConfirmPropio('¿Quitar tu nombre de este dispositivo?\nLa próxima vez te lo preguntarán de nuevo.', 'Quitarlo', 'Cancelar')) { gqGuardarNombre(''); repintar(); }
   };
   window.gqPerfilSalir = async function () {
-    if (!confirm('¿Cerrar sesión en este dispositivo? Tu historial se queda guardado en tu cuenta y vuelve cuando entres.')) return;
+    if (!(await gqConfirmPropio('¿Cerrar sesión en este dispositivo?\nTu historial se queda guardado en tu cuenta y vuelve cuando entres.', 'Cerrar sesión', 'Cancelar'))) return;
     await gqCuenta.salir();
     toast('Sesión cerrada');
   };
   window.gqPerfilBorrar = async function () {
-    if (!confirm('¿Borrar tu cuenta? Se eliminan tu correo, tu nombre y tu historial guardado. No se puede deshacer.')) return;
+    if (!(await gqConfirmPropio('¿Borrar tu cuenta?\nSe eliminan tu correo, tu nombre y tu historial guardado. No se puede deshacer.', 'Borrar mi cuenta', 'Cancelar'))) return;
     const r = await gqCuenta.borrar();
     toast(r.ok ? 'Cuenta borrada' : 'No se ha podido borrar. Prueba más tarde.');
   };

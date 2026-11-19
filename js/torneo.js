@@ -273,7 +273,7 @@ async function jugarTorneo() {
   const aviso = torneoEstado === 'enCurso'
     ? '¿Con qué nombre juegas el torneo?\nTienes una partida a medias: escribe el mismo mote para seguirla.'
     : '¿Con qué nombre juegas el torneo?\nSe reserva ahora y solo vale un intento.';
-  const nombre = (prompt(aviso, previo || '') || '').trim();
+  const nombre = ((await gqPromptPropio(aviso, previo || '', { si: 'Entrar', placeholder: 'Tu nombre o mote', max: 24 })) || '').trim();
   if (!nombre) return;
 
   // El mote se RESERVA antes de enseñar ninguna pregunta. Si se reservara al terminar, se
@@ -292,7 +292,7 @@ async function jugarTorneo() {
     toast(yo ? `«${nombre}» ya jugó: ${yo.pos}º con ${Number(yo.puntos).toLocaleString()}` : `«${nombre}» ya jugó este torneo`);
     torneoTabla = res.cuerpo.clasificacion || torneoTabla;
     // El intento que puntúa ya está gastado, pero se puede jugar otra vez de práctica.
-    if (res.cuerpo.puede_repetir && confirm(`«${nombre}» ya jugó este torneo y solo puntúa la primera partida.\n\n¿Quieres volver a jugarlo como PRÁCTICA? No puntúa ni cambia tu marca.`)) {
+    if (res.cuerpo.puede_repetir && await gqConfirmPropio(`«${nombre}» ya jugó este torneo y solo puntúa la primera partida.\n\n¿Quieres volver a jugarlo como PRÁCTICA? No puntúa ni cambia tu marca.`, 'Jugar de práctica', 'No, gracias')) {
       await repetirTorneo(nombre, true, torneo);
       return;
     }
@@ -341,12 +341,12 @@ async function repetirTorneo(nombre, yaConfirmado, t) {
   if (!t) { toast('No hay ningún torneo que repetir.'); return; }
   const cerrado = t.estado !== 'activo';
   nombre = (nombre || (!cerrado && torneoJugadoAqui(t.slug)) || torneoMiMote() || '').trim();
-  if (!nombre) nombre = (prompt(cerrado ? '¿Con qué nombre quieres jugarlo?' : '¿Con qué nombre jugaste el torneo?', '') || '').trim();
+  if (!nombre) nombre = ((await gqPromptPropio(cerrado ? '¿Con qué nombre quieres jugarlo?' : '¿Con qué nombre jugaste el torneo?', '', { si: 'Jugar', placeholder: 'Tu nombre o mote', max: 24 })) || '').trim();
   if (!nombre) return;
   const aviso = cerrado
     ? `Vas a jugar «${t.titulo}» fuera de concurso.\n\nEl torneo ya cerró: no puntúa ni cambia la clasificación, pero tu resultado se queda anotado como repetición.\n\n¿Empezar?`
     : 'Vas a jugar el torneo otra vez como PRÁCTICA.\n\nNo puntúa, no cambia tu marca ni la clasificación: es solo para jugarlo de nuevo.\n\n¿Empezar?';
-  if (!yaConfirmado && !confirm(aviso)) return;
+  if (!yaConfirmado && !(await gqConfirmPropio(aviso, 'Empezar', 'Ahora no'))) return;
   const res = await gqFetch(GQ_TORNEO_API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -426,7 +426,7 @@ async function checkTorneoInvite() {
   try { history.replaceState(null, '', window.location.pathname + window.location.hash); } catch {}
   if (!t) { toast('Ese torneo ya no está disponible.'); return; }
   if (t.estado === 'activo') return;   // el vigente ya se anuncia solo, con el aviso de siempre
-  if (!confirm(`🏆 ${t.titulo}\n\n${t.tema || ''}\n\nEste torneo ya cerró: puedes jugarlo igualmente, pero no puntúa ni cambia la clasificación. Tu resultado se queda anotado como repetición.\n\n¿Jugarlo ahora?`)) return;
+  if (!(await gqConfirmPropio(`🏆 ${t.titulo}\n\n${t.tema || ''}\n\nEste torneo ya cerró: puedes jugarlo igualmente, pero no puntúa ni cambia la clasificación. Tu resultado se queda anotado como repetición.\n\n¿Jugarlo ahora?`, 'Jugarlo', 'No'))) return;
   await repetirTorneo(null, true, t);
 }
 
