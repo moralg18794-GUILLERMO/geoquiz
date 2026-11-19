@@ -3,6 +3,8 @@
 //   GET  /api/torneo.php                 el torneo vigente y sus preguntas
 //   GET  /api/torneo.php?nombre=Guille   además, si ese nick ya jugó y en qué puesto
 //   GET  /api/torneo.php?clasificacion=1 solo la tabla, sin preguntas
+//   GET  /api/torneo.php?slug=X          un torneo concreto, abierto o cerrado
+//   GET  /api/torneo.php?lista=1         todos los publicados, para jugar los anteriores
 //   POST /api/torneo.php                 enviar el resultado (JSON en el cuerpo)
 //
 // UNA PARTIDA POR NICK Y TORNEO, y no lo decide el navegador: lo impone la clave única
@@ -360,6 +362,37 @@ $pdo = gq_db();
 
 // ── GET ───────────────────────────────────────────────────────────────────
 if ($metodo === 'GET') {
+    // ?lista=1 devuelve todos los torneos ya publicados (abiertos y cerrados), del más reciente al más
+    // antiguo, para que quien llega nuevo pueda ver y jugar los anteriores. Sin preguntas ni
+    // clasificaciones: solo lo justo para pintar la lista. «jugadores» son los que terminaron, sin
+    // repeticiones; «numero» es el mismo que sale en el aviso del torneo («Torneo semanal III»).
+    if (isset($_GET['lista'])) {
+        $filas = gq_consulta(
+            $pdo,
+            'SELECT t.slug, t.titulo, t.empieza_en, t.acaba_en, (t.acaba_en > UTC_TIMESTAMP()) AS abierto,
+                    (SELECT COUNT(*) FROM torneo_preguntas p WHERE p.torneo_id = t.id) AS n_preguntas,
+                    (SELECT COUNT(*) FROM torneo_partidas j WHERE j.torneo_id = t.id AND j.terminado = 1 AND ' . GQ_T_SQL_REAL . ') AS jugadores,
+                    (SELECT COUNT(*) FROM torneos u WHERE u.borrador = 0 AND u.empieza_en <= t.empieza_en) AS numero
+               FROM torneos t
+              WHERE t.borrador = 0 AND t.empieza_en <= UTC_TIMESTAMP()
+              ORDER BY t.empieza_en DESC LIMIT 50'
+        )->fetchAll();
+        $lista = [];
+        foreach ($filas as $f) {
+            $lista[] = [
+                'slug'        => $f['slug'],
+                'titulo'      => $f['titulo'],
+                'estado'      => (int) $f['abierto'] === 1 ? 'activo' : 'cerrado',
+                'empieza_en'  => gq_iso((string) $f['empieza_en']),
+                'acaba_en'    => gq_iso((string) $f['acaba_en']),
+                'n_preguntas' => (int) $f['n_preguntas'],
+                'jugadores'   => (int) $f['jugadores'],
+                'numero'      => (int) $f['numero'],
+            ];
+        }
+        gq_json(200, ['ok' => true, 'torneos' => $lista]);
+    }
+
     // ?slug=X pide uno concreto (para repetir un torneo que ya no es el vigente o enseñar una
     // invitación); sin él, el de siempre: el vigente, o el último que cerró.
     $slugPedido = isset($_GET['slug']) && is_string($_GET['slug']) ? $_GET['slug'] : '';
