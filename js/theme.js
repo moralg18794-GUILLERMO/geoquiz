@@ -41,7 +41,7 @@ const THEMES={
 // autores y enlaces en docs/fotos-epocas.md). Se pide solo la de la época que toca, nunca
 // en la portada, y se funde con la anterior. Si el navegador pide ahorrar datos, no se usa.
 const CAT_FOTO={"Antigüedad":"antiguedad","Edad Media":"edad-media","S. XVI–XVIII":"s16-18","Era Napoleónica":"napoleonica","S. XIX":"s19","I Guerra Mundial":"i-guerra","II Guerra Mundial":"ii-guerra","Guerra Fría":"guerra-fria","Conflictos Modernos":"conflictos","Geopolítica":"geopolitica","Asia y Pacífico":"asia","África y Oriente Medio":"africa-oriente","Américas":"americas"};
-const FOTO_V='1';
+const FOTO_V='2';
 const FOTO_CARGADA={};   // época -> true cuando la foto ya está descargada
 let fotoActiva=null,fotoCapa=0,fotoCapas=null;
 function fotoUrl(cat){return 'img/epocas/'+CAT_FOTO[cat]+'.jpg?v='+FOTO_V;}

@@ -17,13 +17,13 @@ No hay material de Rockstar ni de ninguna marca.
 | Guerra Fría | guerra-fria.jpg | Muro de Berlín, 20/11/1961, National Archives (EE. UU.) | File:Berlin Wall 1961-11-20.jpg |
 | Conflictos Modernos | conflictos.jpg | F-117 en la guerra del Golfo, US Air Force | File:Gulf War 37 TFW F-117s.jpg |
 | Geopolítica | geopolitica.jpg | «Blue Marble», NASA / tripulación del Apolo 17 | File:The Blue Marble (remastered).jpg |
-| Asia y Pacífico | asia.jpg | «La gran ola de Kanagawa», Hokusai | File:Great Wave off Kanagawa2.jpg |
-| África y Oriente Medio | africa-oriente.jpg | «La Gran Esfinge y las pirámides de Guiza» (1839), David Roberts | File:The Great Sphinx, Pyramids of Gizeh-1839) by David Roberts, RA.jpg |
-| Américas | americas.jpg | «El corazón de los Andes», Frederic Edwin Church | File:Church Heart of the Andes.jpg |
+| Asia y Pacífico | asia.jpg | «Nuevo mapa de Asia» (1806), John Cary | File:1806 Cary Map of Asia, Polynesia, and Australia - Geographicus - Asia-cary-1806.jpg |
+| África y Oriente Medio | africa-oriente.jpg | Mapa de Arabia, Persia, Turquía y Afganistán (1866), Alvin Jewett Johnson | File:1866 Johnson Map of Arabia, Persia, Turkey and Afghanistan (Iraq) - Geographicus - Arabia-johnson-1866.jpg |
+| Américas | americas.jpg | Mapa de América del Norte y del Sur (1747), Emanuel Bowen | File:1747 Bowen Map of North America and South America ( Western Hemisphere) - Geographicus - America-bowen-1747.jpg |
 
 Cada enlace: `https://commons.wikimedia.org/wiki/` + el nombre de la última columna.
 
 **Cómo funciona:** solo se descarga la foto de la época que toca (unos 12–73 KB), nunca en la
 portada; se funde con la anterior en 0,7 s sobre un degradado oscuro que mantiene legible el
 texto; no se usa con «ahorro de datos» o conexión 2G; si falla la descarga queda el degradado de
-siempre. Si se cambia una foto, subir `FOTO_V` en `js/theme.js` (la caché es de un año).
+siempre. Asia, África-Oriente Medio y Américas son mapas antiguos (a petición de Guillermo, 19/11/2026). Si se cambia una foto, subir `FOTO_V` en `js/theme.js` (la caché es de un año).
