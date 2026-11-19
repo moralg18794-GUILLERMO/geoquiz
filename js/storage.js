@@ -54,13 +54,25 @@ function saveRanking(name,score,pct){
     nombre:name,puntos:score,pct,
     modo:partida.modo,dif:partida.dif,
     eje:partida.eje,nsel:partida.nsel,ntot:partida.ntot,
+    // Solo va cuando la partida era de UNA temática (selectionCode en js/menu.js). El
+    // servidor decide: si lo reconoce, la partida entra en el ranking de esa temática.
+    tema:partida.tema||'',
   }).then(res=>{
     if(res.ok&&res.cuerpo&&res.cuerpo.pos)
-      toast(res.cuerpo.oficial?`Puesto #${res.cuerpo.pos} del ranking`:`Puesto #${res.cuerpo.pos} en otras partidas`);
+      toast(mensajePuesto(res.cuerpo));
     else if(res.ok)toast('Guardada en el ranking global');
     else if(res.estado===429)toast('Demasiados envíos seguidos: guardado solo aquí');
     else toast('Sin conexión con el ranking global: guardado aquí');
   });
+}
+
+// El aviso de "puesto #N" dice EN QUÉ lista, porque hay tres y el número solo significa
+// algo sabiéndolo. Quién manda es la respuesta del servidor, no lo que se eligió en el
+// menú: es él quien decide a qué lista va cada partida.
+function mensajePuesto(c){
+  const t=typeof THEMES!=='undefined'&&c.tema&&THEMES[c.tema]?THEMES[c.tema].name:'';
+  if(t)return`Puesto #${c.pos} en ${t}`;
+  return c.oficial?`Puesto #${c.pos} del ranking`:`Puesto #${c.pos} en otras partidas`;
 }
 
 // ── TABS ─────────────────────────────────────────────────────────────────
@@ -132,6 +144,54 @@ function htmlOtras(r){
   return '<p class="section-label" style="margin-top:1.5rem">Ranking de otras partidas — blitz, supervivencia, cronológico, fechas y selecciones parciales.</p>'+htmlTabla(r,detalleOtras);
 }
 
+// ── RANKING POR TEMÁTICA ──────────────────────────────────────────────────
+// Nueve listas, una por temática, cada una con su pestaña. Se pinta la tabla con htmlTabla,
+// la misma de las otras dos, para que las tres se vean igual.
+//
+// Se pide una sola temática a la vez, cuando se pulsa su pestaña. El resumen que viene con
+// el ranking (`temas`) solo trae cuánta gente ha jugado cada una: con eso se numeran las
+// pestañas y se abre por la que tiene movimiento, para que nadie se encuentre una tabla
+// vacía la primera vez y se vaya pensando que esto no funciona.
+let gqTemaAbierto='';
+let gqTemaGen=0;
+
+function htmlTemas(resumen){
+  if(typeof THEMES==='undefined')return'';
+  const codes=Object.keys(THEMES);
+  if(!codes.length)return'';
+  const chips=codes.map(c=>{
+    const n=resumen[c]||0;
+    return`<button class="chip-btn" data-tema="${esc(c)}" onclick="abrirRankingTema('${esc(c)}')">${THEMES[c].icon} ${esc(THEMES[c].name)}${n?` · ${n}`:''}</button>`;
+  }).join('');
+  return'<p class="section-label" style="margin-top:1.5rem">🎭 Ranking por temática — modo solo con una sola temática elegida.</p>'
+    +`<div class="chip-row" id="ranking-temas">${chips}</div>`
+    +'<div id="ranking-tema-tabla"><div class="no-records">Elige una temática para ver su clasificación.</div></div>';
+}
+
+// El contador gqTemaGen hace aquí lo mismo que gqRankingGen abajo: si se pulsan dos
+// pestañas seguidas, la respuesta de la primera puede llegar después y dejar en pantalla
+// una tabla que no es la de la pestaña marcada.
+async function abrirRankingTema(cod){
+  if(typeof THEMES==='undefined'||!THEMES[cod])return;
+  gqTemaAbierto=cod;
+  document.querySelectorAll('#ranking-temas .chip-btn').forEach(b=>b.classList.toggle('active',b.dataset.tema===cod));
+  const caja=document.getElementById('ranking-tema-tabla');
+  if(!caja)return;
+  caja.innerHTML='<div class="no-records">Cargando…</div>';
+  const gen=++gqTemaGen;
+  const res=await cargarRankingTema(cod);
+  if(gen!==gqTemaGen||gqTemaAbierto!==cod)return;
+  const destino=document.getElementById('ranking-tema-tabla');
+  if(!destino)return;
+  if(!(res.ok&&res.cuerpo&&Array.isArray(res.cuerpo.ranking))){
+    destino.innerHTML='<div class="no-records">No se pudo cargar esta temática. Vuelve a probar.</div>';
+    return;
+  }
+  destino.innerHTML=res.cuerpo.ranking.length
+    ?htmlTabla(res.cuerpo.ranking,null)
+    :`<div class="no-records">Nadie ha jugado todavía solo a ${esc(THEMES[cod].name)}.<br>El primero que lo haga abre la tabla.</div>`;
+}
+
 // El ranking es global: se pide a la API. Si no hay conexión se enseña el de este
 // dispositivo, avisando de que es solo local para que nadie lo confunda.
 //
@@ -147,7 +207,14 @@ async function renderRanking(){
   if(gen!==gqRankingGen)return;
 
   if(res.ok&&res.cuerpo&&Array.isArray(res.cuerpo.ranking)){
-    div.innerHTML=htmlOficial(res.cuerpo.ranking)+htmlOtras(res.cuerpo.otras||[]);
+    const resumen=res.cuerpo.temas&&typeof res.cuerpo.temas==='object'?res.cuerpo.temas:{};
+    div.innerHTML=htmlOficial(res.cuerpo.ranking)+htmlOtras(res.cuerpo.otras||[])+htmlTemas(resumen);
+    // Se abre por la pestaña que se estaba viendo, y la primera vez por la temática más
+    // jugada. Si no hay ninguna jugada todavía no se abre nada: se queda el texto de
+    // "elige una temática", que dice la verdad sin pedir una petición de más.
+    const jugadas=Object.keys(resumen).filter(c=>resumen[c]>0).sort((a,b)=>resumen[b]-resumen[a]);
+    const inicial=gqTemaAbierto||jugadas[0]||'';
+    if(inicial)abrirRankingTema(inicial);
     return;
   }
 

@@ -98,6 +98,21 @@ if (preg_match_all('/^\s*([a-z]{3})\s*:\s*\{/m', $bloque($temaJs, 'const THEMES=
 gq_p_es('theme.js declara 13 categorías', 13, count($catsOk));
 gq_p_es('theme.js declara 9 temáticas', 9, count($temasOk));
 
+// El servidor tiene su propia lista cerrada de temáticas (GQ_TEMAS en api/db.php) porque el
+// código llega del navegador y acaba en la tabla que ven todos. Si las dos listas se separan,
+// el fallo es mudo y de los malos: las partidas de la temática que falte en el servidor se
+// rechazan en silencio y caen en la lista de "otras partidas", y nadie entiende por qué esa
+// temática no tiene ranking. Aquí se comparan las dos.
+$temasServidor = [];
+if (preg_match("/const GQ_TEMAS = \[(.*?)\];/s", gq_p_leer('api/db.php'), $m)
+    && preg_match_all("/'([a-z]{3})'/", $m[1], $m2)) {
+    $temasServidor = $m2[1];
+}
+sort($temasServidor);
+$temasOrdenados = $temasOk;
+sort($temasOrdenados);
+gq_p_es('GQ_TEMAS (api/db.php) dice lo mismo que THEMES (js/theme.js)', $temasOrdenados, $temasServidor);
+
 // ── Recorrer pregunta a pregunta ──────────────────────────────────────────
 const GQ_P_PTS_POR_DIFF = ['facil' => 100, 'medio' => 200, 'dificil' => 300];
 
@@ -175,10 +190,13 @@ gq_p_es('todas las categorías existen en theme.js', [], $malCat);
 gq_p_es('todas las temáticas existen en theme.js', [], $malTema);
 
 // ── Avisos: no rompen el despliegue, pero conviene verlos ─────────────────
-// Las 74 preguntas con t:[] son inalcanzables en el modo Temáticas: el 14% del banco no se
-// puede jugar por ahí. Está fijado para que no crezca sin que nadie se dé cuenta; el día que
-// se etiqueten, este número baja y se actualiza aquí.
-gq_p_es('siguen siendo 74 las preguntas sin temática (inalcanzables en modo Temáticas)', 74, count($sinTema));
+// Las preguntas con t:[] son inalcanzables en el modo Temáticas. Eran 74 —el 14% del banco—
+// hasta que se etiquetaron el 19/11/2026; quedan 4 que no encajan en ninguna de las nueve
+// temáticas: dos de religión (la Contrarreforma y el cisma de 1054) y dos pandemias (la Peste
+// Negra y la gripe de 1918). Esperan a que exista una temática que las acoja. El número está
+// fijado para que no crezca sin que nadie se dé cuenta: si se añaden preguntas nuevas sin
+// temática, esta prueba falla y hay que etiquetarlas o actualizar el número aquí.
+gq_p_es('siguen siendo 4 las preguntas sin temática (inalcanzables en modo Temáticas)', 4, count($sinTema));
 if ($sinTema !== []) {
     gq_p_aviso(count($sinTema) . ' preguntas con t:[] no salen nunca en el modo Temáticas. '
         . 'Primeras líneas: ' . implode(', ', array_slice($sinTema, 0, 12)) . '...');

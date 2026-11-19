@@ -1,11 +1,19 @@
 <?php
 // GeoQuiz — ranking global.
-//   GET  /api/ranking.php?limit=50   devuelve la clasificación
-//   POST /api/ranking.php            envía una puntuación (JSON en el cuerpo)
+//   GET  /api/ranking.php?limit=50     devuelve la clasificación
+//   GET  /api/ranking.php?tema=bat     devuelve la clasificación de una temática
+//   POST /api/ranking.php              envía una puntuación (JSON en el cuerpo)
 //
 // El ranking de portada lista solo PARTIDAS OFICIALES: modo solo con las 13 épocas
 // seleccionadas. Todo lo demás (blitz, supervivencia, cronológico, fechas y las selecciones
 // parciales) va a una segunda lista, para que nadie desaparezca por jugar a otra cosa.
+//
+// Y HAY UNA TERCERA FAMILIA: las partidas de UNA temática (modo solo, eje de temáticas, una
+// sola temática elegida). Tienen clasificación propia, una por temática, en la tabla
+// `partidas_tema`. El motivo es que antes no la tenían: cualquier partida por temática caía
+// en la lista de "otras", revuelta con supervivencia, así que jugar por temáticas no competía
+// con nada y la sección estaba muerta. Una partida de una temática NO entra además en
+// `partidas`: va a un sitio y solo a uno, para que nadie salga dos veces.
 //
 // OJO CON LO QUE ESTO GARANTIZA Y LO QUE NO. La condición de oficial fija el modo y el
 // temario, pero NO la dificultad, y la dificultad multiplica los puntos: una pregunta vale
@@ -58,6 +66,12 @@ const GQ_EJES = ['e', 't', 'n'];
 // el día que el banco gane una 14ª categoría, una partida de 14/14 siga siendo oficial.
 const GQ_EPOCAS_MIN = 13;
 
+// Partidas por temática que se conservan de cada jugador EN CADA TEMÁTICA. Son menos que
+// las diez de la lista general porque hay nueve temáticas: a diez cada una serían noventa
+// filas por persona, y en la tabla solo se ve la mejor de cada uno de todas formas.
+const GQ_POR_TEMA        = 3;
+const GQ_TOPE_FILAS_TEMA = 5000;
+
 // Clientes con el JavaScript viejo en caché siguen mandando la ETIQUETA de la
 // dificultad en vez del código. Se traducen en vez de rechazarlos: un 400 aquí se le
 // enseña al jugador como "sin conexión" (js/storage.js) y perdería la partida creyendo
@@ -108,11 +122,82 @@ function gq_listar(PDO $pdo, ?int $oficial, int $limite): array {
     return $salida;
 }
 
+// La clasificación de UNA temática, con la misma forma que la de arriba: una fila por
+// jugador, su mejor partida, y los mismos campos aunque aquí tres sean siempre lo mismo
+// (modo solo, eje de temáticas, una de nueve). Se mandan igual para que el navegador pinte
+// las tres listas con la misma función y no puedan divergir entre ellas.
+//
+// $tema entra ya comprobado contra GQ_TEMAS por quien llama: aquí no se valida otra vez
+// porque viaja como parámetro de la consulta, pero tampoco debe llegar nada sin filtrar.
+function gq_listar_tema(PDO $pdo, string $tema, int $limite): array {
+    $limite = max(1, min($limite, GQ_TOPE_LISTA));
+    $sql = 'SELECT p.nombre, p.puntos, p.pct, p.dif, p.creado_en
+            FROM partidas_tema p
+            WHERE p.tema = :t AND p.id = (SELECT p2.id FROM partidas_tema p2
+                          WHERE p2.tema = :t2 AND p2.nombre = p.nombre
+                          ORDER BY p2.puntos DESC, p2.id ASC LIMIT 1)
+            ORDER BY p.puntos DESC, p.id ASC
+            LIMIT ' . $limite;
+    $filas = gq_consulta($pdo, $sql, ['t' => $tema, 't2' => $tema])->fetchAll();
+    $salida = [];
+    foreach ($filas as $i => $f) {
+        $salida[] = [
+            'pos'    => $i + 1,
+            'nombre' => $f['nombre'],
+            'puntos' => (int) $f['puntos'],
+            'pct'    => (int) $f['pct'],
+            'modo'   => 'solo',
+            'dif'    => $f['dif'],
+            'eje'    => 't',
+            'nsel'   => 1,
+            'ntot'   => count(GQ_TEMAS),
+            'fecha'  => substr((string) $f['creado_en'], 0, 10),
+        ];
+    }
+    return $salida;
+}
+
+// Cuánta gente ha jugado cada temática. Lo usa el menú del ranking para enseñar las nueve
+// pestañas con su número y para abrir por la que tiene movimiento en vez de por una vacía:
+// sin esto, quien entra al ranking por temáticas se encuentra una tabla vacía la primera
+// vez y se va pensando que no funciona. Cuenta jugadores distintos, no partidas, porque es
+// lo que luego se ve en la tabla: una fila por persona.
+function gq_resumen_temas(PDO $pdo): array {
+    $filas = gq_consulta(
+        $pdo,
+        'SELECT tema, COUNT(DISTINCT nombre) AS jugadores FROM partidas_tema GROUP BY tema'
+    )->fetchAll();
+    $salida = [];
+    foreach ($filas as $f) {
+        $cod = (string) $f['tema'];
+        if (in_array($cod, GQ_TEMAS, true)) {
+            $salida[$cod] = (int) $f['jugadores'];
+        }
+    }
+    return $salida;
+}
+
 $pdo = gq_db();
 
 // ── GET: clasificación ────────────────────────────────────────────────────
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') {
     $limite = (int) ($_GET['limit'] ?? 50);
+
+    // ?tema=bat — la clasificación de una temática, que se pide aparte y a demanda: son
+    // nueve y mandarlas todas en cada visita al ranking sería nueve veces el trabajo para
+    // enseñar una.
+    $temaPedido = isset($_GET['tema']) && is_string($_GET['tema']) ? $_GET['tema'] : '';
+    if ($temaPedido !== '') {
+        if (!in_array($temaPedido, GQ_TEMAS, true)) {
+            gq_error(400, 'tema', 'Esa temática no existe.');
+        }
+        gq_json(200, [
+            'ok'      => true,
+            'tema'    => $temaPedido,
+            'ranking' => gq_listar_tema($pdo, $temaPedido, $limite),
+        ]);
+    }
+
     // Solo el cliente nuevo pide la lista partida en dos (`split=1`). Al que tiene el
     // JavaScript viejo en caché se le devuelve todo mezclado bajo la clave `ranking`, que
     // es la única que sabe pintar: si se le mandaran solo las oficiales vería una tabla
@@ -122,6 +207,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET') {
             'ok'      => true,
             'ranking' => gq_listar($pdo, 1, $limite),
             'otras'   => gq_listar($pdo, 0, $limite),
+            'temas'   => gq_resumen_temas($pdo),
         ]);
     }
     gq_json(200, ['ok' => true, 'ranking' => gq_listar($pdo, null, $limite)]);
@@ -190,6 +276,15 @@ if ($nsel > $ntot) { $nsel = $ntot; }
 // es preferible a colarlas en la oficial sin saber a qué jugó.
 $oficial = ($modo === 'solo' && $eje === 'e' && $ntot >= GQ_EPOCAS_MIN && $nsel === $ntot) ? 1 : 0;
 
+// La partida oficial DE UNA TEMÁTICA: modo solo, eje de temáticas y una sola temática. El
+// código tiene que estar en GQ_TEMAS; lo que no se reconozca se trata como si no viniera, y
+// entonces la partida sigue el camino de siempre y acaba en la lista de "otras". Un cliente
+// con el JavaScript viejo en caché no manda `tema` y cae justo ahí, que es lo que hacía
+// antes: nadie pierde su partida por tener el navegador desactualizado.
+$tema = isset($datos['tema']) && is_string($datos['tema']) ? $datos['tema'] : '';
+if (!in_array($tema, GQ_TEMAS, true)) { $tema = ''; }
+$esTema = ($modo === 'solo' && $eje === 't' && $nsel === 1 && $tema !== '');
+
 // Límite de envíos por conexión, para que nadie llene la tabla desde una pestaña.
 $ipHash = gq_ip_hash();
 gq_consulta($pdo, 'DELETE FROM envios WHERE creado_en < (UTC_TIMESTAMP() - INTERVAL 1 HOUR)');
@@ -202,6 +297,71 @@ if ($recientes >= GQ_ENVIOS_HORA) {
     gq_error(429, 'demasiados', 'Demasiados envíos desde esta conexión. Prueba dentro de un rato.');
 }
 gq_consulta($pdo, 'INSERT INTO envios (ip_hash, creado_en) VALUES (?, UTC_TIMESTAMP())', [$ipHash]);
+
+// ── Camino de las partidas de una temática ────────────────────────────────
+// Van a su propia tabla y se responde aquí mismo: no pasan por `partidas`, así que no
+// aparecen además en la lista de "otras partidas". El puesto que se anuncia se busca en la
+// MISMA lista que el jugador va a ver después, igual que abajo, y por el mismo motivo: un
+// número calculado con otra consulta puede no coincidir con la tabla que se abre luego.
+if ($esTema) {
+    gq_consulta(
+        $pdo,
+        'INSERT INTO partidas_tema (nombre, tema, puntos, pct, dif, ip_hash, creado_en)
+         VALUES (?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())',
+        [$nombre, $tema, $puntos, $pct, $dif, $ipHash]
+    );
+
+    // De cada jugador, sus mejores partidas de ESTA temática. Separar por temática no es un
+    // detalle: sin ello, la mejor partida de Espionaje de alguien se borraría sola en cuanto
+    // acumulara partidas de Batallas con más puntos, que es el mismo fallo que ya se arregló
+    // una vez separando las partidas oficiales de las demás.
+    gq_consulta(
+        $pdo,
+        'DELETE FROM partidas_tema WHERE nombre = ? AND tema = ? AND id NOT IN (
+            SELECT id FROM (SELECT id FROM partidas_tema WHERE nombre = ? AND tema = ?
+                            ORDER BY puntos DESC, id ASC LIMIT ' . GQ_POR_TEMA . ') x)',
+        [$nombre, $tema, $nombre, $tema]
+    );
+
+    // Tope global, solo como red de seguridad: se borran las filas más antiguas que no sean
+    // la mejor de nadie en su temática, para no dejar a ningún jugador fuera de ninguna lista.
+    $totalTema = (int) gq_consulta($pdo, 'SELECT COUNT(*) FROM partidas_tema')->fetchColumn();
+    if ($totalTema > GQ_TOPE_FILAS_TEMA) {
+        $sobranTema = $totalTema - GQ_TOPE_FILAS_TEMA;
+        gq_consulta(
+            $pdo,
+            'DELETE FROM partidas_tema WHERE id IN (
+                SELECT id FROM (
+                    SELECT p.id FROM partidas_tema p
+                    WHERE p.id <> (SELECT p2.id FROM partidas_tema p2
+                                   WHERE p2.nombre = p.nombre AND p2.tema = p.tema
+                                   ORDER BY p2.puntos DESC, p2.id ASC LIMIT 1)
+                    ORDER BY p.id ASC LIMIT ' . $sobranTema . ') y)'
+        );
+    }
+
+    $listaTema = gq_listar_tema($pdo, $tema, GQ_TOPE_LISTA);
+    // Igual que abajo: MySQL agrupa los nombres ignorando mayúsculas y acentos, así que se
+    // le pregunta cuál es la grafía que ha sobrevivido antes de buscar el puesto.
+    $canonTema = gq_consulta(
+        $pdo,
+        'SELECT nombre FROM partidas_tema WHERE tema = ? AND nombre = ?
+         ORDER BY puntos DESC, id ASC LIMIT 1',
+        [$tema, $nombre]
+    )->fetchColumn();
+    $buscadoTema = $canonTema === false ? $nombre : (string) $canonTema;
+    $posTema = null;
+    foreach ($listaTema as $fila) {
+        if ($fila['nombre'] === $buscadoTema) { $posTema = $fila['pos']; break; }
+    }
+    gq_json(201, [
+        'ok'      => true,
+        'pos'     => $posTema,
+        'oficial' => false,
+        'tema'    => $tema,
+        'ranking' => $listaTema,
+    ]);
+}
 
 gq_consulta(
     $pdo,

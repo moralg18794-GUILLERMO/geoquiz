@@ -64,6 +64,11 @@ document.getElementById('filter-switch').addEventListener('click',e=>{
   catGrid.style.display=esTema?'none':'grid';
   themeGrid.style.display=esTema?'grid':'none';
   document.getElementById('grid-label').textContent=esTema?'Temáticas':'Categorías';
+  // El aviso de que con una sola temática la partida entra en el ranking de esa temática.
+  // Sin decirlo aquí, nadie lo descubre: la diferencia entre elegir una y elegir tres no se
+  // ve en ninguna parte hasta que la partida ya está enviada.
+  const info=document.getElementById('tema-info');
+  if(info)info.style.display=esTema?'block':'none';
   updateSelectAllBtn();updateStartBtn();
 });
 
@@ -110,11 +115,18 @@ function selectionLabel(){
 // Resumen numérico de la selección, que es lo que viaja al ranking global. No se manda
 // el nombre de las categorías por dos motivos: no cabe en la tabla, y sería texto libre
 // escrito por cualquiera y pintado en el navegador de todos los demás.
+//
+// La única excepción es `tema`, y solo cuando hay UNA temática elegida: ahí sí viaja, pero
+// como código de tres letras ('bat', 'esp'), que el servidor comprueba contra su propia
+// lista cerrada (GQ_TEMAS en api/db.php). Es lo que mete la partida en el ranking de esa
+// temática; con dos o más elegidas no hay un ranking al que pertenecer y la partida va a la
+// lista de otras partidas, como siempre.
 function selectionCode(){
   if(gameMode==='crono'||gameMode==='fechas')return{eje:'n',nsel:0,ntot:0};
-  return filterMode==='tematicas'
-    ?{eje:'t',nsel:selectedThemes.size,ntot:THEME_KEYS.length}
-    :{eje:'e',nsel:selectedCats.size,ntot:CAT_KEYS.length};
+  if(filterMode!=='tematicas')return{eje:'e',nsel:selectedCats.size,ntot:CAT_KEYS.length};
+  const cod={eje:'t',nsel:selectedThemes.size,ntot:THEME_KEYS.length};
+  if(selectedThemes.size===1)cod.tema=[...selectedThemes][0];
+  return cod;
 }
 
 // Congela en `partida` lo que se ha elegido en el menú. Lo llaman los tres arranques

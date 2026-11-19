@@ -27,10 +27,10 @@ const CAT_ICONS={"Antigüedad":"⚱️","Edad Media":"🏰","S. XVI–XVIII":"�
 const THEMES={
   bat:{name:"Batallas y asedios",icon:"⚔️"},
   lid:{name:"Líderes y estrategas",icon:"👤"},
-  dip:{name:"Tratados y diplomacia",icon:"📜"},
+  dip:{name:"Diplomacia y geopolítica",icon:"📜"},
   imp:{name:"Imperios y colonización",icon:"🏛️"},
   rev:{name:"Revoluciones y golpes",icon:"✊"},
-  tec:{name:"Tecnología y armamento",icon:"⚙️"},
+  tec:{name:"Ciencia, tecnología y armas",icon:"⚙️"},
   esp:{name:"Espionaje e inteligencia",icon:"🕵️"},
   eco:{name:"Economía y recursos",icon:"💰"},
   atr:{name:"Crímenes y atrocidades",icon:"🕯️"},
