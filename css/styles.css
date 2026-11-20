@@ -623,3 +623,10 @@ body .pf-sec{border-radius:14px;}
 .site-header>.hd-foto::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(8,6,20,0.86) 0%,rgba(8,6,20,0.52) 55%,rgba(8,6,20,0.22) 100%),linear-gradient(180deg,rgba(8,6,20,0.05),rgba(8,6,20,0.3));}
 .site-header:has(.hd-foto.on) h1,.site-header:has(.hd-foto.on) .era-label{text-shadow:0 2px 10px rgba(0,0,0,0.75);}
 @media(prefers-reduced-motion:reduce){.site-header>.hd-foto{transition:none;}}
+
+/* ══ Continentes: cada tarjeta lleva la silueta de su región (js/theme.js, GEO_MAPAS) ══ */
+.cat-icon.cat-icon-mapa{width:64px;height:64px;padding:5px;border-radius:14px;box-shadow:inset 0 0 0 1px rgba(255,255,255,0.12),0 6px 16px -10px rgba(0,0,0,0.9);}
+.geo-mapa{width:100%;height:100%;display:block;overflow:visible;}
+.geo-mapa .gm-ctx{fill:rgba(255,255,255,0.17);stroke:rgba(0,0,0,0.25);stroke-width:0.3;stroke-linejoin:round;}
+.geo-mapa .gm-hi{stroke:rgba(5,10,25,0.55);stroke-width:0.35;stroke-linejoin:round;filter:drop-shadow(0 1px 1.2px rgba(0,0,0,0.6));}
+#geo-grid .cat-card{gap:14px;}

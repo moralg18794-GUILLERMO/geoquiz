@@ -27,3 +27,9 @@ Cada enlace: `https://commons.wikimedia.org/wiki/` + el nombre de la última col
 portada; se funde con la anterior en 0,7 s sobre un degradado oscuro que mantiene legible el
 texto; no se usa con «ahorro de datos» o conexión 2G; si falla la descarga queda el degradado de
 siempre. Asia, África-Oriente Medio y Américas son mapas antiguos (a petición de Guillermo, 19/11/2026). Si se cambia una foto, subir `FOTO_V` en `js/theme.js` (la caché es de un año).
+
+## Siluetas de los continentes (tarjetas de «Por geografía»)
+
+Dibujadas país a país con `tools/mapas/hacer-mapas.php` a partir de Natural Earth 1:110m
+(dominio público, naturalearthdata.com). Los datos van dentro de `js/theme.js` (`GEO_MAPAS`).
+Para regenerarlas: bajar `ne_110m_admin_0_countries.geojson` y pasárselo al script.

@@ -51,7 +51,9 @@ const geoGrid=document.getElementById('geo-grid');
 GEO_KEYS.forEach(code=>{
   const card=document.createElement('div');
   card.className='cat-card';card.dataset.geo=code;
-  card.innerHTML=`<div class="cat-check">✓</div><div class="cat-icon">${GEOS[code].icon}</div><div class="cat-name">${GEOS[code].name}</div>`;
+  // Con silueta de mapa de la región (geoMapaSvg, js/theme.js) y, si falta, el emoji de siempre.
+  const mapa=(typeof geoMapaSvg==='function')?geoMapaSvg(code):null;
+  card.innerHTML=`<div class="cat-check">✓</div><div class="cat-icon${mapa?' cat-icon-mapa':''}">${mapa||GEOS[code].icon}</div><div class="cat-name">${GEOS[code].name}</div>`;
   card.style.setProperty('--era',GEOS[code].bg);
   card.addEventListener('click',()=>toggleGeo(code,card));
   geoGrid.appendChild(card);
