@@ -246,3 +246,63 @@ async function gqPromptPropio(texto,previo,opc){
 async function gqConfirmPropio(texto,si,no){
   return gqConfirmar(Object.assign(gqPartir(texto),{si:si||'Aceptar',no:no||'Cancelar'}));
 }
+
+// ── ACABADOS (marcador que sube, confeti y vibración) ─────────────────────────────
+// Todo es adorno: si el móvil pide «reducir movimiento» no se anima nada, y si falla algo se
+// queda el resultado tal cual, sin avisar. La vibración solo la tienen algunos Android (iPhone
+// la ignora) y respeta el botón de sonido: sin sonido, tampoco vibra.
+function gqSinMovimiento(){try{return matchMedia('(prefers-reduced-motion: reduce)').matches;}catch(e){return false;}}
+function vibrar(patron){
+  try{if(soundOn&&navigator.vibrate&&!gqSinMovimiento())navigator.vibrate(patron);}catch(e){}
+}
+// Cuenta desde 0 hasta la cifra que ya hay escrita, con el mismo formato de miles.
+function marcadorSube(el,ms){
+  if(!el)return;
+  const fin=parseInt(el.textContent.replace(/\D/g,''),10),txt=el.textContent;
+  if(!(fin>0)||gqSinMovimiento())return;
+  const t0=performance.now();
+  el.style.fontVariantNumeric='tabular-nums';
+  (function paso(t){
+    const k=Math.min(1,(t-t0)/(ms||1100)),e=1-Math.pow(1-k,3);
+    el.textContent=k<1?Math.round(fin*e).toLocaleString():txt;
+    if(k<1)requestAnimationFrame(paso);
+  })(t0);
+}
+// Lluvia de confeti en un lienzo que no tapa los toques y se borra solo.
+function confeti(){
+  if(gqSinMovimiento())return;
+  try{
+    const cv=document.createElement('canvas');
+    cv.setAttribute('aria-hidden','true');
+    cv.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:9000';
+    const W=cv.width=innerWidth,H=cv.height=innerHeight,cx=cv.getContext('2d');
+    if(!cx)return;
+    document.body.appendChild(cv);
+    const col=['#ff3d81','#ff9a3c','#2de2e6','#e7c96e','#ffffff'];
+    const ps=Array.from({length:90},()=>({
+      x:W/2+(Math.random()-0.5)*W*0.3,y:H*0.32,
+      vx:(Math.random()-0.5)*9,vy:-Math.random()*9-3,
+      w:5+Math.random()*5,h:3+Math.random()*4,r:Math.random()*6,vr:(Math.random()-0.5)*0.4,
+      c:col[(Math.random()*col.length)|0]}));
+    const t0=performance.now();
+    (function paso(t){
+      const k=(t-t0)/2800;
+      cx.clearRect(0,0,W,H);
+      ps.forEach(p=>{p.vy+=0.22;p.vx*=0.992;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;
+        cx.save();cx.globalAlpha=Math.max(0,1-Math.max(0,k-0.6)/0.4);cx.translate(p.x,p.y);cx.rotate(p.r);
+        cx.fillStyle=p.c;cx.fillRect(-p.w/2,-p.h/2,p.w,p.h);cx.restore();});
+      if(k<1)requestAnimationFrame(paso);else cv.remove();
+    })(t0);
+  }catch(e){}
+}
+// Se llama al abrir la pantalla de resultado: la cifra sube; en el torneo y con la nota
+// máxima además llueve confeti y vibra.
+function acabadosResultado(){
+  try{
+    const hero=document.getElementById('result-hero');
+    if(!hero)return;
+    marcadorSube(hero.querySelector('.result-score-num'),1100);
+    const gran=/Gran Estratega/.test((hero.querySelector('.result-rank')||{}).textContent||'');
+    if(hero.classList.contains('evento')||gran){setTimeout(confeti,350);vibrar([60,40,60,40,120]);}
+  }catch(e){}
+}

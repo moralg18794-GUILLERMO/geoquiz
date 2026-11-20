@@ -359,6 +359,7 @@ function showScreen(id){
   const el=document.getElementById(id);
   el.style.display='block';
   el.classList.add('active');
+  if(id==='screen-result'&&typeof acabadosResultado==='function')requestAnimationFrame(acabadosResultado);
 }
 
 function copyResult(){

@@ -630,3 +630,15 @@ body .pf-sec{border-radius:14px;}
 .geo-mapa .gm-ctx{fill:rgba(255,255,255,0.17);stroke:rgba(0,0,0,0.25);stroke-width:0.3;stroke-linejoin:round;}
 .geo-mapa .gm-hi{stroke:rgba(5,10,25,0.55);stroke-width:0.35;stroke-linejoin:round;filter:drop-shadow(0 1px 1.2px rgba(0,0,0,0.6));}
 #geo-grid .cat-card{gap:14px;}
+
+/* ACABADOS — esqueleto del aviso de torneo: un hueco con brillo mientras llega de la red.
+   Si la red se queda colgada, a los 8 s se esconde solo para no dejar un hueco eterno. */
+.torneo-esqueleto{display:flex;flex-direction:column;gap:10px;padding:18px;margin-bottom:1.4rem;border-radius:20px;background:var(--night);border:1px solid rgba(255,93,160,0.25);animation:esqOculta 0s 8s forwards;}
+.torneo-esqueleto i{display:block;height:14px;border-radius:7px;background:linear-gradient(90deg,rgba(255,255,255,0.06) 25%,rgba(255,255,255,0.16) 50%,rgba(255,255,255,0.06) 75%);background-size:200% 100%;animation:esqBrillo 1.3s linear infinite;}
+.torneo-esqueleto i:nth-child(1){width:38%;}
+.torneo-esqueleto i:nth-child(2){width:72%;height:24px;}
+.torneo-esqueleto i:nth-child(3){width:90%;}
+.torneo-esqueleto i:nth-child(4){width:100%;height:42px;border-radius:12px;margin-top:6px;}
+@keyframes esqBrillo{from{background-position:200% 0}to{background-position:-200% 0}}
+@keyframes esqOculta{to{display:none}}
+@media(prefers-reduced-motion:reduce){.torneo-esqueleto i{animation:none}}

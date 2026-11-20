@@ -120,6 +120,8 @@
       <p>Y cada semana hay un <strong>torneo</strong>: las mismas preguntas para todos, una sola partida y una clasificación para ver quién gana.</p>
       <button class="bv-boton" onclick="cerrarBienvenida()">Empezar</button>
     </div>
+    <!-- Esqueleto: hueco con brillo mientras llega el torneo; cargarTorneo() lo quita. -->
+    <div class="torneo-esqueleto" id="torneo-esqueleto" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
     <div class="torneo-aviso" id="torneo-aviso">
       <button class="ta-cerrar" onclick="cerrarAvisoTorneo()" aria-label="Cerrar">✕</button>
       <div class="ta-arte" aria-hidden="true"></div>

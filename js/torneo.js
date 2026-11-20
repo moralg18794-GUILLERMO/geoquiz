@@ -159,6 +159,8 @@ async function cargarTorneo() {
   const mote = torneoMiMote();
   const url = GQ_TORNEO_API + (mote ? '?nombre=' + encodeURIComponent(mote) : '');
   const res = await gqFetch(url, { method: 'GET' });
+  const esq = document.getElementById('torneo-esqueleto');
+  if (esq) esq.remove();   // llegue o no el torneo, el hueco de espera sobra
   if (!res.ok || !res.cuerpo || !res.cuerpo.torneo) return;   // sin torneo, el juego sigue igual
   torneo = res.cuerpo.torneo;
   torneoEstado = res.cuerpo.estado_jugador || '';
