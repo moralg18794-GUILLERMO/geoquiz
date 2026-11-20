@@ -98,6 +98,7 @@ document.getElementById('filter-switch').addEventListener('click',e=>{
   const info=document.getElementById('tema-info');
   if(info)info.style.display=esTema?'block':'none';
   updateSelectAllBtn();updateStartBtn();
+  refrescarFotoMenu();
 });
 
 // ── SELECCIÓN ─────────────────────────────────────────────────────────────
@@ -117,12 +118,19 @@ function toggleAllCats(){
   if(todas){keys.forEach(k=>sel.delete(k));currentCards().forEach(c=>c.classList.remove('selected'));}
   else{keys.forEach(k=>sel.add(k));currentCards().forEach(c=>c.classList.add('selected'));}
   updateSelectAllBtn();updateStartBtn();
+  refrescarFotoMenu();
 }
+
+// La cabecera del menú lleva foto desde el 20/11/2026. Al tocar una época pasa a ser la
+// suya, que es la forma de ver de un vistazo qué estás eligiendo; al quitarla, vuelve a la
+// que toque (fotoDelMenu, en theme.js).
+function refrescarFotoMenu(cat){try{setHeaderFoto(cat||'menu');}catch(e){}}
 
 function toggleCat(cat,card){
   if(selectedCats.has(cat)){selectedCats.delete(cat);card.classList.remove('selected');}
   else{selectedCats.add(cat);card.classList.add('selected');}
   updateSelectAllBtn();updateStartBtn();
+  refrescarFotoMenu(selectedCats.has(cat)?cat:null);
 }
 
 function toggleTheme(code,card){

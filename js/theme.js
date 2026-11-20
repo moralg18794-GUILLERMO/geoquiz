@@ -68,9 +68,26 @@ function fotoCapasCrear(h){
   fotoCapas=[0,1].map(()=>{const d=document.createElement('div');d.className='hd-foto';d.setAttribute('aria-hidden','true');h.insertBefore(d,h.firstChild);return d;});
   return fotoCapas;
 }
+// En el menú no hay ninguna época "en curso", así que se enseña la de la primera época
+// elegida (con todas puestas, la primera de la lista) y, cuando no hay ninguna o se está
+// filtrando por temática o por continente, la de portada. Decisión de Guillermo
+// (20/11/2026): antes el menú salía liso a propósito, para no descargarle una foto a quien
+// solo asoma la cabeza; prefiere que se vean.
+const FOTO_PORTADA='Antigüedad';
+function fotoDelMenu(){
+  try{
+    if(typeof filterMode!=='undefined'&&filterMode==='epocas'&&
+       typeof selectedCats!=='undefined'&&selectedCats.size&&typeof CAT_KEYS!=='undefined'){
+      const k=CAT_KEYS.find(c=>selectedCats.has(c));
+      if(k&&CAT_FOTO[k])return k;
+    }
+  }catch(e){}
+  return FOTO_PORTADA;
+}
 function setHeaderFoto(cat){
   const h=document.getElementById('site-header');
   if(!h)return;
+  if(cat==='menu')cat=fotoDelMenu();
   const quiere=(CAT_FOTO[cat]&&fotosPermitidas())?cat:null;
   if(quiere===fotoActiva)return;
   fotoActiva=quiere;
